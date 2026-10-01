@@ -105,10 +105,7 @@ export const WorkshopTeaserSection: React.FC<WorkshopTeaserSectionProps> = ({
 
               {/* Hover Badge */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 text-white">
-                <span className="text-[10px] font-mono text-amber-300 uppercase">
-                  {lang === 'vi' ? 'Bấm để mở không gian triển lãm' : 'Click to open gallery'}
-                </span>
-                <p className="text-xs font-bagerich uppercase font-bold text-white">
+                <p className="text-xs font-bagerich uppercase font-bold text-white tracking-widest">
                   3 BỘ WORKSHOP ĐẶC QUYỀN
                 </p>
               </div>

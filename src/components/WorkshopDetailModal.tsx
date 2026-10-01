@@ -1,18 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  X,
-  ChevronLeft,
-  ChevronRight,
-  Heart,
-  MessageCircle,
-  Send,
-  Bookmark,
-  Sparkles,
-  Share2,
-  Check,
-  CheckCircle,
-  ExternalLink
-} from 'lucide-react';
+import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { WorkshopItem } from '../data/workshop';
 import { soundEngine } from '../utils/audio';
 
@@ -30,22 +17,15 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
   lang
 }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [isLiked, setIsLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(2480);
-  const [isSaved, setIsSaved] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
-  const [isCaptionExpanded, setIsCaptionExpanded] = useState(false);
-  const [showHeartPop, setShowHeartPop] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
 
   // Touch swipe support for mobile
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 
-  // Reset slide index when opening a new workshop
+  // Reset slide index when opening
   useEffect(() => {
     setCurrentSlide(0);
-    setIsCaptionExpanded(false);
   }, [workshop?.id, isOpen]);
 
   // Keyboard navigation
@@ -84,40 +64,6 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
     setCurrentSlide((prev) => (prev - 1 + totalSlides) % totalSlides);
   };
 
-  // Double tap to like
-  const handleDoubleTap = () => {
-    if (!isLiked) {
-      setIsLiked(true);
-      setLikesCount((prev) => prev + 1);
-    }
-    setShowHeartPop(true);
-    soundEngine.playFlowerChime(720);
-    setTimeout(() => setShowHeartPop(false), 800);
-  };
-
-  const handleToggleLike = () => {
-    setIsLiked((prev) => {
-      const next = !prev;
-      setLikesCount((c) => (next ? c + 1 : c - 1));
-      if (next) soundEngine.playFlowerChime(640);
-      return next;
-    });
-  };
-
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: `${workshop.titleVi} · JU et Saigon`,
-        text: workshop.editorialQuoteVi,
-        url: window.location.href
-      }).catch(() => {});
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    }
-  };
-
   // Touch swipe handlers
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.targetTouches[0].clientX;
@@ -145,59 +91,37 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/90 backdrop-blur-lg flex items-center justify-center p-2 sm:p-4 animate-fadeIn">
+    <div className="fixed inset-0 z-50 bg-black/92 backdrop-blur-xl flex flex-col justify-between p-4 sm:p-6 animate-fadeIn select-none">
       
-      {/* Instagram Card Container */}
-      <div className="relative w-full max-w-md sm:max-w-lg bg-[#121212] text-[#f5f5f5] rounded-2xl shadow-2xl border border-white/10 overflow-hidden my-auto flex flex-col font-sans">
-        
-        {/* Instagram Header Bar */}
-        <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between bg-[#121212] z-20">
-          <div className="flex items-center gap-3">
-            {/* Avatar */}
-            <div className="w-9 h-9 rounded-full p-[2px] bg-gradient-to-tr from-amber-500 via-rose-500 to-amber-300">
-              <div className="w-full h-full rounded-full bg-black overflow-hidden flex items-center justify-center">
-                <span className="text-xs font-bold text-amber-300 font-mono">JU</span>
-              </div>
-            </div>
-
-            {/* Handle & Verified Badge */}
-            <div>
-              <div className="flex items-center gap-1.5 leading-tight">
-                <span className="text-xs font-bold text-white tracking-wide">juetsaigon</span>
-                <span className="w-3.5 h-3.5 rounded-full bg-[#0095F6] flex items-center justify-center text-white text-[9px] font-bold">
-                  ✓
-                </span>
-                <span className="text-[11px] text-white/50">•</span>
-                <span className="text-[11px] text-[#0095F6] font-semibold cursor-pointer hover:underline">
-                  {lang === 'vi' ? 'Theo dõi' : 'Follow'}
-                </span>
-              </div>
-              <p className="text-[10px] text-white/60 font-mono mt-0.5">
-                JU et Saigon · Botanical Atelier
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-            aria-label="Close Instagram viewer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+      {/* Top Floating Clean Bar */}
+      <div className="w-full max-w-4xl mx-auto flex items-center justify-between text-white border-b border-white/10 pb-3">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-mono tracking-widest uppercase text-amber-300">
+            #{workshop.indexNumber} · {workshop.name}
+          </span>
         </div>
 
-        {/* Instagram Media Stage (Swipeable Photo Carousel) */}
+        <button
+          onClick={onClose}
+          className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors flex items-center gap-1.5 text-xs font-mono uppercase"
+          aria-label="Close photo viewer"
+        >
+          <span className="hidden sm:inline">{lang === 'vi' ? 'Đóng' : 'Close'}</span>
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Main Image Stage (Pure Photo Slider Card) */}
+      <div className="flex-1 flex items-center justify-center py-4 relative my-auto">
         <div
-          className={`relative w-full overflow-hidden bg-black flex items-center justify-center select-none ${
-            isLandscape ? 'aspect-[4/3]' : 'aspect-[3/4]'
+          className={`relative w-full mx-auto rounded-3xl overflow-hidden bg-black shadow-2xl border border-white/10 transition-all duration-300 flex items-center justify-center ${
+            isLandscape ? 'max-w-3xl aspect-[4/3]' : 'max-w-md sm:max-w-lg aspect-[3/4]'
           }`}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          onDoubleClick={handleDoubleTap}
         >
-          {/* Main Photo */}
+          {/* Main High-Res Photo */}
           <img
             key={activeImage.url + currentSlide}
             src={activeImage.url}
@@ -207,156 +131,57 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
             className="w-full h-full object-cover object-center transition-all duration-300 animate-fadeIn"
           />
 
-          {/* Instagram Heart Pop Animation on Double Tap */}
-          {showHeartPop && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none animate-ping">
-              <Heart className="w-24 h-24 text-rose-500 fill-rose-500 drop-shadow-2xl opacity-90" />
-            </div>
-          )}
-
           {/* Left Arrow Button */}
           {totalSlides > 1 && (
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handlePrev();
-              }}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black text-white/90 backdrop-blur-md transition-all opacity-80 hover:opacity-100 hover:scale-110"
+              onClick={handlePrev}
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/50 hover:bg-black/80 text-white/90 backdrop-blur-md transition-all opacity-80 hover:opacity-100 hover:scale-110 flex items-center justify-center shadow-2xl"
               aria-label="Previous photo"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-6 h-6" />
             </button>
           )}
 
           {/* Right Arrow Button */}
           {totalSlides > 1 && (
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleNext();
-              }}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black text-white/90 backdrop-blur-md transition-all opacity-80 hover:opacity-100 hover:scale-110"
+              onClick={handleNext}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/50 hover:bg-black/80 text-white/90 backdrop-blur-md transition-all opacity-80 hover:opacity-100 hover:scale-110 flex items-center justify-center shadow-2xl"
               aria-label="Next photo"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-6 h-6" />
             </button>
           )}
 
-          {/* Instagram Slide Counter Badge (e.g. 1/4) */}
-          <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-[11px] font-mono font-medium text-white/90">
+          {/* Slide Index Badge Top Right (matching 1/4 badge) */}
+          <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-black/70 backdrop-blur-md text-xs font-mono text-white/90 tracking-widest shadow-md">
             {currentSlide + 1}/{totalSlides}
           </div>
         </div>
+      </div>
 
-        {/* Instagram Action Bar & Dot Indicators */}
-        <div className="p-3.5 space-y-2.5 bg-[#121212]">
-          
-          <div className="flex items-center justify-between">
-            {/* Left Icons: Heart, Comment, Share */}
-            <div className="flex items-center gap-4">
+      {/* Bottom Navigation Dots & Minimal Caption */}
+      <div className="w-full max-w-xl mx-auto space-y-2 text-center pt-2">
+        {/* Horizontal Dot Indicators */}
+        {totalSlides > 1 && (
+          <div className="flex items-center justify-center gap-2">
+            {gallery.map((_, idx) => (
               <button
-                onClick={handleToggleLike}
-                className="transition-transform active:scale-125 hover:opacity-80"
-                aria-label="Like photo"
-              >
-                <Heart
-                  className={`w-6 h-6 transition-colors ${
-                    isLiked ? 'text-rose-500 fill-rose-500' : 'text-white'
-                  }`}
-                />
-              </button>
-
-              <a
-                href={workshop.zaloCommunityUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:opacity-80 transition-opacity"
-                title="Tham gia cộng đồng Zalo"
-              >
-                <MessageCircle className="w-6 h-6 text-white" />
-              </a>
-
-              <button
-                onClick={handleShare}
-                className="hover:opacity-80 transition-opacity text-white"
-                title="Chia sẻ"
-              >
-                {isCopied ? <Check className="w-6 h-6 text-emerald-400" /> : <Send className="w-6 h-6" />}
-              </button>
-            </div>
-
-            {/* Center Carousel Dot Indicators (• • • •) */}
-            {totalSlides > 1 && (
-              <div className="flex items-center gap-1.5">
-                {gallery.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentSlide(idx)}
-                    className={`rounded-full transition-all ${
-                      currentSlide === idx
-                        ? 'w-2 h-2 bg-[#0095F6] scale-110 shadow-sm'
-                        : 'w-1.5 h-1.5 bg-white/30 hover:bg-white/60'
-                    }`}
-                    aria-label={`Go to slide ${idx + 1}`}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Right: Bookmark Save Icon */}
-            <button
-              onClick={() => setIsSaved((s) => !s)}
-              className="hover:opacity-80 transition-opacity"
-              aria-label="Save post"
-            >
-              <Bookmark
-                className={`w-6 h-6 transition-colors ${
-                  isSaved ? 'text-white fill-white' : 'text-white'
+                key={idx}
+                onClick={() => {
+                  soundEngine.playFlowerChime(528);
+                  setCurrentSlide(idx);
+                }}
+                className={`rounded-full transition-all ${
+                  currentSlide === idx
+                    ? 'w-2.5 h-2.5 bg-amber-300 scale-110 shadow-sm'
+                    : 'w-1.5 h-1.5 bg-white/30 hover:bg-white/60'
                 }`}
+                aria-label={`Go to slide ${idx + 1}`}
               />
-            </button>
+            ))}
           </div>
-
-          {/* Likes Counter */}
-          <div className="text-xs font-bold text-white tracking-wide">
-            {likesCount.toLocaleString('vi-VN')} {lang === 'vi' ? 'lượt thích' : 'likes'}
-          </div>
-
-          {/* Clean Instagram Caption */}
-          <div className="text-xs text-white/90 leading-relaxed font-normal">
-            <span className="font-bold text-white mr-1.5">juetsaigon</span>
-            <span>
-              {isCaptionExpanded
-                ? workshop.fullContentVi.join(' ')
-                : workshop.editorialQuoteVi}
-            </span>
-
-            {workshop.fullContentVi && workshop.fullContentVi.length > 1 && (
-              <button
-                onClick={() => setIsCaptionExpanded(!isCaptionExpanded)}
-                className="text-white/50 text-[11px] font-medium ml-1.5 hover:text-white"
-              >
-                {isCaptionExpanded ? (lang === 'vi' ? 'thu gọn' : 'less') : (lang === 'vi' ? '...thêm' : '...more')}
-              </button>
-            )}
-          </div>
-
-          {/* Direct Fast Action Link */}
-          <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] font-mono">
-            <span className="text-white/50">📍 31 Nguyễn Trãi, Q.1</span>
-            <a
-              href={workshop.zaloCommunityUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#0095F6] font-bold hover:underline flex items-center gap-1"
-            >
-              <span>Zalo Bloom Daily</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
-          </div>
-
-        </div>
-
+        )}
       </div>
 
     </div>

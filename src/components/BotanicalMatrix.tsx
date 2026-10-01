@@ -58,13 +58,8 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
   return (
     <section id="gallery-matrix" className="max-w-4xl mx-auto px-4 sm:px-6 my-10 relative">
       
-      {/* Visual Instruction hint */}
       <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-widest text-[#141414]/60 mb-3 px-1">
-        <span>COLLECTION ARCHIVE (21 SPECIMENS)</span>
-        <span className="flex items-center gap-1">
-          <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-          <span>{lang === 'vi' ? 'Rê chuột / Lướt cảm ứng để phóng to' : 'Hover / Touch to expand'}</span>
-        </span>
+        <span>COLLECTION ARCHIVE ({flowers.length} SPECIMENS)</span>
       </div>
 
       {/* 3-column mosaic grid with generous padding to prevent card clipping on hover */}
