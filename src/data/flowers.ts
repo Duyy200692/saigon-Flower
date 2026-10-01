@@ -16,6 +16,12 @@ export interface AnatomyPoint {
   descriptionVi: string;
 }
 
+export interface GalleryImage {
+  url: string;
+  captionVi: string;
+  captionEn: string;
+}
+
 export interface FlowerItem {
   id: string;
   indexNumber: string;
@@ -40,6 +46,7 @@ export interface FlowerItem {
   priceVnd: number;
   priceUsd: number;
   image: string;
+  galleryImages: GalleryImage[];
   audioFrequency: number;
   highlight?: boolean;
 }
@@ -123,6 +130,28 @@ export const FLOWERS: FlowerItem[] = [
     priceVnd: 4500000,
     priceUsd: 180,
     image: "/src/assets/images/juet_hyacinth_bridal_1790840743947.jpg",
+    galleryImages: [
+      {
+        url: "/src/assets/images/juet_hyacinth_bridal_1790840743947.jpg",
+        captionVi: "Góc nhìn toàn cảnh bó hoa cưới cầm tay cô dâu",
+        captionEn: "Frontal bridal portrait showcasing crescent form"
+      },
+      {
+        url: "/src/assets/images/juet_bridal_macro_pearls_1790844489242.jpg",
+        captionVi: "Cận cảnh chi tiết chuỗi ngọc trai biển và từng cánh dạ lan",
+        captionEn: "Macro detail of freshwater pearls woven through florets"
+      },
+      {
+        url: "/src/assets/images/juet_white_anemone_1790840892002.jpg",
+        captionVi: "Góc nghiêng điêu khắc cùng chất liệu hoa nhập khẩu",
+        captionEn: "Sculptural profile angle with porcelain white petals"
+      },
+      {
+        url: "/src/assets/images/juet_calla_sculpture_1790840903037.jpg",
+        captionVi: "Kỹ nghệ thắt dải lụa satin Pháp độc quyền tại Atelier",
+        captionEn: "Artisanal silk finishing and architectural stem foundation"
+      }
+    ],
     audioFrequency: 528,
     highlight: true
   },
@@ -175,6 +204,28 @@ export const FLOWERS: FlowerItem[] = [
     priceVnd: 3800000,
     priceUsd: 152,
     image: "/src/assets/images/juet_blush_peony_1790840758164.jpg",
+    galleryImages: [
+      {
+        url: "/src/assets/images/juet_blush_peony_1790840758164.jpg",
+        captionVi: "Góc chụp chính diện hộp hoa trụ nhung sang trọng",
+        captionEn: "Frontal perspective of blush peony cylinder arrangement"
+      },
+      {
+        url: "/src/assets/images/juet_peony_side_angle_1790844501746.jpg",
+        captionVi: "Góc nghiêng nghệ thuật trong không gian nội thất tối giản",
+        captionEn: "Side angle view styled on modern travertine console table"
+      },
+      {
+        url: "/src/assets/images/juet_golden_chrysanthemum_1790840878623.jpg",
+        captionVi: "Chi tiết xếp lớp các tầng cánh hoa mẫu đơn tự nhiên",
+        captionEn: "Concentric floral layering under soft studio lighting"
+      },
+      {
+        url: "/src/assets/images/juet_poppy_transvaal_1790840799591.jpg",
+        captionVi: "Cận cảnh nụ hoa mao lương đan xen sắc tố hồng dịu",
+        captionEn: "Blush ranunculus spiraling buds and velvety texture"
+      }
+    ],
     audioFrequency: 432,
     highlight: true
   },
@@ -227,6 +278,28 @@ export const FLOWERS: FlowerItem[] = [
     priceVnd: 2800000,
     priceUsd: 112,
     image: "/src/assets/images/juet_sacred_lotus_1790840770921.jpg",
+    galleryImages: [
+      {
+        url: "/src/assets/images/juet_sacred_lotus_1790840770921.jpg",
+        captionVi: "Đóa sen trắng cung đình bung nở dáng thiền tịnh",
+        captionEn: "Full frontal portrait of sacred white lotus in full bloom"
+      },
+      {
+        url: "/src/assets/images/juet_lotus_minimal_table_1790844513685.jpg",
+        captionVi: "Bình sen đặt trên bàn đá tối giản phong cách đương đại",
+        captionEn: "Minimalist ceramic vase styling in contemporary zen space"
+      },
+      {
+        url: "/src/assets/images/juet_calla_sculpture_1790840903037.jpg",
+        captionVi: "Chi tiết đài sen non ngọc bích và nhụy phấn hoa thơm",
+        captionEn: "Jade green seed receptacle and fine botanical filaments"
+      },
+      {
+        url: "/src/assets/images/juet_white_anemone_1790840892002.jpg",
+        captionVi: "Kỹ thuật gấp cánh hoa sen ngọc thủ công tại Atelier",
+        captionEn: "Handcrafted petal folding technique ensuring sculptural longevity"
+      }
+    ],
     audioFrequency: 639,
     highlight: true
   },
@@ -270,6 +343,28 @@ export const FLOWERS: FlowerItem[] = [
     priceVnd: 5200000,
     priceUsd: 210,
     image: "/src/assets/images/juet_surreal_orchid_1790840788413.jpg",
+    galleryImages: [
+      {
+        url: "/src/assets/images/juet_surreal_orchid_1790840788413.jpg",
+        captionVi: "Góc nhìn điêu khắc thân cây uốn lượn phong cách Ondrej Zunka",
+        captionEn: "Sculptural twisted branch framework and cobalt blooms"
+      },
+      {
+        url: "/src/assets/images/juet_orchid_macro_stamen_1790844525372.jpg",
+        captionVi: "Cận cảnh gân hoa lan Vanda phát quang và nhị vàng óng",
+        captionEn: "Macro close-up of luminous blue petal venation and golden stamen"
+      },
+      {
+        url: "/src/assets/images/juet_blue_iris_1790840866986.jpg",
+        captionVi: "Sự kết hợp sắc lam hoàng gia và bóng tối huyền ảo",
+        captionEn: "Royal midnight indigo chromatic depth under studio key light"
+      },
+      {
+        url: "/src/assets/images/juet_calla_sculpture_1790840903037.jpg",
+        captionVi: "Cấu trúc chân đế gỗ mun nguyên khối vững chãi",
+        captionEn: "Solid blackened architectural wood base craftsmanship"
+      }
+    ],
     audioFrequency: 741,
     highlight: true
   },
@@ -322,6 +417,28 @@ export const FLOWERS: FlowerItem[] = [
     priceVnd: 3400000,
     priceUsd: 136,
     image: "/src/assets/images/juet_poppy_transvaal_1790840799591.jpg",
+    galleryImages: [
+      {
+        url: "/src/assets/images/juet_poppy_transvaal_1790840799591.jpg",
+        captionVi: "Góc chụp chính diện đóa anh túc đỏ và thân xoắn",
+        captionEn: "Frontal botanical portrait of heliotropic scarlet bloom"
+      },
+      {
+        url: "/src/assets/images/juet_golden_chrysanthemum_1790840878623.jpg",
+        captionVi: "Cận cảnh chất nhung cánh hoa và nhụy đen nổi bật",
+        captionEn: "Macro detail of velvet crinkled petal texture and dark core"
+      },
+      {
+        url: "/src/assets/images/juet_calla_sculpture_1790840903037.jpg",
+        captionVi: "Đường cong cành xoắn định hình không gian nghệ thuật",
+        captionEn: "Sinuous stem curvature creating dynamic negative space"
+      },
+      {
+        url: "/src/assets/images/juet_surreal_orchid_1790840788413.jpg",
+        captionVi: "Bố cục nghệ thuật trong bóng tối chiaroscuro",
+        captionEn: "Moody chiaroscuro fine art lighting installation"
+      }
+    ],
     audioFrequency: 396,
     highlight: true
   },
@@ -365,6 +482,28 @@ export const FLOWERS: FlowerItem[] = [
     priceVnd: 2900000,
     priceUsd: 116,
     image: "/src/assets/images/juet_blue_iris_1790840866986.jpg",
+    galleryImages: [
+      {
+        url: "/src/assets/images/juet_blue_iris_1790840866986.jpg",
+        captionVi: "Góc chụp chính diện hoa diên vĩ xanh đêm hoàng gia",
+        captionEn: "Frontal portrait of royal blue iris with curving tendrils"
+      },
+      {
+        url: "/src/assets/images/juet_orchid_macro_stamen_1790844525372.jpg",
+        captionVi: "Cận cảnh chi tiết nhung lụa và nhụy hoa vàng rực rỡ",
+        captionEn: "Macro detail of golden beard filaments on velvet falls"
+      },
+      {
+        url: "/src/assets/images/juet_calla_sculpture_1790840903037.jpg",
+        captionVi: "Dáng đứng thanh thoát trong không gian studio",
+        captionEn: "Stately silhouette in curated gallery space"
+      },
+      {
+        url: "/src/assets/images/juet_surreal_orchid_1790840788413.jpg",
+        captionVi: "Nghệ thuật phối màu đơn sắc xanh đêm và tro xám",
+        captionEn: "Monochromatic cobalt and charcoal shadow composition"
+      }
+    ],
     audioFrequency: 852
   },
   {
@@ -407,6 +546,28 @@ export const FLOWERS: FlowerItem[] = [
     priceVnd: 2600000,
     priceUsd: 104,
     image: "/src/assets/images/juet_golden_chrysanthemum_1790840878623.jpg",
+    galleryImages: [
+      {
+        url: "/src/assets/images/juet_golden_chrysanthemum_1790840878623.jpg",
+        captionVi: "Góc chụp chính diện quả cầu hoa cúc mẫu đơn hoàng kim",
+        captionEn: "Frontal view of spherical golden spider mum"
+      },
+      {
+        url: "/src/assets/images/juet_peony_side_angle_1790844501746.jpg",
+        captionVi: "Ánh sáng tự nhiên làm nổi bật các sợi cánh vàng óng",
+        captionEn: "Warm ambient daylight catching golden amber petals"
+      },
+      {
+        url: "/src/assets/images/juet_poppy_transvaal_1790840799591.jpg",
+        captionVi: "Cận cảnh tâm nhụy và các vòng cánh hoa đồng tâm",
+        captionEn: "Macro detail of concentric quill petal matrix"
+      },
+      {
+        url: "/src/assets/images/juet_calla_sculpture_1790840903037.jpg",
+        captionVi: "Bình hoa cúc mẫu đơn đặt trong phòng khách sang trọng",
+        captionEn: "Luxury interior centerpiece presentation"
+      }
+    ],
     audioFrequency: 528
   },
   {
@@ -449,6 +610,28 @@ export const FLOWERS: FlowerItem[] = [
     priceVnd: 3200000,
     priceUsd: 128,
     image: "/src/assets/images/juet_white_anemone_1790840892002.jpg",
+    galleryImages: [
+      {
+        url: "/src/assets/images/juet_white_anemone_1790840892002.jpg",
+        captionVi: "Góc chụp chính diện hoa phong quỳ trắng tâm đen",
+        captionEn: "Frontal portrait of high-contrast white anemone"
+      },
+      {
+        url: "/src/assets/images/juet_calla_sculpture_1790840903037.jpg",
+        captionVi: "Cận cảnh độ mỏng như lụa của cánh hoa sứ",
+        captionEn: "Macro detail of paper-thin porcelain petal texture"
+      },
+      {
+        url: "/src/assets/images/juet_bridal_macro_pearls_1790844489242.jpg",
+        captionVi: "Chi tiết đĩa nhụy đen obsidian tương phản",
+        captionEn: "Obsidian velvet center disc close-up"
+      },
+      {
+        url: "/src/assets/images/juet_lotus_minimal_table_1790844513685.jpg",
+        captionVi: "Thân cây uốn lượn phong cách điêu khắc Art Gallery",
+        captionEn: "Sculptural twisted branch framing and silhouette"
+      }
+    ],
     audioFrequency: 963
   },
   {
@@ -491,6 +674,28 @@ export const FLOWERS: FlowerItem[] = [
     priceVnd: 3600000,
     priceUsd: 144,
     image: "/src/assets/images/juet_calla_sculpture_1790840903037.jpg",
+    galleryImages: [
+      {
+        url: "/src/assets/images/juet_calla_sculpture_1790840903037.jpg",
+        captionVi: "Góc chụp chính diện hoa rum trắng và khung cành hình học",
+        captionEn: "Frontal view of sculptural calla lily in geometric frame"
+      },
+      {
+        url: "/src/assets/images/juet_lotus_minimal_table_1790844513685.jpg",
+        captionVi: "Đường cong phễu hoa màu kem sữa mềm mại",
+        captionEn: "Fluid curvature of ivory spathe funnel"
+      },
+      {
+        url: "/src/assets/images/juet_white_anemone_1790840892002.jpg",
+        captionVi: "Cận cảnh trụ phấn vàng thanh tú bên trong",
+        captionEn: "Macro detail of central golden spadix"
+      },
+      {
+        url: "/src/assets/images/juet_bridal_macro_pearls_1790844489242.jpg",
+        captionVi: "Khung kim loại điêu khắc uốn tay tinh xảo",
+        captionEn: "Handcrafted architectural wire mesh structure"
+      }
+    ],
     audioFrequency: 432
   },
   {
@@ -533,6 +738,28 @@ export const FLOWERS: FlowerItem[] = [
     priceVnd: 2700000,
     priceUsd: 108,
     image: "/src/assets/images/juet_surreal_orchid_1790840788413.jpg",
+    galleryImages: [
+      {
+        url: "/src/assets/images/juet_surreal_orchid_1790840788413.jpg",
+        captionVi: "Góc chụp chính diện loài hoa xám khói huyền bí",
+        captionEn: "Frontal view of ash-toned rare botanical specimen"
+      },
+      {
+        url: "/src/assets/images/juet_orchid_macro_stamen_1790844525372.jpg",
+        captionVi: "Cận cảnh túi tinh dầu tự nhiên thơm ngát",
+        captionEn: "Macro detail of aroma-secreting resin glands"
+      },
+      {
+        url: "/src/assets/images/juet_blue_iris_1790840866986.jpg",
+        captionVi: "Sắc thái huyền ảo trong bóng tối tĩnh lặng",
+        captionEn: "Smoky chiaroscuro shadow play"
+      },
+      {
+        url: "/src/assets/images/juet_calla_sculpture_1790840903037.jpg",
+        captionVi: "Dáng cành điêu khắc độc bản tại Atelier",
+        captionEn: "Architectural branch arrangement profile"
+      }
+    ],
     audioFrequency: 528
   },
   {
@@ -575,6 +802,28 @@ export const FLOWERS: FlowerItem[] = [
     priceVnd: 4200000,
     priceUsd: 168,
     image: "/src/assets/images/juet_poppy_transvaal_1790840799591.jpg",
+    galleryImages: [
+      {
+        url: "/src/assets/images/juet_poppy_transvaal_1790840799591.jpg",
+        captionVi: "Bó hoa hồng đen nhung quý phái",
+        captionEn: "Frontal portrait of Black Baccara luxury bouquet"
+      },
+      {
+        url: "/src/assets/images/juet_golden_chrysanthemum_1790840878623.jpg",
+        captionVi: "Cận cảnh chất nhung đen đậm sắc đỏ rượu vang",
+        captionEn: "Macro detail of velvety burgundy-black rose petals"
+      },
+      {
+        url: "/src/assets/images/juet_calla_sculpture_1790840903037.jpg",
+        captionVi: "Dải lụa tơ tằm nguyên bản thắt thủ công",
+        captionEn: "Hand-tied silk cord and wrapping craftsmanship"
+      },
+      {
+        url: "/src/assets/images/juet_surreal_orchid_1790840788413.jpg",
+        captionVi: "Ánh sáng studio làm nổi bật nét huyền bí",
+        captionEn: "Chiaroscuro studio spotlighting on dark petals"
+      }
+    ],
     audioFrequency: 639
   },
   {
@@ -617,6 +866,28 @@ export const FLOWERS: FlowerItem[] = [
     priceVnd: 2400000,
     priceUsd: 96,
     image: "/src/assets/images/juet_blush_peony_1790840758164.jpg",
+    galleryImages: [
+      {
+        url: "/src/assets/images/juet_blush_peony_1790840758164.jpg",
+        captionVi: "Góc chụp chính diện bó hoa mao lương mây trắng",
+        captionEn: "Frontal view of fluffy pastel ranunculus arrangement"
+      },
+      {
+        url: "/src/assets/images/juet_peony_side_angle_1790844501746.jpg",
+        captionVi: "Góc nghiêng bồng bềnh trong không gian phòng ngủ",
+        captionEn: "Side angle perspective in soft morning natural light"
+      },
+      {
+        url: "/src/assets/images/juet_golden_chrysanthemum_1790840878623.jpg",
+        captionVi: "Cận cảnh sợi bông gòn tự nhiên và cánh hoa mềm",
+        captionEn: "Macro detail of organic raw cotton and layered petals"
+      },
+      {
+        url: "/src/assets/images/juet_white_anemone_1790840892002.jpg",
+        captionVi: "Chi tiết bao gói tinh tế đặc trưng JU et Saigon",
+        captionEn: "Signature JU et Saigon wrapper presentation"
+      }
+    ],
     audioFrequency: 432
   }
 ];

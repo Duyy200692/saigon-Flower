@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { FLOWERS, FlowerItem, ATELIER_DATA } from './data/flowers';
 import { soundEngine } from './utils/audio';
 
@@ -12,7 +12,6 @@ import { HeroSection } from './components/HeroSection';
 import { BotanicalMatrix } from './components/BotanicalMatrix';
 import { ActionLinks } from './components/ActionLinks';
 import { ManifestoSection } from './components/ManifestoSection';
-import { BotanicalFeed } from './components/BotanicalFeed';
 import { IndexSlideOver } from './components/IndexSlideOver';
 import { FlowerDetailModal } from './components/FlowerDetailModal';
 import { BespokeOrderModal } from './components/BespokeOrderModal';
@@ -39,19 +38,29 @@ export default function App() {
     setIsAudioPlaying(newState);
   };
 
-  // When clicking on a flower in matrix or feed
+  // When clicking on a flower in matrix: immediately open sub-tag modal!
   const handleSelectFlower = (flower: FlowerItem) => {
-    const el = document.getElementById(flower.id);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-      setInspectedFlower(flower);
-    }
-  };
-
-  const handleInspectFlower = (flower: FlowerItem) => {
     soundEngine.playFlowerChime(flower.audioFrequency);
     setInspectedFlower(flower);
+  };
+
+  // Next & Previous flower navigation inside sub-tag modal
+  const handleNextFlower = () => {
+    if (!inspectedFlower) return;
+    const currentIndex = FLOWERS.findIndex((f) => f.id === inspectedFlower.id);
+    const nextIndex = (currentIndex + 1) % FLOWERS.length;
+    const nextFlower = FLOWERS[nextIndex];
+    soundEngine.playFlowerChime(nextFlower.audioFrequency);
+    setInspectedFlower(nextFlower);
+  };
+
+  const handlePrevFlower = () => {
+    if (!inspectedFlower) return;
+    const currentIndex = FLOWERS.findIndex((f) => f.id === inspectedFlower.id);
+    const prevIndex = (currentIndex - 1 + FLOWERS.length) % FLOWERS.length;
+    const prevFlower = FLOWERS[prevIndex];
+    soundEngine.playFlowerChime(prevFlower.audioFrequency);
+    setInspectedFlower(prevFlower);
   };
 
   const handleOrderFlower = (flower: FlowerItem) => {
@@ -89,7 +98,7 @@ export default function App() {
           onOpenCredits={() => setIsCreditsOpen(true)}
         />
 
-        {/* 3-Column Botanical Matrix Gallery matching Image 1 */}
+        {/* 3-Column Botanical Matrix Gallery (Clicking opens sub-tag popup) */}
         <BotanicalMatrix
           flowers={FLOWERS}
           lang={lang}
@@ -108,14 +117,6 @@ export default function App() {
           lang={lang}
           onOpenOrder={handleOpenGeneralOrder}
           onOpenAtelier={() => setIsAtelierOpen(true)}
-        />
-
-        {/* Vertical Botanical Monographs Continuous Feed matching Image 1 */}
-        <BotanicalFeed
-          flowers={FLOWERS}
-          lang={lang}
-          onInspectFlower={handleInspectFlower}
-          onOrderFlower={handleOrderFlower}
         />
 
       </main>
@@ -148,12 +149,15 @@ export default function App() {
         onSelectFlower={handleSelectFlower}
       />
 
+      {/* Interactive Sub-Tag Modal for viewing details and photo */}
       <FlowerDetailModal
         flower={inspectedFlower}
         isOpen={!!inspectedFlower}
         onClose={() => setInspectedFlower(null)}
         lang={lang}
         onOrderFlower={handleOrderFlower}
+        onNext={handleNextFlower}
+        onPrev={handlePrevFlower}
       />
 
       <BespokeOrderModal
