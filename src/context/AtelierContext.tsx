@@ -13,6 +13,7 @@ interface AtelierContextType {
   addFlower: (flower: Omit<FlowerItem, 'id' | 'indexNumber'>) => void;
   updateFlower: (id: string, flower: Partial<FlowerItem>) => void;
   deleteFlower: (id: string) => void;
+  togglePinFlower: (id: string) => void;
   addWorkshop: (workshop: Omit<WorkshopItem, 'id' | 'indexNumber'>) => void;
   updateWorkshop: (id: string, workshop: Partial<WorkshopItem>) => void;
   deleteWorkshop: (id: string) => void;
@@ -35,15 +36,20 @@ const DEFAULT_ADMIN_PASS = 'juetsaigon2026';
 
 export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [flowers, setFlowers] = useState<FlowerItem[]>(() => {
+    let list: FlowerItem[] = FLOWERS;
     const saved = localStorage.getItem(STORAGE_KEYS.FLOWERS);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        list = JSON.parse(saved);
       } catch (e) {
         console.error('Failed to parse saved flowers', e);
       }
     }
-    return FLOWERS;
+    // Ensure pinnedToLanding property exists; default top 12 to true if not explicitly set
+    return list.map((item, idx) => ({
+      ...item,
+      pinnedToLanding: item.pinnedToLanding !== undefined ? item.pinnedToLanding : idx < 12
+    }));
   });
 
   const [workshops, setWorkshops] = useState<WorkshopItem[]>(() => {
@@ -143,6 +149,12 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
   };
 
+  const togglePinFlower = (id: string) => {
+    setFlowers((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, pinnedToLanding: !f.pinnedToLanding } : f))
+    );
+  };
+
   // Workshop CRUD
   const addWorkshop = (workshopData: Omit<WorkshopItem, 'id' | 'indexNumber'>) => {
     const nextIdx = String(workshops.length + 1).padStart(2, '0');
@@ -203,6 +215,7 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
         addFlower,
         updateFlower,
         deleteFlower,
+        togglePinFlower,
         addWorkshop,
         updateWorkshop,
         deleteWorkshop,

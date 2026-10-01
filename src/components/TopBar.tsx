@@ -58,9 +58,12 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Zone 2: 4-6 Clean Text Navigation Links */}
         <nav className="hidden md:flex items-center gap-7 text-xs font-semibold tracking-widest uppercase text-[#141414]/75">
-          <a href="#gallery-matrix" className="hover:text-[#141414] transition-colors">
-            {lang === 'vi' ? 'Bộ Sưu Tập' : 'Gallery Matrix'}
-          </a>
+          <button
+            onClick={onOpenIndex}
+            className="hover:text-[#141414] transition-colors text-left"
+          >
+            {lang === 'vi' ? 'Bộ Sưu Tập' : 'Collection Archive'}
+          </button>
           {onOpenWorkshop ? (
             <button
               onClick={onOpenWorkshop}

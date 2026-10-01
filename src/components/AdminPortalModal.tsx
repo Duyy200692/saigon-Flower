@@ -16,7 +16,8 @@ import {
   FileCheck,
   Layers,
   Sliders,
-  Maximize2
+  Maximize2,
+  Pin
 } from 'lucide-react';
 import { useAtelier } from '../context/AtelierContext';
 import { FlowerItem } from '../data/flowers';
@@ -43,7 +44,10 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     addFlower,
     updateFlower,
     deleteFlower,
+    togglePinFlower,
+    addWorkshop,
     updateWorkshop,
+    deleteWorkshop,
     updateAtelierData,
     updateLogoUrl,
     resetAllData
@@ -59,6 +63,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   
   // Workshop Editing State
   const [editingWorkshop, setEditingWorkshop] = useState<WorkshopItem | null>(null);
+  const [isAddingWorkshop, setIsAddingWorkshop] = useState(false);
   const [workshopForm, setWorkshopForm] = useState<Partial<WorkshopItem>>({});
   
   // Branding Form State
@@ -168,11 +173,43 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     }
   };
 
+  // Handle Workshop Gallery Image Upload (4 Angles)
+  const handleWorkshopGalleryImageUpload = async (idx: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setCompressing(true);
+      const result = await compressAndConvertToWebP(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.85 });
+      setWorkshopForm((prev) => {
+        const currentGallery = [...(prev.galleryImages || [])];
+        while (currentGallery.length <= idx) {
+          currentGallery.push({ url: '', captionVi: '', captionEn: '' });
+        }
+        currentGallery[idx] = {
+          url: result.webpDataUrl,
+          captionVi: currentGallery[idx]?.captionVi || `Góc ảnh #${idx + 1}`,
+          captionEn: currentGallery[idx]?.captionEn || `Angle photo #${idx + 1}`
+        };
+        return { ...prev, galleryImages: currentGallery };
+      });
+      setLastCompression(result);
+    } catch (err) {
+      console.error(err);
+      alert('Lỗi khi nén ảnh góc chụp workshop.');
+    } finally {
+      setCompressing(false);
+    }
+  };
+
   // Open Flower Editor
   const startEditFlower = (flower: FlowerItem) => {
     setEditingFlower(flower);
     setIsAddingFlower(false);
-    setFlowerForm(JSON.parse(JSON.stringify(flower)));
+    setFlowerForm({
+      ...JSON.parse(JSON.stringify(flower)),
+      pinnedToLanding: flower.pinnedToLanding !== false
+    });
     setLastCompression(null);
   };
 
@@ -186,6 +223,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       category: "bridal",
       categoryLabelEn: "Bridal Haute Couture",
       categoryLabelVi: "Hoa Cưới Độc Bản",
+      pinnedToLanding: true,
       shortDescriptionVi: "Mô tả ngắn gọn về tác phẩm hoa.",
       shortDescriptionEn: "Bespoke floral creation.",
       storyVi: "Câu chuyện và cảm hứng sáng tạo của tác phẩm.",
@@ -233,17 +271,75 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   // Open Workshop Editor
   const startEditWorkshop = (ws: WorkshopItem) => {
     setEditingWorkshop(ws);
+    setIsAddingWorkshop(false);
     setWorkshopForm(JSON.parse(JSON.stringify(ws)));
+    setLastCompression(null);
+  };
+
+  const startAddWorkshop = () => {
+    setIsAddingWorkshop(true);
+    setEditingWorkshop(null);
+    setWorkshopForm({
+      name: "BOUQUET SALON",
+      latinMonographName: "Atelier Botanica Nova",
+      titleVi: "WORKSHOP CẮM HOA NGHỆ THUẬT: SẮC MÀU THIÊN NHIÊN",
+      titleEn: "BESPOKE BOTANICAL FLORAL WORKSHOP",
+      subtitleVi: "Trải nghiệm mới mẻ · Gắn kết tự nhiên · Thảnh thơi tuyệt đối",
+      subtitleEn: "A mindful sensory floral journey",
+      editorialQuoteVi: "Một buổi chiều đắm mình cùng hoa lá giúp tái tạo nguồn năng lượng tươi mới sau chuỗi ngày bận rộn.",
+      editorialQuoteEn: "An afternoon immersed in blooming stems restores vitality and cultivates harmony.",
+      descriptionVi: "Trọn gói từ ý tưởng đến thực thi hoa tươi nhập khẩu và dụng cụ chuyên nghiệp.",
+      descriptionEn: "Turnkey setup delivered directly with imported stems.",
+      fullContentVi: [
+        "Một buổi workshop cắm hoa nghệ thuật mang lại trải nghiệm tinh tế, nhẹ nhàng và dễ dàng thực hiện ngay tại văn phòng hoặc không gian chỉ định.",
+        "Mọi khâu từ ý tưởng đến thực thi đều được JU đảm nhận trọn gói, giúp người tham gia hoàn toàn thảnh thơi.",
+        "Khép lại ngày bận rộn bằng những khoảnh khắc thư thả và ngập tràn cảm hứng cùng cỏ hoa."
+      ],
+      fullContentEn: [
+        "An artisanal floral workshop offers an intimate, mindful experience.",
+        "Every single step from materials to facilitation is fully managed by JU et Saigon.",
+        "Conclude your busy week with inspiring, restorative memories."
+      ],
+      highlightsVi: [
+        "Trọn gói từ A-Z (hoa tươi nhập khẩu, kéo đồng, bình gốm, tạp dề linen)",
+        "Tổ chức linh hoạt ngay tại văn phòng công ty hoặc tại Atelier JU et Saigon",
+        "Có giảng viên hướng dẫn chuyên môn và hỗ trợ từng học viên"
+      ],
+      highlightsEn: [
+        "All-inclusive turnkey setup",
+        "Flexible location at your office or JU Atelier"
+      ],
+      duration: "1.5 – 2.0 Giờ",
+      groupSize: "10 – 50+ Pax",
+      locationVi: "Tận nơi tại Văn phòng đối tác hoặc Lầu 1, 31 Nguyễn Trãi, Q.1",
+      locationEn: "On-site at partner office or Atelier 31 Nguyen Trai, D.1",
+      pricePerPaxVnd: 750000,
+      pricePerPaxUsd: 30,
+      zaloCommunityUrl: "https://zalo.me/g/juetsaigon",
+      hotline: "090 936 80 80",
+      image: "/src/assets/images/juet_workshop_hero_1790840742512.jpg",
+      galleryImages: [
+        { url: "/src/assets/images/juet_workshop_hero_1790840742512.jpg", captionVi: "Toàn cảnh workshop", captionEn: "Overview" },
+        { url: "/src/assets/images/juet_workshop_ranunculus_1790840772583.jpg", captionVi: "Học viên trải nghiệm cắm hoa", captionEn: "Hands-on experience" },
+        { url: "/src/assets/images/juet_workshop_peony_1790840786968.jpg", captionVi: "Tác phẩm hoàn thiện", captionEn: "Finished floral piece" },
+        { url: "/src/assets/images/juet_workshop_autumn_1790840801831.jpg", captionVi: "Không gian workshop ấm áp", captionEn: "Warm atelier ambiance" }
+      ]
+    });
     setLastCompression(null);
   };
 
   // Save Workshop
   const handleSaveWorkshop = (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingWorkshop) {
+    if (isAddingWorkshop) {
+      addWorkshop(workshopForm as Omit<WorkshopItem, 'id' | 'indexNumber'>);
+      alert('Đã thêm workshop mới thành công!');
+    } else if (editingWorkshop) {
       updateWorkshop(editingWorkshop.id, workshopForm);
+      alert('Đã cập nhật workshop thành công!');
     }
     setEditingWorkshop(null);
+    setIsAddingWorkshop(false);
   };
 
   // Save Branding
@@ -532,8 +628,34 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       </div>
                     </div>
 
-                    {/* Category & Pricing */}
-                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                    {/* Landing Page Pin Feature Card */}
+                    <div className="p-4 bg-amber-400/10 border border-amber-400/30 rounded-xl flex items-center justify-between">
+                      <div className="space-y-1">
+                        <label className="font-bold text-amber-300 text-sm flex items-center gap-2.5 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={flowerForm.pinnedToLanding !== false}
+                            onChange={(e) => setFlowerForm((prev) => ({ ...prev, pinnedToLanding: e.target.checked }))}
+                            className="w-4 h-4 accent-amber-400 rounded cursor-pointer"
+                          />
+                          <span className="flex items-center gap-1.5 font-mono uppercase tracking-wide">
+                            <Pin className="w-3.5 h-3.5 fill-amber-300" />
+                            Ghim tác phẩm lên Landing Page (Lưới 12 sản phẩm nổi bật)
+                          </span>
+                        </label>
+                        <p className="text-[11px] text-white/70 pl-6">
+                          Khi bật, hệ thống sẽ đưa tác phẩm vào lưới 12 tuyệt tác tiêu biểu tại trang chủ. Toàn bộ các tác phẩm khác vẫn hiển thị đầy đủ trong "Bộ Sưu Tập" theo từng mùa và danh mục.
+                        </p>
+                      </div>
+                      <span className={`px-2.5 py-1 rounded text-xs font-mono font-bold uppercase ${
+                        flowerForm.pinnedToLanding !== false ? 'bg-amber-400 text-black' : 'bg-white/10 text-white/40'
+                      }`}>
+                        {flowerForm.pinnedToLanding !== false ? 'Đang Ghim' : 'Không Ghim'}
+                      </span>
+                    </div>
+
+                    {/* Category & Pricing & Seasonality */}
+                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
                       <div>
                         <label className="font-bold text-white block mb-1">Danh Mục Phân Loại</label>
                         <select
@@ -551,6 +673,17 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                           <option value="rare-stems">Cành Hoa Quý Hiếm (Rare Stems)</option>
                           <option value="seasonal">Bộ Sưu Tập Mùa (Seasonal)</option>
                         </select>
+                      </div>
+
+                      <div>
+                        <label className="font-bold text-white block mb-1">Mùa Trong Năm (Season)</label>
+                        <input
+                          type="text"
+                          placeholder="VD: Quanh năm, Mùa Xuân, Mùa Thu..."
+                          value={flowerForm.seasonality || 'Quanh năm (Year-Round)'}
+                          onChange={(e) => setFlowerForm((prev) => ({ ...prev, seasonality: e.target.value }))}
+                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none text-xs"
+                        />
                       </div>
 
                       <div>
@@ -650,59 +783,94 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       />
                     </div>
 
-                    <button
-                      onClick={startAddFlower}
-                      className="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#141414] font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md whitespace-nowrap"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Thêm Tác Phẩm Mới</span>
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-400/10 border border-amber-400/20 text-xs font-mono text-amber-300">
+                        <Pin className="w-3.5 h-3.5 fill-amber-300" />
+                        <span>Đang ghim: {flowers.filter(f => f.pinnedToLanding !== false).length} tác phẩm</span>
+                      </div>
+
+                      <button
+                        onClick={startAddFlower}
+                        className="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#141414] font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md whitespace-nowrap"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Thêm Tác Phẩm Mới</span>
+                      </button>
+                    </div>
                   </div>
 
                   {/* Grid of Flowers */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredFlowers.map((f) => (
-                      <div
-                        key={f.id}
-                        className="bg-[#1e1f1c] rounded-xl p-3.5 border border-white/10 flex gap-3 items-center group hover:border-white/30 transition-all"
-                      >
-                        <div className="w-16 h-20 rounded-lg overflow-hidden bg-black flex-shrink-0">
-                          <img src={f.image} alt={f.name} className="w-full h-full object-cover" />
-                        </div>
+                    {filteredFlowers.map((f) => {
+                      const isPinned = f.pinnedToLanding !== false;
 
-                        <div className="flex-1 min-w-0">
-                          <span className="text-[10px] font-mono text-amber-400">#{f.indexNumber}</span>
-                          <h4 className="font-bagerich font-bold text-sm uppercase text-white truncate">
-                            {f.name}
-                          </h4>
-                          <p className="text-xs text-white/70 truncate">{f.vietnameseName}</p>
-                          <p className="text-xs font-mono font-bold text-white/90 mt-1">
-                            {f.priceVnd.toLocaleString('vi-VN')} VND
-                          </p>
-                        </div>
+                      return (
+                        <div
+                          key={f.id}
+                          className="bg-[#1e1f1c] rounded-xl p-3.5 border border-white/10 flex gap-3 items-center group hover:border-white/30 transition-all relative overflow-hidden"
+                        >
+                          <div className="w-16 h-20 rounded-lg overflow-hidden bg-black flex-shrink-0 relative">
+                            <img src={f.image} alt={f.name} className="w-full h-full object-cover" />
+                            {isPinned && (
+                              <div className="absolute top-1 left-1 bg-amber-400 text-black p-0.5 rounded shadow">
+                                <Pin className="w-2.5 h-2.5 fill-black" />
+                              </div>
+                            )}
+                          </div>
 
-                        <div className="flex flex-col gap-1.5">
-                          <button
-                            onClick={() => startEditFlower(f)}
-                            className="p-2 rounded-lg bg-white/10 hover:bg-amber-400 hover:text-[#141414] text-white transition-colors"
-                            title="Chỉnh sửa tác phẩm"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (window.confirm(`Bạn có chắc muốn xóa tác phẩm "${f.name}"?`)) {
-                                deleteFlower(f.id);
-                              }
-                            }}
-                            className="p-2 rounded-lg bg-red-950/60 hover:bg-red-800 text-red-300 transition-colors"
-                            title="Xóa tác phẩm"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-mono text-amber-400">#{f.indexNumber}</span>
+                              {isPinned && (
+                                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                                  Ghim Landing
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="font-bagerich font-bold text-sm uppercase text-white truncate">
+                              {f.name}
+                            </h4>
+                            <p className="text-xs text-white/70 truncate">{f.vietnameseName}</p>
+                            <p className="text-xs font-mono font-bold text-white/90 mt-1">
+                              {f.priceVnd.toLocaleString('vi-VN')} VND
+                            </p>
+                          </div>
+
+                          <div className="flex flex-col gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => togglePinFlower(f.id)}
+                              className={`p-2 rounded-lg transition-colors ${
+                                isPinned
+                                  ? 'bg-amber-400 text-[#141414] hover:bg-amber-300 shadow-sm'
+                                  : 'bg-white/5 hover:bg-white/20 text-white/40 hover:text-white'
+                              }`}
+                              title={isPinned ? "Bỏ ghim khỏi Landing Page" : "Ghim lên Landing Page"}
+                            >
+                              <Pin className={`w-3.5 h-3.5 ${isPinned ? 'fill-current' : ''}`} />
+                            </button>
+                            <button
+                              onClick={() => startEditFlower(f)}
+                              className="p-2 rounded-lg bg-white/10 hover:bg-amber-400 hover:text-[#141414] text-white transition-colors"
+                              title="Chỉnh sửa tác phẩm"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`Bạn có chắc muốn xóa tác phẩm "${f.name}"?`)) {
+                                  deleteFlower(f.id);
+                                }
+                              }}
+                              className="p-2 rounded-lg bg-red-950/60 hover:bg-red-800 text-red-300 transition-colors"
+                              title="Xóa tác phẩm"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -712,16 +880,24 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           {/* TAB 2: WORKSHOPS CRUD */}
           {activeTab === 'workshops' && (
             <div className="space-y-6">
-              {editingWorkshop ? (
+              {(editingWorkshop || isAddingWorkshop) ? (
                 <div className="bg-[#1e1f1c] rounded-2xl p-6 border border-white/15 space-y-6 animate-fadeIn">
                   <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                    <h3 className="text-xl font-bagerich font-bold uppercase text-white">
-                      CHỈNH SỬA WORKSHOP: {workshopForm.name}
-                    </h3>
+                    <div>
+                      <span className="text-[10px] font-mono tracking-widest uppercase text-amber-400 block">
+                        {isAddingWorkshop ? 'MODULE WORKSHOP MỚI' : `CHỈNH SỬA WORKSHOP #${workshopForm.indexNumber || '01'}`}
+                      </span>
+                      <h3 className="text-xl font-bagerich font-bold uppercase text-white mt-0.5">
+                        {isAddingWorkshop ? 'THÊM WORKSHOP MỚI VÀO BỘ SƯU TẬP' : `CHỈNH SỬA: ${workshopForm.name}`}
+                      </h3>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => setEditingWorkshop(null)}
-                      className="px-3 py-1.5 rounded-lg bg-white/10 text-xs hover:bg-white/20 transition-all font-mono"
+                      onClick={() => {
+                        setEditingWorkshop(null);
+                        setIsAddingWorkshop(false);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-white/10 text-xs hover:bg-white/20 transition-all font-mono text-white"
                     >
                       Quay Lại
                     </button>
@@ -729,39 +905,139 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
                   <form onSubmit={handleSaveWorkshop} className="space-y-6 text-xs font-sans">
                     
+                    {/* Auto-Compression WebP Alert */}
+                    {lastCompression && (
+                      <div className="p-3 bg-emerald-950/70 border border-emerald-500/40 rounded-xl text-emerald-200 flex items-center gap-3 font-mono">
+                        <FileCheck className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                        <div>
+                          <p className="font-bold">Ảnh workshop đã tự động nén sang .WebP thành công!</p>
+                          <p className="text-[11px] opacity-80">
+                            Gốc: {formatFileSize(lastCompression.originalSize)} → WebP: {formatFileSize(lastCompression.compressedSize)} (Tiết kiệm {lastCompression.compressionRatio}%)
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Image Uploader for Workshop with Auto WebP */}
                     <div className="p-4 bg-black/40 rounded-xl border border-white/10 space-y-3">
-                      <label className="font-mono uppercase text-[11px] font-bold text-amber-300 block">
-                        ẢNH POSTER WORKSHOP (TỰ ĐỘNG NÉN SANG .WEBP)
-                      </label>
+                      <div className="flex items-center justify-between">
+                        <label className="font-mono uppercase text-[11px] font-bold text-amber-300 block">
+                          1. ẢNH POSTER ĐẠI DIỆN WORKSHOP (TỰ ĐỘNG NÉN SANG .WEBP)
+                        </label>
+                        {compressing && (
+                          <span className="text-amber-400 font-mono text-[11px] animate-pulse">
+                            Đang xử lý & nén ảnh sang WebP...
+                          </span>
+                        )}
+                      </div>
+
                       <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
                         <div className="sm:col-span-4 aspect-[3/4] max-w-[160px] rounded-lg overflow-hidden border border-white/20 bg-black">
                           <img src={workshopForm.image} alt="Workshop Poster" className="w-full h-full object-cover" />
                         </div>
-                        <div className="sm:col-span-8">
+                        <div className="sm:col-span-8 space-y-3">
                           <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-white/20 rounded-xl hover:border-amber-400/60 bg-white/5 cursor-pointer transition-colors">
                             <Upload className="w-6 h-6 text-amber-300 mb-2" />
                             <span className="font-bold text-white text-xs">
                               Chọn ảnh poster mới từ thiết bị
                             </span>
                             <span className="text-[11px] text-white/60 font-mono mt-1">
-                              Tự động nén sang WebP nhẹ mượt mà
+                              Tự động nén sang WebP tối ưu tốc độ tải trang
                             </span>
                             <input type="file" accept="image/*" onChange={handleWorkshopImageUpload} className="hidden" />
                           </label>
+
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-mono text-white/60 block">HOẶC DÁN ĐƯỜNG DẪN ẢNH:</span>
+                            <input
+                              type="text"
+                              value={workshopForm.image || ''}
+                              onChange={(e) =>
+                                setWorkshopForm((prev) => ({ ...prev, image: e.target.value }))
+                              }
+                              className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono text-xs focus:outline-none focus:border-amber-400"
+                            />
+                          </div>
                         </div>
                       </div>
+
+                      {/* 4 Multi-Image Gallery for Horizontal Slider */}
+                      <div className="pt-4 border-t border-white/10 space-y-2">
+                        <label className="font-mono uppercase text-[11px] font-bold text-amber-300 block">
+                          2. BỘ 4 ẢNH TRƯỢT NGANG CHI TIẾT (GALLERY SLIDER 4 GÓC CHỤP)
+                        </label>
+                        <p className="text-[11px] text-white/60">
+                          Khách hàng có thể trượt ngang vuốt xem 4 góc ảnh này khi bấm vào workshop.
+                        </p>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          {[0, 1, 2, 3].map((idx) => {
+                            const img = workshopForm.galleryImages?.[idx];
+                            return (
+                              <div key={idx} className="p-2 bg-black/50 rounded-lg border border-white/10 space-y-2">
+                                <div className="aspect-[3/4] rounded overflow-hidden bg-black relative group">
+                                  {img?.url ? (
+                                    <img src={img.url} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-white/30 text-xs font-mono">
+                                      Trống
+                                    </div>
+                                  )}
+                                  <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-mono">
+                                    <Upload className="w-4 h-4 mb-1 text-amber-300" />
+                                    <span>Thay ảnh</span>
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={(e) => handleWorkshopGalleryImageUpload(idx, e)}
+                                      className="hidden"
+                                    />
+                                  </label>
+                                </div>
+                                <input
+                                  type="text"
+                                  placeholder={`Chú thích góc #${idx + 1}`}
+                                  value={img?.captionVi || ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setWorkshopForm((prev) => {
+                                      const current = [...(prev.galleryImages || [])];
+                                      while (current.length <= idx) {
+                                        current.push({ url: '', captionVi: '', captionEn: '' });
+                                      }
+                                      current[idx] = { ...current[idx], captionVi: val };
+                                      return { ...prev, galleryImages: current };
+                                    });
+                                  }}
+                                  className="w-full px-2 py-1 bg-black/70 border border-white/10 rounded text-[11px] text-white font-mono"
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>
-                        <label className="font-bold text-white block mb-1">Tên Tiêu Đề Bagerich *</label>
+                        <label className="font-bold text-white block mb-1">Tên Tiêu Đề Bagerich (In hoa) *</label>
                         <input
                           type="text"
                           required
                           value={workshopForm.name || ''}
                           onChange={(e) => setWorkshopForm((prev) => ({ ...prev, name: e.target.value }))}
                           className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-bagerich text-sm focus:border-amber-400 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="font-bold text-white block mb-1">Tên Phụ Latin / Monograph *</label>
+                        <input
+                          type="text"
+                          required
+                          value={workshopForm.latinMonographName || ''}
+                          onChange={(e) => setWorkshopForm((prev) => ({ ...prev, latinMonographName: e.target.value }))}
+                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
                         />
                       </div>
 
@@ -778,21 +1054,32 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                     </div>
 
                     <div>
-                      <label className="font-bold text-white block mb-1">Đoạn Văn Triết Lý Giới Thiệu (Hiển thị ngoài trang triển lãm)</label>
+                      <label className="font-bold text-white block mb-1">Dòng Trích Dẫn / Thông Điệp Ngắn (Subtitle)</label>
+                      <input
+                        type="text"
+                        value={workshopForm.subtitleVi || ''}
+                        onChange={(e) => setWorkshopForm((prev) => ({ ...prev, subtitleVi: e.target.value }))}
+                        className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-white block mb-1">Đoạn Văn Triết Lý Giới Thiệu (Hiển thị ngoài trang triển lãm) *</label>
                       <textarea
                         rows={3}
+                        required
                         value={workshopForm.editorialQuoteVi || ''}
                         onChange={(e) => setWorkshopForm((prev) => ({ ...prev, editorialQuoteVi: e.target.value }))}
                         className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white leading-relaxed focus:border-amber-400 focus:outline-none"
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                       <div>
                         <label className="font-bold text-white block mb-1">Thời Lượng</label>
                         <input
                           type="text"
-                          value={workshopForm.duration || ''}
+                          value={workshopForm.duration || '1.5 – 2.0 Giờ'}
                           onChange={(e) => setWorkshopForm((prev) => ({ ...prev, duration: e.target.value }))}
                           className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
                         />
@@ -802,8 +1089,18 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                         <label className="font-bold text-white block mb-1">Quy Mô Nhóm</label>
                         <input
                           type="text"
-                          value={workshopForm.groupSize || ''}
+                          value={workshopForm.groupSize || '10 – 50+ Pax'}
                           onChange={(e) => setWorkshopForm((prev) => ({ ...prev, groupSize: e.target.value }))}
+                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="font-bold text-white block mb-1">Chi Phí Dự Kiến / Pax (VND)</label>
+                        <input
+                          type="number"
+                          value={workshopForm.pricePerPaxVnd || 750000}
+                          onChange={(e) => setWorkshopForm((prev) => ({ ...prev, pricePerPaxVnd: Number(e.target.value) }))}
                           className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
                         />
                       </div>
@@ -812,9 +1109,31 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                         <label className="font-bold text-white block mb-1">Địa Điểm Tổ Chức</label>
                         <input
                           type="text"
-                          value={workshopForm.locationVi || ''}
+                          value={workshopForm.locationVi || 'Tận nơi tại Văn phòng đối tác hoặc Atelier JU'}
                           onChange={(e) => setWorkshopForm((prev) => ({ ...prev, locationVi: e.target.value }))}
                           className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="font-bold text-white block mb-1">Link Tham Gia Nhóm Zalo</label>
+                        <input
+                          type="url"
+                          value={workshopForm.zaloCommunityUrl || 'https://zalo.me/g/juetsaigon'}
+                          onChange={(e) => setWorkshopForm((prev) => ({ ...prev, zaloCommunityUrl: e.target.value }))}
+                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono text-xs focus:border-amber-400 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="font-bold text-white block mb-1">Hotline Tư Vấn Workshop</label>
+                        <input
+                          type="text"
+                          value={workshopForm.hotline || '090 936 80 80'}
+                          onChange={(e) => setWorkshopForm((prev) => ({ ...prev, hotline: e.target.value }))}
+                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono text-xs focus:border-amber-400 focus:outline-none"
                         />
                       </div>
                     </div>
@@ -822,7 +1141,10 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                     <div className="pt-4 border-t border-white/10 flex items-center justify-end gap-3">
                       <button
                         type="button"
-                        onClick={() => setEditingWorkshop(null)}
+                        onClick={() => {
+                          setEditingWorkshop(null);
+                          setIsAddingWorkshop(false);
+                        }}
                         className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-mono text-xs"
                       >
                         Hủy Bỏ
@@ -832,39 +1154,110 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                         className="px-7 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#141414] font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg"
                       >
                         <Check className="w-4 h-4" />
-                        <span>Lưu Thay Đổi Workshop</span>
+                        <span>{isAddingWorkshop ? 'Tạo Workshop Mới' : 'Lưu Thay Đổi Workshop'}</span>
                       </button>
                     </div>
 
                   </form>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {workshops.map((ws) => (
-                    <div
-                      key={ws.id}
-                      className="bg-[#1e1f1c] rounded-2xl p-5 border border-white/10 space-y-4 flex flex-col justify-between"
-                    >
-                      <div className="space-y-3">
-                        <div className="aspect-[3/4] rounded-xl overflow-hidden bg-black">
-                          <img src={ws.image} alt={ws.name} className="w-full h-full object-cover" />
-                        </div>
-                        <span className="text-[10px] font-mono text-amber-400">#{ws.indexNumber}</span>
-                        <h4 className="font-bagerich font-bold text-xl uppercase text-white leading-tight">
-                          {ws.name}
-                        </h4>
-                        <p className="text-xs text-white/80 line-clamp-2">{ws.titleVi}</p>
-                      </div>
-
-                      <button
-                        onClick={() => startEditWorkshop(ws)}
-                        className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-amber-400 hover:text-[#141414] text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                        <span>Chỉnh Sửa Module Này</span>
-                      </button>
+                <div className="space-y-4">
+                  {/* Workshop Management Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-[#1e1f1c] rounded-2xl border border-white/10">
+                    <div>
+                      <span className="text-[10px] font-mono tracking-widest uppercase text-amber-400 block">
+                        JU ET SAIGON · WORKSHOP BOTANICA
+                      </span>
+                      <h3 className="text-lg font-bagerich font-bold uppercase text-white mt-0.5">
+                        DANH SÁCH WORKSHOP ĐANG HOẠT ĐỘNG ({workshops.length} MODULES)
+                      </h3>
+                      <p className="text-xs text-white/60">
+                        Thêm mới hoặc chỉnh sửa các chương trình workshop cắm hoa dành cho doanh nghiệp
+                      </p>
                     </div>
-                  ))}
+
+                    <button
+                      onClick={startAddWorkshop}
+                      className="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#141414] font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md whitespace-nowrap"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Thêm Workshop Mới</span>
+                    </button>
+                  </div>
+
+                  {/* Workshop Cards Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {workshops.map((ws) => (
+                      <div
+                        key={ws.id}
+                        className="bg-[#1e1f1c] rounded-2xl p-5 border border-white/10 space-y-4 flex flex-col justify-between group hover:border-amber-400/40 transition-all shadow-lg"
+                      >
+                        <div className="space-y-3">
+                          <div className="aspect-[3/4] rounded-xl overflow-hidden bg-black relative">
+                            <img src={ws.image} alt={ws.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/70 backdrop-blur-sm rounded text-[10px] font-mono text-amber-300 font-bold">
+                              #{ws.indexNumber}
+                            </div>
+                            {ws.galleryImages && ws.galleryImages.length > 0 && (
+                              <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-black/70 backdrop-blur-sm rounded text-[10px] font-mono text-white/90">
+                                {ws.galleryImages.length} Góc Ảnh
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div>
+                            <span className="text-[10px] font-mono text-amber-400 uppercase tracking-widest block truncate">
+                              {ws.latinMonographName}
+                            </span>
+                            <h4 className="font-bagerich font-bold text-xl uppercase text-white leading-tight mt-0.5 truncate">
+                              {ws.name}
+                            </h4>
+                          </div>
+
+                          <p className="text-xs text-white/80 line-clamp-2 leading-relaxed">
+                            {ws.titleVi}
+                          </p>
+
+                          <div className="pt-2 border-t border-white/10 grid grid-cols-2 gap-2 text-[11px] font-mono text-white/60">
+                            <div>
+                              <span className="text-white/40 block text-[9px]">THỜI LƯỢNG</span>
+                              <span className="text-white font-medium">{ws.duration}</span>
+                            </div>
+                            <div>
+                              <span className="text-white/40 block text-[9px]">QUY MÔ</span>
+                              <span className="text-white font-medium">{ws.groupSize}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+                          <button
+                            onClick={() => startEditWorkshop(ws)}
+                            className="flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-amber-400 hover:text-[#141414] text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            <span>Chỉnh Sửa</span>
+                          </button>
+                          
+                          <button
+                            onClick={() => {
+                              if (workshops.length <= 1) {
+                                alert('Hệ thống cần tối thiểu 1 workshop trong danh mục!');
+                                return;
+                              }
+                              if (window.confirm(`Bạn có chắc muốn xóa workshop "${ws.name}"?`)) {
+                                deleteWorkshop(ws.id);
+                              }
+                            }}
+                            className="p-2.5 rounded-xl bg-red-950/60 hover:bg-red-800 text-red-300 transition-colors"
+                            title="Xóa workshop này"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

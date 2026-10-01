@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, ArrowRight, Sparkles, MessageSquare } from 'lucide-react';
-import { WorkshopItem, WORKSHOPS } from '../data/workshop';
+import { WorkshopItem } from '../data/workshop';
+import { useAtelier } from '../context/AtelierContext';
 import { soundEngine } from '../utils/audio';
 
 interface WorkshopGalleryModalProps {
@@ -16,6 +17,8 @@ export const WorkshopGalleryModal: React.FC<WorkshopGalleryModalProps> = ({
   lang,
   onSelectWorkshop
 }) => {
+  const { workshops } = useAtelier();
+
   if (!isOpen) return null;
 
   const handleTileClick = (ws: WorkshopItem) => {
@@ -50,7 +53,7 @@ export const WorkshopGalleryModal: React.FC<WorkshopGalleryModalProps> = ({
       {/* Main Editorial Canvas matching user's exact uploaded image */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-12 py-16 sm:py-24 space-y-24 sm:space-y-36">
         
-        {WORKSHOPS.map((ws, idx) => {
+        {workshops.map((ws, idx) => {
           const isEven = idx % 2 === 0;
 
           return (

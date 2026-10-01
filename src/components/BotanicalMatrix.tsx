@@ -1,21 +1,27 @@
 import React, { useState, useRef } from 'react';
 import { FlowerItem } from '../data/flowers';
 import { soundEngine } from '../utils/audio';
-import { Sparkles, Eye } from 'lucide-react';
+import { ArrowRight, Pin } from 'lucide-react';
 
 interface BotanicalMatrixProps {
   flowers: FlowerItem[];
   lang: 'vi' | 'en';
   onSelectFlower: (flower: FlowerItem) => void;
+  onOpenCollection?: () => void;
 }
 
 export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
   flowers,
   lang,
-  onSelectFlower
+  onSelectFlower,
+  onOpenCollection
 }) => {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+
+  // Filter pinned flowers for landing page (default 12 items)
+  const pinnedFlowers = flowers.filter((f) => f.pinnedToLanding !== false);
+  const displayFlowers = pinnedFlowers.length > 0 ? pinnedFlowers : flowers.slice(0, 12);
 
   const handleTileClick = (flower: FlowerItem) => {
     soundEngine.playFlowerChime(flower.audioFrequency);
@@ -59,7 +65,16 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
     <section id="gallery-matrix" className="max-w-4xl mx-auto px-4 sm:px-6 my-10 relative">
       
       <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-widest text-[#141414]/60 mb-3 px-1">
-        <span>COLLECTION ARCHIVE ({flowers.length} SPECIMENS)</span>
+        <span>COLLECTION ARCHIVE · NỔI BẬT ({displayFlowers.length} SPECIMENS)</span>
+        {onOpenCollection && (
+          <button
+            onClick={onOpenCollection}
+            className="hover:text-[#141414] transition-colors underline underline-offset-4 flex items-center gap-1 font-semibold"
+          >
+            <span>{lang === 'vi' ? `Xem Tất Cả (${flowers.length})` : `View All (${flowers.length})`}</span>
+            <span>→</span>
+          </button>
+        )}
       </div>
 
       {/* 3-column mosaic grid with generous padding to prevent card clipping on hover */}
@@ -69,7 +84,7 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
         onTouchEnd={handleTouchEnd}
         className="grid grid-cols-3 gap-1.5 sm:gap-2.5 bg-[#141414] p-2 sm:p-3 shadow-2xl rounded-xl relative overflow-visible"
       >
-        {flowers.map((flower, idx) => {
+        {displayFlowers.map((flower, idx) => {
           const isHovered = hoveredId === flower.id;
 
           return (
@@ -158,6 +173,23 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
           );
         })}
       </div>
+
+      {/* Button to open full collection archive */}
+      {onOpenCollection && flowers.length > displayFlowers.length && (
+        <div className="mt-8 flex justify-center">
+          <button
+            onClick={onOpenCollection}
+            className="group px-7 py-3 rounded-full bg-[#141414] hover:bg-[#252422] text-[#ede9df] transition-all flex items-center gap-3 border border-[#141414]/20 shadow-xl text-xs font-mono tracking-widest uppercase hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <span>
+              {lang === 'vi'
+                ? `Xem Toàn Bộ Bộ Sưu Tập (${flowers.length} Tác Phẩm Theo Mùa & Danh Mục)`
+                : `Explore Full Catalog (${flowers.length} Seasonal Specimens & Categories)`}
+            </span>
+            <ArrowRight className="w-4 h-4 text-amber-300 group-hover:translate-x-1.5 transition-transform" />
+          </button>
+        </div>
+      )}
     </section>
   );
 };

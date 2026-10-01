@@ -17,7 +17,7 @@ import { WorkshopGalleryModal } from './components/WorkshopGalleryModal';
 import { WorkshopDetailModal } from './components/WorkshopDetailModal';
 import { ActionLinks } from './components/ActionLinks';
 import { ManifestoSection } from './components/ManifestoSection';
-import { IndexSlideOver } from './components/IndexSlideOver';
+import { CollectionCatalogModal } from './components/CollectionCatalogModal';
 import { FlowerDetailModal } from './components/FlowerDetailModal';
 import { BespokeOrderModal } from './components/BespokeOrderModal';
 import { AtelierModal } from './components/AtelierModal';
@@ -126,6 +126,7 @@ function AtelierApp() {
           flowers={flowers}
           lang={lang}
           onSelectFlower={handleSelectFlower}
+          onOpenCollection={() => setIsIndexOpen(true)}
         />
 
         {/* Compact Workshop Teaser Section on Landing Page (Keeps page neat!) */}
@@ -171,7 +172,7 @@ function AtelierApp() {
       />
 
       {/* Drawers & Modals */}
-      <IndexSlideOver
+      <CollectionCatalogModal
         isOpen={isIndexOpen}
         onClose={() => setIsIndexOpen(false)}
         flowers={flowers}

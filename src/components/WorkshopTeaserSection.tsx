@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { WORKSHOPS } from '../data/workshop';
+import { useAtelier } from '../context/AtelierContext';
 import { ArrowRight, Sparkles, Building2, Users, ShieldCheck } from 'lucide-react';
 import { soundEngine } from '../utils/audio';
 
@@ -12,7 +13,8 @@ export const WorkshopTeaserSection: React.FC<WorkshopTeaserSectionProps> = ({
   lang,
   onOpenWorkshopGallery
 }) => {
-  const primaryWorkshop = WORKSHOPS[0];
+  const { workshops } = useAtelier();
+  const primaryWorkshop = workshops[0] || WORKSHOPS[0];
   const [isLandscape, setIsLandscape] = useState(false);
 
   const handleClick = () => {

@@ -49,6 +49,7 @@ export interface FlowerItem {
   galleryImages: GalleryImage[];
   audioFrequency: number;
   highlight?: boolean;
+  pinnedToLanding?: boolean;
 }
 
 export const ATELIER_DATA = {
@@ -893,9 +894,18 @@ export const FLOWERS: FlowerItem[] = [
 ];
 
 export const BOTANICAL_CATEGORIES = [
-  { id: 'all', labelEn: 'All Creations (21)', labelVi: 'Tất Cả Tác Phẩm (21)' },
+  { id: 'all', labelEn: 'All Creations', labelVi: 'Tất Cả Tác Phẩm' },
   { id: 'bridal', labelEn: 'Bridal Haute Couture', labelVi: 'Hoa Cưới Độc Bản' },
   { id: 'sculptural', labelEn: 'Artistic Installations', labelVi: 'Điêu Khắc Không Gian' },
   { id: 'rare-stems', labelEn: 'Rare Stems Archive', labelVi: 'Cành Hoa Quý Hiếm' },
   { id: 'seasonal', labelEn: 'Seasonal Collections', labelVi: 'Bộ Sưu Tập Mùa' }
+];
+
+export const BOTANICAL_SEASONS = [
+  { id: 'all', labelEn: 'All Seasons', labelVi: 'Tất Cả Các Mùa' },
+  { id: 'spring', labelEn: 'Spring (Xuân)', labelVi: 'Mùa Xuân' },
+  { id: 'summer', labelEn: 'Summer (Hạ)', labelVi: 'Mùa Hạ' },
+  { id: 'autumn', labelEn: 'Autumn (Thu)', labelVi: 'Mùa Thu' },
+  { id: 'winter', labelEn: 'Winter (Đông)', labelVi: 'Mùa Đông' },
+  { id: 'year-round', labelEn: 'Year-Round (Quanh năm)', labelVi: 'Quanh Năm' }
 ];
