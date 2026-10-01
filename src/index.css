@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-alabaster: #dcd8cf;
+    --text-ink: #141414;
+    --accent-dark: #1f1e1c;
+    --stone-hairline: rgba(20, 20, 20, 0.15);
+  }
+
+  body {
+    background-color: #dcd8cf;
+    color: #141414;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    overflow-x: hidden;
+  }
+}
+
+/* @font-face definition for Bagerich Font */
+@font-face {
+  font-family: 'Bagerich';
+  src: local('Bagerich Regular'),
+       local('Bagerich'),
+       local('Bagerich-Regular'),
+       local('BagerichDisplay-Regular'),
+       url('https://fonts.cdnfonts.com/s/72886/Bagerich.woff') format('woff');
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Primary Bagerich Font for Main Editorial & Botanical Titles */
+.font-bagerich,
+.font-fleur-title {
+  font-family: 'Bagerich', 'Bodoni Moda', 'Italiana', 'Cinzel Decorative', 'Playfair Display', serif;
+  font-feature-settings: "liga" 1, "dlig" 1, "calt" 1, "ss01" 1, "ss02" 1;
+  letter-spacing: -0.015em;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-editorial-serif {
+  font-family: 'Bagerich', 'Bodoni Moda', 'Italiana', 'Cormorant Garamond', serif;
+  font-feature-settings: "liga" 1, "dlig" 1;
+}
+
+.font-botanical-prose {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+.font-display-modern {
+  font-family: 'Syne', sans-serif;
+}
+
+/* Smooth custom scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #dcd8cf;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(20, 20, 20, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(20, 20, 20, 0.6);
+}
+
+/* Botanical grain & vignette subtle texture */
+.editorial-canvas {
+  background-color: #dcd8cf;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+/* Custom button hover lift */
+.btn-fleur {
+  background-color: #141414;
+  color: #f7f5f0;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-fleur:hover {
+  background-color: #2b2a28;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+}
+
+/* Subtle image frame styling */
+.flower-frame {
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.25);
+}
