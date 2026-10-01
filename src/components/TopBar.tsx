@@ -1,6 +1,6 @@
 import React from 'react';
-import { Volume2, VolumeX, Menu, Sparkles, PhoneCall } from 'lucide-react';
-import { ATELIER_DATA } from '../data/flowers';
+import { Volume2, VolumeX, Menu, Sparkles, Shield } from 'lucide-react';
+import { useAtelier } from '../context/AtelierContext';
 
 interface TopBarProps {
   lang: 'vi' | 'en';
@@ -10,6 +10,8 @@ interface TopBarProps {
   onOpenIndex: () => void;
   onOpenOrder: () => void;
   onOpenAtelier: () => void;
+  onOpenWorkshop?: () => void;
+  onOpenAdmin: () => void;
   flowerCount: number;
 }
 
@@ -21,46 +23,77 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenIndex,
   onOpenOrder,
   onOpenAtelier,
+  onOpenWorkshop,
+  onOpenAdmin,
   flowerCount
 }) => {
+  const { atelierData, logoUrl, isAdmin } = useAtelier();
+
   return (
     <header className="sticky top-0 z-40 w-full bg-[#dcd8cf]/95 backdrop-blur-md border-b border-[#141414]/15 transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
-        {/* Zone 1: Brand Wordmark in display face */}
+        {/* Zone 1: Custom Logo or Brand Wordmark in display face */}
         <div className="flex items-center gap-4">
           <a
             href="#"
-            className="text-lg md:text-xl font-bold tracking-wider font-fleur-title text-[#141414] hover:opacity-80 transition-opacity uppercase"
+            className="flex items-center gap-2 hover:opacity-85 transition-opacity"
           >
-            {ATELIER_DATA.name}
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={atelierData.name}
+                className="h-8 sm:h-9 max-w-[180px] object-contain"
+              />
+            ) : (
+              <span className="text-lg md:text-xl font-bold tracking-wider font-fleur-title text-[#141414] uppercase">
+                {atelierData.name}
+              </span>
+            )}
           </a>
-          <span className="hidden sm:inline-block text-[11px] tracking-widest text-[#141414]/60 uppercase">
-            {lang === 'vi' ? 'Sài Gòn · 2026' : 'Saigon · 2026'}
+          <span className="hidden sm:inline-block text-[11px] tracking-widest text-[#141414]/60 uppercase font-mono">
+            {lang === 'vi' ? 'Sài Gòn' : 'Saigon'}
           </span>
         </div>
 
         {/* Zone 2: 4-6 Clean Text Navigation Links */}
-        <nav className="hidden md:flex items-center gap-8 text-xs font-semibold tracking-widest uppercase text-[#141414]/75">
+        <nav className="hidden md:flex items-center gap-7 text-xs font-semibold tracking-widest uppercase text-[#141414]/75">
           <a href="#gallery-matrix" className="hover:text-[#141414] transition-colors">
             {lang === 'vi' ? 'Bộ Sưu Tập' : 'Gallery Matrix'}
           </a>
+          {onOpenWorkshop ? (
+            <button
+              onClick={onOpenWorkshop}
+              className="hover:text-[#141414] transition-colors text-amber-900 font-bold"
+            >
+              {lang === 'vi' ? 'Workshop Cắm Hoa' : 'Workshop'}
+            </button>
+          ) : (
+            <a href="#workshop" className="hover:text-[#141414] transition-colors text-amber-900 font-bold">
+              {lang === 'vi' ? 'Workshop Cắm Hoa' : 'Workshop'}
+            </a>
+          )}
           <a href="#philosophy" className="hover:text-[#141414] transition-colors">
             {lang === 'vi' ? 'Triết Lý Hoa' : 'Philosophy'}
           </a>
-          <a href="#botanical-monographs" className="hover:text-[#141414] transition-colors">
-            {lang === 'vi' ? 'Hồ Sơ Thực Vật' : 'Monographs'}
-          </a>
-          <button
-            onClick={onOpenAtelier}
-            className="hover:text-[#141414] transition-colors text-left"
-          >
-            {lang === 'vi' ? 'Atelier Q.1' : 'Atelier D1'}
-          </button>
         </nav>
 
         {/* Zone 3: Primary Actions & Utility Controls */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Admin Portal Button */}
+          <button
+            onClick={onOpenAdmin}
+            className={`p-1.5 rounded-full border transition-all flex items-center gap-1 text-[10px] font-mono uppercase ${
+              isAdmin
+                ? 'bg-amber-400 text-[#141414] border-amber-500 font-bold shadow-sm'
+                : 'border-[#141414]/20 text-[#141414]/60 hover:text-[#141414] hover:border-[#141414]'
+            }`}
+            title="Quản Trị Admin (Chỉnh sửa, xóa, logo & nén WebP)"
+          >
+            <Shield className="w-3.5 h-3.5" />
+            <span className="hidden xl:inline">{isAdmin ? 'ADMIN ACTIVE' : 'ADMIN'}</span>
+          </button>
+
           {/* Index Trigger */}
           <button
             onClick={onOpenIndex}

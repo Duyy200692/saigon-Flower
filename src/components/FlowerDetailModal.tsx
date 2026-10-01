@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Volume2, Sparkles, ChevronLeft, ChevronRight, Share2, Check, Maximize2 } from 'lucide-react';
 import { FlowerItem, FLOWERS } from '../data/flowers';
 import { soundEngine } from '../utils/audio';
@@ -27,6 +27,7 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
   const [activeTab, setActiveTab] = useState<'story' | 'scent' | 'materials'>('story');
   const [isCopied, setIsCopied] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [isLandscape, setIsLandscape] = useState(false);
 
   // Reset selected image when flower changes
   useEffect(() => {
@@ -60,7 +61,7 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
 
   const currentIndex = FLOWERS.findIndex((f) => f.id === flower.id);
   const totalCount = FLOWERS.length;
-  const gallery = flower.galleryImages && flower.galleryImages.length >= 4 
+  const gallery = flower.galleryImages && flower.galleryImages.length > 0 
     ? flower.galleryImages 
     : [
         { url: flower.image, captionVi: "Góc nhìn toàn cảnh", captionEn: "Full architectural view" },
@@ -70,6 +71,12 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
       ];
 
   const currentImage = gallery[selectedImageIndex] || gallery[0];
+
+  // Auto-detect image natural aspect ratio (Landscape 4:3 vs Portrait 3:4)
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { naturalWidth, naturalHeight } = e.currentTarget;
+    setIsLandscape(naturalWidth > naturalHeight);
+  };
 
   const handlePlayChime = () => {
     soundEngine.playFlowerChime(flower.audioFrequency);
@@ -168,18 +175,23 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
         {/* Modal Main Body */}
         <div className="overflow-y-auto flex-1 p-4 sm:p-6 md:p-8 space-y-6">
           
-          {/* Main Grid: Gallery on Left (3:4 Ratio) & Details on Right */}
+          {/* Main Grid: Auto-Adaptive Aspect Ratio Gallery on Left & Details on Right */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
             
-            {/* Left Column: 3:4 Multi-Image Gallery with 3:4 Thumbnails */}
+            {/* Left Column: Auto-detected Aspect Ratio Multi-Image Gallery */}
             <div className="lg:col-span-6 space-y-3">
               
-              {/* Main 3:4 Image Container */}
-              <div className="relative aspect-[3/4] w-full max-w-md mx-auto rounded-xl overflow-hidden bg-[#181716] shadow-2xl border border-[#141414]/20 group">
+              {/* Main Adaptive Image Frame (Smoothly switches between 3:4 portrait and 4:3 landscape) */}
+              <div
+                className={`relative w-full mx-auto rounded-xl overflow-hidden bg-[#181716] shadow-2xl border border-[#141414]/20 group transition-all duration-500 ${
+                  isLandscape ? 'aspect-[4/3] max-w-lg' : 'aspect-[3/4] max-w-md'
+                }`}
+              >
                 <img
                   key={currentImage.url + selectedImageIndex}
                   src={currentImage.url}
                   alt={`${flower.name} - ${currentImage.captionEn}`}
+                  onLoad={handleImageLoad}
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-103 animate-fadeIn"
                 />
@@ -254,19 +266,23 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                   </div>
                 )}
 
-                {/* Bottom Gallery Image Caption & Index Badge (3:4) */}
+                {/* Bottom Gallery Image Caption & Clean Counter */}
                 <div className="absolute bottom-0 inset-x-0 p-2.5 sm:p-3 bg-gradient-to-t from-black/85 via-black/40 to-transparent text-white flex items-center justify-between text-[11px] font-sans">
                   <span className="truncate pr-2 text-white/90 font-medium">
                     {lang === 'vi' ? currentImage.captionVi : currentImage.captionEn}
                   </span>
                   <span className="flex-shrink-0 font-mono text-[10px] bg-black/50 px-2 py-0.5 rounded text-white/80">
-                    {selectedImageIndex + 1} / {gallery.length} (3:4)
+                    {selectedImageIndex + 1} / {gallery.length}
                   </span>
                 </div>
               </div>
 
-              {/* 4-Thumbnail Strip in 3:4 Aspect Ratio */}
-              <div className="grid grid-cols-4 gap-2 pt-1 max-w-md mx-auto">
+              {/* Adaptive Thumbnail Strip */}
+              <div
+                className={`grid gap-2 pt-1 mx-auto ${
+                  isLandscape ? 'grid-cols-4 max-w-lg' : 'grid-cols-4 max-w-md'
+                }`}
+              >
                 {gallery.map((img, idx) => (
                   <button
                     key={idx}
@@ -274,7 +290,9 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                       setSelectedImageIndex(idx);
                       setSelectedAnatomy(null);
                     }}
-                    className={`relative aspect-[3/4] rounded-lg overflow-hidden border-2 transition-all bg-[#141414] ${
+                    className={`relative rounded-lg overflow-hidden border-2 transition-all bg-[#141414] ${
+                      isLandscape ? 'aspect-[4/3]' : 'aspect-[3/4]'
+                    } ${
                       selectedImageIndex === idx
                         ? 'border-[#141414] shadow-md ring-2 ring-black/20 scale-102'
                         : 'border-transparent opacity-60 hover:opacity-90'
@@ -290,11 +308,6 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                     </span>
                   </button>
                 ))}
-              </div>
-
-              <div className="flex items-center justify-between text-[11px] text-[#141414]/60 font-mono px-1 max-w-md mx-auto">
-                <span>{lang === 'vi' ? 'BỘ SƯU TẬP 4 ẢNH TỈ LỆ 3:4' : '4-IMAGE GALLERY (3:4 RATIO)'}</span>
-                <span>{lang === 'vi' ? 'Bấm hình nhỏ để đổi ảnh' : 'Click thumbnail to switch'}</span>
               </div>
 
             </div>
@@ -446,7 +459,7 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
 
       </div>
 
-      {/* Fullscreen Lightbox in 3:4 Portrait Ratio */}
+      {/* Fullscreen Lightbox with auto-adaptive ratio */}
       {isLightboxOpen && (
         <div className="fixed inset-0 z-60 bg-black/95 flex flex-col items-center justify-center p-4 animate-fadeIn">
           <button
@@ -456,7 +469,11 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
             <X className="w-6 h-6" />
           </button>
 
-          <div className="relative max-w-lg w-full aspect-[3/4] rounded-xl overflow-hidden shadow-2xl bg-black">
+          <div
+            className={`relative w-full rounded-xl overflow-hidden shadow-2xl bg-black flex items-center justify-center ${
+              isLandscape ? 'max-w-3xl aspect-[4/3]' : 'max-w-lg aspect-[3/4]'
+            }`}
+          >
             <img
               src={currentImage.url}
               alt={currentImage.captionEn}
@@ -478,7 +495,7 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
 
           <div className="mt-4 text-center text-white/90 text-sm font-sans">
             <p className="font-semibold">{lang === 'vi' ? currentImage.captionVi : currentImage.captionEn}</p>
-            <p className="text-xs font-mono text-white/60 mt-0.5">{selectedImageIndex + 1} / {gallery.length} (3:4)</p>
+            <p className="text-xs font-mono text-white/60 mt-0.5">{selectedImageIndex + 1} / {gallery.length}</p>
           </div>
         </div>
       )}

@@ -22,15 +22,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         <div className="flex items-center gap-6">
           <button
             onClick={onOpenIndex}
-            className="hover:underline tracking-widest underline-offset-4"
+            className="hover:underline tracking-widest underline-offset-4 font-mono text-[11px]"
           >
             INDEX
-          </button>
-          <button
-            onClick={onOpenCredits}
-            className="hover:underline tracking-widest underline-offset-4"
-          >
-            CREDITS
           </button>
         </div>
       </div>

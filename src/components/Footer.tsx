@@ -7,13 +7,15 @@ interface FooterProps {
   onOpenOrder: () => void;
   onOpenAtelier: () => void;
   onOpenCredits: () => void;
+  onOpenAdmin?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
   lang,
   onOpenOrder,
   onOpenAtelier,
-  onOpenCredits
+  onOpenCredits,
+  onOpenAdmin
 }) => {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -122,12 +124,14 @@ export const Footer: React.FC<FooterProps> = ({
               >
                 {lang === 'vi' ? 'Đặt Lịch Tư Vấn Hoa →' : 'Book Consultation →'}
               </button>
-              <button
-                onClick={onOpenCredits}
-                className="w-full text-left py-1.5 px-3 rounded bg-white/5 hover:bg-white/15 text-white/80"
-              >
-                {lang === 'vi' ? 'Bản Quyền & Giới Thiệu →' : 'Credits & Archive →'}
-              </button>
+              {onOpenAdmin && (
+                <button
+                  onClick={onOpenAdmin}
+                  className="w-full text-left py-1.5 px-3 rounded bg-amber-400/10 hover:bg-amber-400/20 text-amber-300 font-mono text-[11px] border border-amber-400/30"
+                >
+                  {lang === 'vi' ? '⚙️ Quản Trị Viên (Admin) →' : '⚙️ Admin Portal →'}
+                </button>
+              )}
             </div>
           </div>
 
