@@ -1,6 +1,6 @@
 import React from 'react';
-import { X, MapPin, PhoneCall, Mail, Instagram, Globe, Clock, Sparkles, Navigation, Heart } from 'lucide-react';
-import { ATELIER_DATA } from '../data/flowers';
+import { X, MapPin, PhoneCall, Mail, Instagram, Globe, Clock, Sparkles, Navigation, Facebook, MessageCircle } from 'lucide-react';
+import { useAtelier } from '../context/AtelierContext';
 
 interface AtelierModalProps {
   isOpen: boolean;
@@ -15,6 +15,8 @@ export const AtelierModal: React.FC<AtelierModalProps> = ({
   lang,
   onOpenOrder
 }) => {
+  const { atelierData } = useAtelier();
+
   if (!isOpen) return null;
 
   return (
@@ -38,25 +40,16 @@ export const AtelierModal: React.FC<AtelierModalProps> = ({
             <span className="text-[10px] font-mono tracking-widest uppercase text-[#141414]/60 block mb-1">
               HAUTE COUTURE BOTANICAL STUDIO
             </span>
-            <h2 className="text-3xl sm:text-4xl font-fleur-title uppercase tracking-tight text-[#141414]">
-              JU ET SAIGON ATELIER
+            <h2 className="text-3xl sm:text-4xl font-fleur-title uppercase tracking-wider text-[#141414]">
+              {atelierData.name || 'JU ET SAIGON'}
             </h2>
-            <p className="text-base font-editorial-serif italic text-[#141414]/80 mt-1">
-              "Flower your heart, Flower your soul."
+            <p className="text-sm font-editorial-serif italic text-[#141414]/80 mt-1">
+              "{atelierData.tagline || 'Flower your heart, Flower your soul.'}"
             </p>
           </div>
 
-          {/* Studio Story & Manifesto */}
-          <div className="space-y-4 text-xs sm:text-sm font-sans text-[#141414]/90 leading-relaxed">
-            <p>
-              {lang === 'vi'
-                ? 'Tọa lạc tại không gian yên tĩnh trên Lầu 1, số 31 Nguyễn Trãi, Quận 1 - trung tâm nhộn nhịp của Sài Gòn, JU et Saigon là nơi hội tụ của tình yêu hoa nghệ thuật và kỹ nghệ cắm hoa đương đại. Chúng tôi tin rằng mỗi đóa hoa đều mang trong mình một linh hồn và câu chuyện riêng biệt, truyền tải rung động cảm xúc từ trái tim đến trái tim.'
-                : 'Nestled on the 1st Floor of 31 Nguyen Trai Street in District 1 — the vibrant cultural core of Ho Chi Minh City — JU et Saigon is a sanctuary for contemporary botanical couture. We believe that each flower carries its own living soul and resonant frequency, translating deep emotions into timeless sculptural elegance.'}
-            </p>
-          </div>
-
-          {/* Atelier Contact & Visiting Information Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          {/* Grid Info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
             
             {/* Address */}
             <div className="p-4 bg-white/60 rounded-lg border border-[#141414]/10 space-y-1.5">
@@ -65,7 +58,7 @@ export const AtelierModal: React.FC<AtelierModalProps> = ({
                 <span>{lang === 'vi' ? 'Địa Chỉ Studio' : 'Atelier Address'}</span>
               </div>
               <p className="text-[#141414]/80 font-sans">
-                {lang === 'vi' ? ATELIER_DATA.addressVi : ATELIER_DATA.addressEn}
+                {lang === 'vi' ? atelierData.addressVi : atelierData.addressEn}
               </p>
               <a
                 href="https://maps.google.com/?q=31+Nguyen+Trai+Ben+Thanh+District+1+Ho+Chi+Minh"
@@ -85,10 +78,10 @@ export const AtelierModal: React.FC<AtelierModalProps> = ({
                 <span>{lang === 'vi' ? 'Giờ Mở Cửa' : 'Hours'}</span>
               </div>
               <p className="text-[#141414]/80 font-sans">
-                {lang === 'vi' ? ATELIER_DATA.hoursVi : ATELIER_DATA.hoursEn}
+                {lang === 'vi' ? atelierData.hoursVi : atelierData.hoursEn}
               </p>
               <p className="text-[11px] text-[#141414]/60 italic font-serif-editorial">
-                {lang === 'vi' ? ATELIER_DATA.consultationNoticeVi : ATELIER_DATA.consultationNoticeEn}
+                {lang === 'vi' ? atelierData.consultationNoticeVi : atelierData.consultationNoticeEn}
               </p>
             </div>
 
@@ -96,13 +89,13 @@ export const AtelierModal: React.FC<AtelierModalProps> = ({
             <div className="p-4 bg-white/60 rounded-lg border border-[#141414]/10 space-y-1.5">
               <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-[#141414]">
                 <PhoneCall className="w-4 h-4 text-[#141414]" />
-                <span>{lang === 'vi' ? 'Hotline & Zalo' : 'Hotline & Direct Call'}</span>
+                <span>{lang === 'vi' ? 'Hotline & Liên Hệ' : 'Hotline & Direct Call'}</span>
               </div>
               <a
-                href={`tel:${ATELIER_DATA.phone.replace(/\s+/g, '')}`}
+                href={`tel:${atelierData.phone?.replace(/\s+/g, '')}`}
                 className="text-sm font-bold font-mono text-[#141414] hover:underline block"
               >
-                {ATELIER_DATA.phoneFormatted}
+                {atelierData.phoneFormatted || atelierData.phone}
               </a>
               <span className="text-[11px] text-[#141414]/60">
                 {lang === 'vi' ? 'Tư vấn trực tiếp 24/7' : 'Available 24/7 for urgent consultations'}
@@ -113,25 +106,49 @@ export const AtelierModal: React.FC<AtelierModalProps> = ({
             <div className="p-4 bg-white/60 rounded-lg border border-[#141414]/10 space-y-1.5">
               <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-[#141414]">
                 <Globe className="w-4 h-4 text-[#141414]" />
-                <span>{lang === 'vi' ? 'Kênh Trực Tuyến' : 'Digital Atelier'}</span>
+                <span>{lang === 'vi' ? 'Kênh Trực Tuyến & Mạng Xã Hội' : 'Digital & Social Channels'}</span>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <a
-                  href={`mailto:${ATELIER_DATA.email}`}
+                  href={`mailto:${atelierData.email}`}
                   className="flex items-center gap-1.5 text-[#141414] hover:underline"
                 >
                   <Mail className="w-3.5 h-3.5" />
-                  <span>{ATELIER_DATA.email}</span>
+                  <span>{atelierData.email}</span>
                 </a>
-                <a
-                  href={ATELIER_DATA.instagramUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-[#141414] hover:underline"
-                >
-                  <Instagram className="w-3.5 h-3.5" />
-                  <span>@{ATELIER_DATA.instagram}</span>
-                </a>
+                {atelierData.instagramUrl && (
+                  <a
+                    href={atelierData.instagramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-[#141414] hover:underline"
+                  >
+                    <Instagram className="w-3.5 h-3.5" />
+                    <span>@{atelierData.instagram || 'juetsaigon'}</span>
+                  </a>
+                )}
+                {atelierData.facebookUrl && (
+                  <a
+                    href={atelierData.facebookUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-[#141414] hover:underline"
+                  >
+                    <Facebook className="w-3.5 h-3.5" />
+                    <span>{atelierData.facebookName || 'Facebook Fanpage'}</span>
+                  </a>
+                )}
+                {atelierData.zaloUrl && (
+                  <a
+                    href={atelierData.zaloUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-[#141414] hover:underline"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 text-cyan-700" />
+                    <span>Zalo Official / Nhóm CSKH</span>
+                  </a>
+                )}
               </div>
             </div>
 
@@ -151,10 +168,10 @@ export const AtelierModal: React.FC<AtelierModalProps> = ({
             </button>
 
             <a
-              href={`tel:${ATELIER_DATA.phone.replace(/\s+/g, '')}`}
+              href={`tel:${atelierData.phone?.replace(/\s+/g, '')}`}
               className="text-xs font-bold uppercase tracking-wider text-[#141414] hover:underline"
             >
-              {lang === 'vi' ? `Gọi Ngay: ${ATELIER_DATA.phoneFormatted}` : `Call ${ATELIER_DATA.phoneFormatted}`}
+              {lang === 'vi' ? `Gọi Ngay: ${atelierData.phoneFormatted || atelierData.phone}` : `Call ${atelierData.phoneFormatted || atelierData.phone}`}
             </a>
           </div>
 

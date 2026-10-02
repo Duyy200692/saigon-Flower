@@ -68,7 +68,7 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const saved = localStorage.getItem(STORAGE_KEYS.ATELIER);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        return { ...ATELIER_DATA, ...JSON.parse(saved) };
       } catch (e) {
         console.error('Failed to parse saved atelier data', e);
       }

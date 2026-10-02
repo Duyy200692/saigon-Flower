@@ -22,7 +22,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         <div className="flex items-center gap-6">
           <button
             onClick={onOpenIndex}
-            className="hover:underline tracking-widest underline-offset-4 font-mono text-[11px]"
+            className="spring-press px-3.5 py-1.5 rounded-[18px] glass-frost-pill tracking-widest font-mono text-[11px] shadow-soft-1 border border-white/80 hover:border-[#141414]/30 text-[#141414]"
           >
             INDEX
           </button>

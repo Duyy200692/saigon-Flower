@@ -77,12 +77,12 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
         )}
       </div>
 
-      {/* 3-column mosaic grid with generous padding to prevent card clipping on hover */}
+      {/* 3-column mosaic grid with continuous curves & frosted glass depth */}
       <div
         ref={gridRef}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="grid grid-cols-3 gap-1.5 sm:gap-2.5 bg-[#141414] p-2 sm:p-3 shadow-2xl rounded-xl relative overflow-visible"
+        className="grid grid-cols-3 gap-2 sm:gap-3 bg-[#151513]/95 backdrop-blur-2xl p-2.5 sm:p-4 shadow-soft-3 rounded-[28px] sm:rounded-[36px] border border-white/15 relative overflow-visible"
       >
         {displayFlowers.map((flower, idx) => {
           const isHovered = hoveredId === flower.id;
@@ -94,20 +94,20 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
               onClick={() => handleTileClick(flower)}
               onMouseEnter={() => handleMouseEnter(flower)}
               onMouseLeave={handleMouseLeave}
-              className={`group relative aspect-[3/4] cursor-pointer transition-all duration-300 ease-out select-none ${
+              className={`group relative aspect-[3/4] cursor-pointer transition-all duration-300 ease-out select-none spring-press ${
                 isHovered
-                  ? 'z-30 scale-120 sm:scale-130 rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.9)] ring-1 ring-white/30'
-                  : 'z-10 scale-100 rounded-sm hover:z-20'
+                  ? 'z-30 scale-115 sm:scale-125 rounded-[24px] sm:rounded-[28px] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.95)] ring-1 ring-white/50'
+                  : 'z-10 scale-100 rounded-[20px] sm:rounded-[24px] hover:z-20'
               }`}
               style={{
                 transformOrigin: 'center center',
                 willChange: 'transform, box-shadow, border-radius',
               }}
             >
-              {/* Inner card container for clipping image with rounded corners */}
+              {/* Inner card container for clipping image with continuous rounded corners */}
               <div
                 className={`w-full h-full overflow-hidden bg-[#1f1e1c] transition-all duration-300 ${
-                  isHovered ? 'rounded-2xl' : 'rounded-sm'
+                  isHovered ? 'rounded-[24px] sm:rounded-[28px]' : 'rounded-[20px] sm:rounded-[24px]'
                 }`}
               >
                 {/* Image */}
@@ -127,7 +127,7 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
                 <div
                   className={`absolute inset-0 transition-opacity duration-300 ${
                     isHovered
-                      ? 'bg-gradient-to-t from-black/75 via-black/20 to-black/30 opacity-100 rounded-2xl'
+                      ? 'bg-gradient-to-t from-black/85 via-black/30 to-black/35 opacity-100 rounded-[24px] sm:rounded-[28px]'
                       : 'opacity-0'
                   }`}
                 />
@@ -160,10 +160,10 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
                   </span>
                 </div>
 
-                {/* Subtle index tag top-left (visible when not hovered) */}
+                {/* Frosted glass index tag top-left */}
                 <div
-                  className={`absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-black/60 backdrop-blur-sm text-[9px] font-mono text-white/90 tracking-widest transition-opacity duration-200 ${
-                    isHovered ? 'opacity-0' : 'opacity-80'
+                  className={`absolute top-2 left-2 px-2.5 py-0.5 backdrop-blur-xl bg-black/65 border border-white/20 rounded-full text-[9px] font-mono text-white/90 tracking-widest transition-opacity duration-200 shadow-sm ${
+                    isHovered ? 'opacity-0' : 'opacity-90'
                   }`}
                 >
                   {flower.indexNumber}
@@ -179,7 +179,7 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
         <div className="mt-8 flex justify-center">
           <button
             onClick={onOpenCollection}
-            className="group px-7 py-3 rounded-full bg-[#141414] hover:bg-[#252422] text-[#ede9df] transition-all flex items-center gap-3 border border-[#141414]/20 shadow-xl text-xs font-mono tracking-widest uppercase hover:scale-[1.02] active:scale-[0.98]"
+            className="spring-press group px-8 py-3.5 rounded-[26px] bg-[#141414] hover:bg-[#252422] text-[#ede9df] transition-all flex items-center gap-3 border border-white/15 shadow-soft-2 text-xs font-mono tracking-widest uppercase hover:scale-[1.02] active:scale-[0.96]"
           >
             <span>
               {lang === 'vi'

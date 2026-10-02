@@ -168,6 +168,7 @@ function AtelierApp() {
         onToggleAudio={handleToggleAudio}
         onOpenIndex={() => setIsIndexOpen(true)}
         onOpenOrder={handleOpenGeneralOrder}
+        onOpenWorkshop={() => setIsWorkshopGalleryOpen(true)}
         flowerCount={flowers.length}
       />
 

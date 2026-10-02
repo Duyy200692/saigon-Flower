@@ -50,13 +50,13 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
-      <div className="relative w-full max-w-2xl bg-[#dcd8cf] text-[#141414] rounded-xl shadow-2xl border border-[#141414]/30 overflow-hidden my-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-2xl flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
+      <div className="relative w-full max-w-2xl bg-[#dcd8cf] text-[#141414] squircle-2xl rounded-[32px] sm:rounded-[38px] shadow-soft-3 border border-white/60 overflow-hidden my-auto">
         
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/60 text-white hover:bg-black transition-colors"
+          className="spring-press absolute top-4 right-4 z-10 p-2 rounded-full bg-black/60 text-white hover:bg-black transition-colors backdrop-blur-xl border border-white/20 shadow-sm"
           aria-label="Close modal"
         >
           <X className="w-5 h-5" />
@@ -128,11 +128,11 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
 
             {/* Selected Flower Capsule Banner */}
             {selectedFlower && (
-              <div className="flex items-center gap-3 p-3 bg-white/70 rounded-lg border border-[#141414]/15">
+              <div className="flex items-center gap-3 p-3.5 glass-frost-pill rounded-[22px] border border-white/80 shadow-soft-1">
                 <img
                   src={selectedFlower.image}
                   alt={selectedFlower.name}
-                  className="w-12 h-12 rounded object-cover flex-shrink-0"
+                  className="w-12 h-12 rounded-[16px] object-cover flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
                   <h4 className="text-xs font-bold uppercase font-serif-editorial truncate text-[#141414]">
@@ -275,7 +275,7 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
                 placeholder={lang === 'vi' ? 'Ví dụ: Tông màu trắng kem sang trọng, đính kèm thiệp chúc mừng sinh nhật, giao lúc 10h sáng...' : 'Specific flowers desired, color palette, card greeting message...'}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full px-3 py-2 bg-white/80 border border-[#141414]/20 rounded-md focus:outline-none focus:border-[#141414]"
+                className="w-full px-3.5 py-2.5 bg-white/85 border border-[#141414]/20 rounded-[18px] focus:outline-none focus:border-[#141414] shadow-sm"
               />
             </div>
 
@@ -283,7 +283,7 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
               <button
                 type="submit"
-                className="w-full sm:w-auto px-8 py-3 rounded-full bg-[#141414] text-[#dcd8cf] text-xs font-bold tracking-widest uppercase hover:bg-[#2c2a27] transition-all flex items-center justify-center gap-2 shadow-lg"
+                className="spring-press w-full sm:w-auto px-8 py-3.5 rounded-[22px] bg-[#141414] text-[#dcd8cf] text-xs font-bold tracking-widest uppercase hover:bg-[#2c2a27] transition-all flex items-center justify-center gap-2 shadow-soft-2 border border-white/10"
               >
                 <Sparkles className="w-4 h-4 text-amber-300" />
                 <span>{lang === 'vi' ? 'Xác Nhận Đặt Tư Vấn' : 'Submit Consultation Request'}</span>
@@ -293,14 +293,14 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
                 <button
                   type="button"
                   onClick={handleSendZalo}
-                  className="px-4 py-2.5 rounded-full bg-[#0068FF] text-white text-[11px] font-bold uppercase tracking-wider hover:opacity-90 transition-opacity"
+                  className="spring-press px-4 py-2.5 rounded-[18px] bg-[#0068FF] text-white text-[11px] font-bold uppercase tracking-wider hover:opacity-90 transition-opacity shadow-sm"
                 >
                   Zalo 090 936 80 80
                 </button>
                 <button
                   type="button"
                   onClick={handleSendEmail}
-                  className="px-4 py-2.5 rounded-full border border-[#141414]/30 hover:border-[#141414] text-[#141414] text-[11px] font-bold uppercase tracking-wider transition-colors"
+                  className="spring-press px-4 py-2.5 rounded-[18px] border border-[#141414]/25 hover:border-[#141414] text-[#141414] text-[11px] font-bold uppercase tracking-wider transition-colors glass-frost-pill"
                 >
                   Email Atelier
                 </button>

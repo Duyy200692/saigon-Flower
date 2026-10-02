@@ -86,11 +86,11 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col justify-between overflow-hidden animate-fadeIn font-sans">
       
-      {/* Top Header Bar */}
-      <header className="h-18 bg-[#181917] border-b border-white/15 px-4 sm:px-8 flex items-center justify-between flex-shrink-0 z-20">
+      {/* Top Header Bar with Frosted Glass & Squircle */}
+      <header className="h-18 bg-[#181917]/90 backdrop-blur-2xl border-b border-white/15 px-4 sm:px-8 flex items-center justify-between flex-shrink-0 z-20">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono tracking-widest uppercase text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded border border-amber-400/20">
+            <span className="text-[10px] font-mono tracking-widest uppercase text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-full border border-amber-400/20">
               JU ET SAIGON · ARCHIVE
             </span>
             <span className="text-xs text-white/50 font-mono hidden sm:inline-block">
@@ -111,14 +111,14 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
               placeholder={lang === 'vi' ? 'Tìm hoa, mùa, nốt hương...' : 'Search species, season...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-4 py-1.5 bg-black/40 border border-white/15 rounded-lg text-white text-xs font-mono placeholder-white/40 focus:outline-none focus:border-amber-400"
+              className="w-full pl-8 pr-4 py-1.5 bg-black/40 border border-white/20 rounded-[20px] text-white text-xs font-mono placeholder-white/40 focus:outline-none focus:border-amber-400 backdrop-blur-xl"
             />
           </div>
 
           {/* Close button */}
           <button
             onClick={onClose}
-            className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors flex items-center gap-1.5 text-xs font-mono uppercase"
+            className="spring-press p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors flex items-center gap-1.5 text-xs font-mono uppercase border border-white/10"
             aria-label="Close collection modal"
           >
             <span className="hidden sm:inline">{lang === 'vi' ? 'Đóng' : 'Close'}</span>
@@ -128,7 +128,7 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
       </header>
 
       {/* Filter Toolbar Bar (Multi-Category + Seasonal Pills) */}
-      <div className="bg-[#141513] border-b border-white/10 px-4 sm:px-8 py-3.5 flex-shrink-0 space-y-3 z-10">
+      <div className="bg-[#141513]/90 backdrop-blur-2xl border-b border-white/10 px-4 sm:px-8 py-3.5 flex-shrink-0 space-y-3 z-10">
         
         {/* Row 1: Categories */}
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
@@ -151,15 +151,15 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
               <button
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.id)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1.5 border ${
+                className={`spring-press-subtle px-4 py-1.5 rounded-[20px] text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1.5 border ${
                   selectedCategory === cat.id
-                    ? 'bg-amber-400 text-[#141414] font-bold border-amber-400 shadow-md'
-                    : 'bg-white/5 text-white/75 hover:bg-white/10 border-white/10 hover:text-white'
+                    ? 'bg-amber-400 text-[#141414] font-bold border-amber-400 shadow-md ring-2 ring-amber-400/30'
+                    : 'bg-white/10 text-white/80 hover:bg-white/20 border-white/15 hover:text-white backdrop-blur-md'
                 }`}
               >
                 <span>{lang === 'vi' ? cat.labelVi : cat.labelEn}</span>
-                <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
-                  selectedCategory === cat.id ? 'bg-black/20 text-[#141414]' : 'bg-black/40 text-white/60'
+                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
+                  selectedCategory === cat.id ? 'bg-black/20 text-[#141414] font-bold' : 'bg-black/40 text-white/60'
                 }`}>
                   {count}
                 </span>
@@ -179,10 +179,10 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
               <button
                 key={season.id}
                 onClick={() => handleSeasonChange(season.id)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-mono whitespace-nowrap transition-all border ${
+                className={`spring-press-subtle px-3.5 py-1 rounded-[18px] text-[11px] font-mono whitespace-nowrap transition-all border ${
                   selectedSeason === season.id
-                    ? 'bg-white/20 text-white border-white/40 font-bold'
-                    : 'bg-transparent text-white/60 hover:text-white border-white/5 hover:border-white/20'
+                    ? 'bg-white/25 text-white border-white/50 font-bold shadow-sm backdrop-blur-md'
+                    : 'bg-transparent text-white/60 hover:text-white border-white/10 hover:border-white/25'
                 }`}
               >
                 {lang === 'vi' ? season.labelVi : season.labelEn}
@@ -195,9 +195,9 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
                 soundEngine.playFlowerChime(640);
                 setShowPinnedOnly((prev) => !prev);
               }}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-mono whitespace-nowrap transition-all border flex items-center gap-1.5 ${
+              className={`spring-press-subtle px-3.5 py-1 rounded-[18px] text-[11px] font-mono whitespace-nowrap transition-all border flex items-center gap-1.5 ${
                 showPinnedOnly
-                  ? 'bg-amber-400/20 text-amber-300 border-amber-400/50 font-bold shadow-sm'
+                  ? 'bg-amber-400/25 text-amber-300 border-amber-400/60 font-bold shadow-sm backdrop-blur-md'
                   : 'bg-transparent text-white/60 hover:text-amber-300 border-white/10 hover:border-amber-400/30'
               }`}
               title="Chỉ hiển thị các tác phẩm đang được ghim tại trang chủ"
@@ -226,7 +226,7 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
               placeholder={lang === 'vi' ? 'Tìm hoa, mùi hương, mùa...' : 'Search species, season...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-4 py-1.5 bg-black/40 border border-white/15 rounded-lg text-white text-xs font-mono placeholder-white/40 focus:outline-none focus:border-amber-400"
+              className="w-full pl-8 pr-4 py-2 bg-black/50 border border-white/20 rounded-[22px] text-white text-xs font-mono placeholder-white/40 focus:outline-none focus:border-amber-400 backdrop-blur-xl"
             />
           </div>
         </div>
@@ -251,13 +251,13 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
                   setShowPinnedOnly(false);
                   setSearchQuery('');
                 }}
-                className="px-4 py-2 rounded-lg bg-amber-400 text-black text-xs font-mono font-bold uppercase tracking-wider"
+                className="px-5 py-2.5 rounded-[18px] bg-amber-400 text-black text-xs font-mono font-bold uppercase tracking-wider spring-press"
               >
                 {lang === 'vi' ? 'Đặt lại bộ lọc' : 'Reset filters'}
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-6">
               {filteredFlowers.map((flower) => {
                 const isPinned = flower.pinnedToLanding !== false;
 
@@ -265,10 +265,10 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
                   <div
                     key={flower.id}
                     onClick={() => handleFlowerClick(flower)}
-                    className="group bg-[#161715] hover:bg-[#1f201d] rounded-2xl overflow-hidden border border-white/10 hover:border-amber-400/50 transition-all duration-300 cursor-pointer flex flex-col shadow-lg hover:shadow-2xl hover:-translate-y-1"
+                    className="spring-card group glass-frost-dark rounded-[28px] sm:rounded-[34px] p-2.5 sm:p-3 border border-white/15 hover:border-amber-400/60 transition-all duration-300 cursor-pointer flex flex-col shadow-soft-2 hover:shadow-soft-3 hover:-translate-y-1 active:scale-[0.97]"
                   >
-                    {/* Image Stage with Auto-Adaptive Container */}
-                    <div className="relative aspect-[3/4] bg-black overflow-hidden">
+                    {/* Image Stage with Continuous Curve Squircle Container */}
+                    <div className="relative aspect-[3/4] bg-black rounded-[22px] sm:rounded-[26px] overflow-hidden">
                       <img
                         src={flower.image}
                         alt={flower.name}
@@ -280,15 +280,15 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
                       {/* Vignette */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 opacity-70 group-hover:opacity-40 transition-opacity" />
 
-                      {/* Specimen Index Badge */}
-                      <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded bg-black/70 backdrop-blur-md text-[10px] font-mono text-white/90">
+                      {/* Specimen Index Badge in Frosted Glass */}
+                      <div className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full backdrop-blur-xl bg-black/60 border border-white/20 text-[10px] font-mono text-white/95 shadow-sm">
                         #{flower.indexNumber}
                       </div>
 
                       {/* Pinned to Landing Page Badge */}
                       {isPinned && (
                         <div
-                          className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-amber-400/90 text-black text-[9px] font-mono font-bold flex items-center gap-1 shadow-md"
+                          className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full bg-amber-400 text-black text-[9px] font-mono font-bold flex items-center gap-1 shadow-md"
                           title="Tác phẩm đang được ghim tại trang chủ"
                         >
                           <Pin className="w-2.5 h-2.5 fill-black" />
@@ -298,20 +298,20 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
 
                       {/* Seasonality Tag bottom right */}
                       {flower.seasonality && (
-                        <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded bg-black/75 backdrop-blur-md text-[10px] font-mono text-amber-300 border border-white/10">
+                        <div className="absolute bottom-2.5 right-2.5 px-2.5 py-0.5 rounded-full backdrop-blur-xl bg-black/75 text-[10px] font-mono text-amber-300 border border-white/15 shadow-sm">
                           {flower.seasonality}
                         </div>
                       )}
                     </div>
 
                     {/* Content Details */}
-                    <div className="p-3.5 sm:p-4 flex-1 flex flex-col justify-between space-y-2">
+                    <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between space-y-2">
                       <div>
                         <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400/80 block truncate">
                           {flower.categoryLabelVi || flower.category}
                         </span>
                         
-                        <h4 className="font-bagerich font-medium text-sm sm:text-base uppercase tracking-tight text-white group-hover:text-amber-300 transition-colors line-clamp-1">
+                        <h4 className="font-bagerich font-medium text-sm sm:text-base uppercase tracking-tight text-white group-hover:text-amber-300 transition-colors line-clamp-1 mt-0.5">
                           {flower.name}
                         </h4>
 
@@ -321,10 +321,10 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
                       </div>
 
                       <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs font-mono">
-                        <span className="text-white/50 text-[11px]">
+                        <span className="text-white/50 text-[11px] truncate mr-2">
                           {flower.scent?.mood || 'Hương thơm tự nhiên'}
                         </span>
-                        <span className="text-amber-300 font-bold">
+                        <span className="text-amber-300 font-bold flex-shrink-0">
                           {(flower.priceVnd / 1000000).toFixed(1)}M
                         </span>
                       </div>

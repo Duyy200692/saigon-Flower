@@ -1,6 +1,7 @@
 import React from 'react';
 import { Volume2, VolumeX, Menu, Sparkles, Shield } from 'lucide-react';
 import { useAtelier } from '../context/AtelierContext';
+import { soundEngine } from '../utils/audio';
 
 interface TopBarProps {
   lang: 'vi' | 'en';
@@ -30,14 +31,14 @@ export const TopBar: React.FC<TopBarProps> = ({
   const { atelierData, logoUrl, isAdmin } = useAtelier();
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-[#dcd8cf]/95 backdrop-blur-md border-b border-[#141414]/15 transition-all">
+    <header className="sticky top-0 z-40 w-full backdrop-blur-2xl bg-[#dcd8cf]/85 border-b border-white/60 shadow-soft-1 transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
         {/* Zone 1: Custom Logo or Brand Wordmark in display face */}
         <div className="flex items-center gap-4">
           <a
             href="#"
-            className="flex items-center gap-2 hover:opacity-85 transition-opacity"
+            className="flex items-center gap-2 hover:opacity-85 transition-opacity spring-press-subtle"
           >
             {logoUrl ? (
               <img
@@ -59,39 +60,45 @@ export const TopBar: React.FC<TopBarProps> = ({
         {/* Zone 2: 4-6 Clean Text Navigation Links */}
         <nav className="hidden md:flex items-center gap-7 text-xs font-semibold tracking-widest uppercase text-[#141414]/75">
           <button
-            onClick={onOpenIndex}
-            className="hover:text-[#141414] transition-colors text-left"
+            onClick={() => {
+              soundEngine.playFlowerChime(432);
+              onOpenIndex();
+            }}
+            className="hover:text-[#141414] transition-colors text-left spring-press-subtle"
           >
             {lang === 'vi' ? 'Bộ Sưu Tập' : 'Collection Archive'}
           </button>
           {onOpenWorkshop ? (
             <button
-              onClick={onOpenWorkshop}
-              className="hover:text-[#141414] transition-colors text-amber-900 font-bold"
+              onClick={() => {
+                soundEngine.playFlowerChime(528);
+                onOpenWorkshop();
+              }}
+              className="hover:text-[#141414] transition-colors text-amber-900 font-bold spring-press-subtle"
             >
               {lang === 'vi' ? 'Workshop Cắm Hoa' : 'Workshop'}
             </button>
           ) : (
-            <a href="#workshop" className="hover:text-[#141414] transition-colors text-amber-900 font-bold">
+            <a href="#workshop" className="hover:text-[#141414] transition-colors text-amber-900 font-bold spring-press-subtle">
               {lang === 'vi' ? 'Workshop Cắm Hoa' : 'Workshop'}
             </a>
           )}
-          <a href="#philosophy" className="hover:text-[#141414] transition-colors">
+          <a href="#philosophy" className="hover:text-[#141414] transition-colors spring-press-subtle">
             {lang === 'vi' ? 'Triết Lý Hoa' : 'Philosophy'}
           </a>
         </nav>
 
         {/* Zone 3: Primary Actions & Utility Controls */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-2.5">
           {/* Admin Portal Button */}
           <button
             onClick={onOpenAdmin}
-            className={`p-1.5 rounded-full border transition-all flex items-center gap-1 text-[10px] font-mono uppercase ${
+            className={`spring-press p-2 rounded-[20px] border transition-all flex items-center gap-1.5 text-[10px] font-mono uppercase shadow-sm ${
               isAdmin
-                ? 'bg-amber-400 text-[#141414] border-amber-500 font-bold shadow-sm'
-                : 'border-[#141414]/20 text-[#141414]/60 hover:text-[#141414] hover:border-[#141414]'
+                ? 'bg-amber-400 text-[#141414] border-amber-500 font-bold'
+                : 'glass-frost-pill border-white/80 text-[#141414]/70 hover:text-[#141414]'
             }`}
-            title="Quản Trị Admin (Chỉnh sửa, xóa, logo & nén WebP)"
+            title="Quản Trị Admin"
           >
             <Shield className="w-3.5 h-3.5" />
             <span className="hidden xl:inline">{isAdmin ? 'ADMIN ACTIVE' : 'ADMIN'}</span>
@@ -99,8 +106,11 @@ export const TopBar: React.FC<TopBarProps> = ({
 
           {/* Index Trigger */}
           <button
-            onClick={onOpenIndex}
-            className="px-3 py-1.5 text-xs font-medium tracking-wider uppercase rounded-full border border-[#141414]/25 hover:border-[#141414] hover:bg-[#141414] hover:text-[#dcd8cf] transition-all flex items-center gap-1.5"
+            onClick={() => {
+              soundEngine.playFlowerChime(432);
+              onOpenIndex();
+            }}
+            className="spring-press px-3.5 py-1.5 text-xs font-mono font-medium tracking-wider uppercase rounded-[20px] border border-white/80 glass-frost-pill text-[#141414] transition-all flex items-center gap-1.5 shadow-sm hover:border-[#141414]/30"
             title="Open Botanical Index"
           >
             <Menu className="w-3.5 h-3.5" />
@@ -109,13 +119,16 @@ export const TopBar: React.FC<TopBarProps> = ({
 
           {/* Sound Toggle */}
           <button
-            onClick={onToggleAudio}
-            className={`p-2 rounded-full border transition-all ${
+            onClick={() => {
+              soundEngine.playFlowerChime(528);
+              onToggleAudio();
+            }}
+            className={`spring-press p-2 rounded-[20px] border transition-all ${
               isAudioPlaying
-                ? 'bg-[#141414] text-[#dcd8cf] border-[#141414]'
-                : 'border-[#141414]/25 text-[#141414] hover:border-[#141414]'
+                ? 'bg-[#141414] text-[#dcd8cf] border-[#141414] shadow-sm'
+                : 'glass-frost-pill border-white/80 text-[#141414] hover:bg-white/90'
             }`}
-            title={isAudioPlaying ? 'Mute Ambient Soundscape' : 'Play Ambient Rain & Resonance'}
+            title={isAudioPlaying ? 'Mute Ambient Soundscape' : 'Play Ambient Soundscape'}
             aria-label="Toggle ambient sound"
           >
             {isAudioPlaying ? (
@@ -126,19 +139,25 @@ export const TopBar: React.FC<TopBarProps> = ({
           </button>
 
           {/* Language Switcher */}
-          <div className="flex items-center text-[11px] font-bold border border-[#141414]/25 rounded-full p-0.5">
+          <div className="flex items-center text-[11px] font-bold border border-white/80 glass-frost-pill rounded-[20px] p-0.5 shadow-sm">
             <button
-              onClick={() => setLang('vi')}
-              className={`px-2 py-0.5 rounded-full transition-all ${
-                lang === 'vi' ? 'bg-[#141414] text-[#dcd8cf]' : 'text-[#141414]/70 hover:text-[#141414]'
+              onClick={() => {
+                soundEngine.playFlowerChime(640);
+                setLang('vi');
+              }}
+              className={`spring-press-subtle px-2 py-0.5 rounded-[16px] transition-all ${
+                lang === 'vi' ? 'bg-[#141414] text-[#dcd8cf] shadow-sm' : 'text-[#141414]/70 hover:text-[#141414]'
               }`}
             >
               VI
             </button>
             <button
-              onClick={() => setLang('en')}
-              className={`px-2 py-0.5 rounded-full transition-all ${
-                lang === 'en' ? 'bg-[#141414] text-[#dcd8cf]' : 'text-[#141414]/70 hover:text-[#141414]'
+              onClick={() => {
+                soundEngine.playFlowerChime(640);
+                setLang('en');
+              }}
+              className={`spring-press-subtle px-2 py-0.5 rounded-[16px] transition-all ${
+                lang === 'en' ? 'bg-[#141414] text-[#dcd8cf] shadow-sm' : 'text-[#141414]/70 hover:text-[#141414]'
               }`}
             >
               EN
@@ -147,10 +166,13 @@ export const TopBar: React.FC<TopBarProps> = ({
 
           {/* Bespoke Order CTA */}
           <button
-            onClick={onOpenOrder}
-            className="hidden sm:flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold tracking-wider text-[#dcd8cf] bg-[#141414] rounded-full hover:bg-[#2c2b28] transition-all whitespace-nowrap"
+            onClick={() => {
+              soundEngine.playFlowerChime(580);
+              onOpenOrder();
+            }}
+            className="spring-press hidden sm:flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold tracking-wider text-[#dcd8cf] bg-[#141414] rounded-[22px] hover:bg-[#2c2b28] shadow-md transition-all whitespace-nowrap border border-white/10"
           >
-            <Sparkles className="w-3.5 h-3.5" />
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
             <span>{lang === 'vi' ? 'Đặt Hoa' : 'Bespoke Order'}</span>
           </button>
         </div>
@@ -158,3 +180,4 @@ export const TopBar: React.FC<TopBarProps> = ({
     </header>
   );
 };
+

@@ -103,7 +103,7 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
 
         <button
           onClick={onClose}
-          className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors flex items-center gap-1.5 text-xs font-mono uppercase"
+          className="spring-press p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors flex items-center gap-1.5 text-xs font-mono uppercase border border-white/15 backdrop-blur-xl"
           aria-label="Close photo viewer"
         >
           <span className="hidden sm:inline">{lang === 'vi' ? 'Đóng' : 'Close'}</span>
@@ -114,7 +114,7 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
       {/* Main Image Stage (Pure Photo Slider Card) */}
       <div className="flex-1 flex items-center justify-center py-4 relative my-auto">
         <div
-          className={`relative w-full mx-auto rounded-3xl overflow-hidden bg-black shadow-2xl border border-white/10 transition-all duration-300 flex items-center justify-center ${
+          className={`relative w-full mx-auto rounded-[28px] sm:rounded-[36px] overflow-hidden bg-black shadow-soft-3 border border-white/20 transition-all duration-300 flex items-center justify-center ${
             isLandscape ? 'max-w-3xl aspect-[4/3]' : 'max-w-md sm:max-w-lg aspect-[3/4]'
           }`}
           onTouchStart={handleTouchStart}
@@ -135,7 +135,7 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
           {totalSlides > 1 && (
             <button
               onClick={handlePrev}
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/50 hover:bg-black/80 text-white/90 backdrop-blur-md transition-all opacity-80 hover:opacity-100 hover:scale-110 flex items-center justify-center shadow-2xl"
+              className="spring-press absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/55 hover:bg-black/85 text-white/90 backdrop-blur-2xl border border-white/20 transition-all flex items-center justify-center shadow-soft-2 hover:scale-110 active:scale-95"
               aria-label="Previous photo"
             >
               <ChevronLeft className="w-6 h-6" />
@@ -146,7 +146,7 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
           {totalSlides > 1 && (
             <button
               onClick={handleNext}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/50 hover:bg-black/80 text-white/90 backdrop-blur-md transition-all opacity-80 hover:opacity-100 hover:scale-110 flex items-center justify-center shadow-2xl"
+              className="spring-press absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/55 hover:bg-black/85 text-white/90 backdrop-blur-2xl border border-white/20 transition-all flex items-center justify-center shadow-soft-2 hover:scale-110 active:scale-95"
               aria-label="Next photo"
             >
               <ChevronRight className="w-6 h-6" />
@@ -154,7 +154,7 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
           )}
 
           {/* Slide Index Badge Top Right (matching 1/4 badge) */}
-          <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-black/70 backdrop-blur-md text-xs font-mono text-white/90 tracking-widest shadow-md">
+          <div className="absolute top-4 right-4 px-3 py-1 rounded-full backdrop-blur-2xl bg-black/65 border border-white/20 text-xs font-mono text-white/90 tracking-widest shadow-md">
             {currentSlide + 1}/{totalSlides}
           </div>
         </div>

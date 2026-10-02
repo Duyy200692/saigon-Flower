@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { WORKSHOPS } from '../data/workshop';
 import { useAtelier } from '../context/AtelierContext';
-import { ArrowRight, Sparkles, Building2, Users, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Building2, Users, ShieldCheck } from 'lucide-react';
 import { soundEngine } from '../utils/audio';
 
 interface WorkshopTeaserSectionProps {
@@ -33,9 +33,8 @@ export const WorkshopTeaserSection: React.FC<WorkshopTeaserSectionProps> = ({
       {/* Editorial Top Border Divider */}
       <div className="border-t border-[#141414]/15 pt-8 pb-3 flex items-center justify-between text-[11px] font-mono uppercase tracking-widest text-[#141414]/60">
         <span>JU ET SAIGON · BOTANICAL WORKSHOP</span>
-        <span className="flex items-center gap-1.5 text-[#141414]">
-          <Sparkles className="w-3.5 h-3.5 text-amber-700" />
-          <span>{lang === 'vi' ? 'DỊCH VỤ TRỌN GÓI CHO DOANH NGHIỆP' : 'ALL-INCLUSIVE CORPORATE SALON'}</span>
+        <span className="text-[10px] text-[#141414]/40 font-mono tracking-wider">
+          ATELIER SALON
         </span>
       </div>
 

@@ -35,9 +35,6 @@ export const WorkshopGalleryModal: React.FC<WorkshopGalleryModalProps> = ({
           <span className="text-xs font-mono tracking-widest uppercase text-white/70">
             JU ET SAIGON · WORKSHOP BOTANICA
           </span>
-          <span className="hidden sm:inline-block text-[11px] font-mono text-amber-300 bg-amber-400/10 px-2.5 py-0.5 rounded-full border border-amber-400/20">
-            {lang === 'vi' ? 'DỊCH VỤ TRỌN GÓI CHO DOANH NGHIỆP' : 'ALL-INCLUSIVE CORPORATE SALON'}
-          </span>
         </div>
 
         <button

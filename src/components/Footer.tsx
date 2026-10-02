@@ -1,6 +1,6 @@
 import React from 'react';
-import { ArrowUp, Instagram, Facebook, Globe, PhoneCall, Mail, MapPin } from 'lucide-react';
-import { ATELIER_DATA } from '../data/flowers';
+import { ArrowUp, Instagram, Facebook, Globe, MessageCircle } from 'lucide-react';
+import { useAtelier } from '../context/AtelierContext';
 
 interface FooterProps {
   lang: 'vi' | 'en';
@@ -17,6 +17,8 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenCredits,
   onOpenAdmin
 }) => {
+  const { atelierData } = useAtelier();
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -29,13 +31,13 @@ export const Footer: React.FC<FooterProps> = ({
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-white/15 pb-12">
           <div>
             <h3 className="text-3xl sm:text-5xl font-fleur-title uppercase tracking-wider text-white">
-              JU ET SAIGON
+              {atelierData.name || 'JU ET SAIGON'}
             </h3>
             <p className="text-base sm:text-lg font-editorial-serif italic text-white/80 mt-2">
-              "Flower your heart, Flower your soul."
+              "{atelierData.tagline || 'Flower your heart, Flower your soul.'}"
             </p>
             <p className="text-xs font-sans text-white/60 mt-1">
-              {lang === 'vi' ? ATELIER_DATA.subTaglineVi : ATELIER_DATA.subTaglineEn}
+              {lang === 'vi' ? atelierData.subTaglineVi : atelierData.subTaglineEn}
             </p>
           </div>
 
@@ -56,10 +58,10 @@ export const Footer: React.FC<FooterProps> = ({
               ATELIER SAIGON
             </span>
             <p className="leading-relaxed">
-              {lang === 'vi' ? ATELIER_DATA.addressVi : ATELIER_DATA.addressEn}
+              {lang === 'vi' ? atelierData.addressVi : atelierData.addressEn}
             </p>
             <p className="text-white/60 text-[11px]">
-              {lang === 'vi' ? ATELIER_DATA.hoursVi : ATELIER_DATA.hoursEn}
+              {lang === 'vi' ? atelierData.hoursVi : atelierData.hoursEn}
             </p>
           </div>
 
@@ -68,13 +70,13 @@ export const Footer: React.FC<FooterProps> = ({
               DIRECT HOTLINE
             </span>
             <p className="text-sm font-bold font-mono text-white">
-              {ATELIER_DATA.phoneFormatted}
+              {atelierData.phoneFormatted || atelierData.phone}
             </p>
             <a
-              href={`mailto:${ATELIER_DATA.email}`}
+              href={`mailto:${atelierData.email}`}
               className="hover:text-white underline block"
             >
-              {ATELIER_DATA.email}
+              {atelierData.email}
             </a>
           </div>
 
@@ -82,34 +84,62 @@ export const Footer: React.FC<FooterProps> = ({
             <span className="text-[10px] font-mono uppercase tracking-widest text-white/40 block">
               SOCIAL & CHANNELS
             </span>
-            <div className="space-y-1">
-              <a
-                href={ATELIER_DATA.instagramUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-white flex items-center gap-1.5"
-              >
-                <Instagram className="w-3.5 h-3.5" />
-                <span>Instagram @{ATELIER_DATA.instagram}</span>
-              </a>
-              <a
-                href={ATELIER_DATA.facebookUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-white flex items-center gap-1.5"
-              >
-                <Facebook className="w-3.5 h-3.5" />
-                <span>Facebook JU et Saigon</span>
-              </a>
-              <a
-                href="https://juinternational.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-white flex items-center gap-1.5"
-              >
-                <Globe className="w-3.5 h-3.5" />
-                <span>juinternational.com</span>
-              </a>
+            <div className="space-y-1.5">
+              {atelierData.instagramUrl && (
+                <a
+                  href={atelierData.instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-white flex items-center gap-1.5 transition-colors"
+                >
+                  <Instagram className="w-3.5 h-3.5 text-pink-400" />
+                  <span>Instagram @{atelierData.instagram || 'juetsaigon'}</span>
+                </a>
+              )}
+              {atelierData.facebookUrl && (
+                <a
+                  href={atelierData.facebookUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-white flex items-center gap-1.5 transition-colors"
+                >
+                  <Facebook className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Facebook {atelierData.facebookName || 'JU et Saigon'}</span>
+                </a>
+              )}
+              {atelierData.zaloUrl && (
+                <a
+                  href={atelierData.zaloUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-white flex items-center gap-1.5 text-cyan-300 transition-colors"
+                >
+                  <MessageCircle className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Zalo Group / Hotline</span>
+                </a>
+              )}
+              {atelierData.tiktokUrl && (
+                <a
+                  href={atelierData.tiktokUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-white flex items-center gap-1.5 transition-colors"
+                >
+                  <span className="w-3.5 h-3.5 flex items-center justify-center font-mono font-bold text-[10px] text-purple-400">♪</span>
+                  <span>TikTok @{atelierData.instagram || 'juetsaigon'}</span>
+                </a>
+              )}
+              {atelierData.website && (
+                <a
+                  href={atelierData.websiteUrl || (atelierData.website.startsWith('http') ? atelierData.website : `https://${atelierData.website}`)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-white flex items-center gap-1.5 transition-colors"
+                >
+                  <Globe className="w-3.5 h-3.5 text-amber-300" />
+                  <span>{atelierData.website}</span>
+                </a>
+              )}
             </div>
           </div>
 
@@ -140,7 +170,7 @@ export const Footer: React.FC<FooterProps> = ({
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between text-[11px] text-white/50 font-mono gap-4">
           <p>
-            © 2026 JU et Saigon Florist. All rights reserved.
+            © 2026 {atelierData.name || 'JU et Saigon Florist'}. All rights reserved.
           </p>
           <p>
             Encyclopædia Botanica Digital · Flower your heart, Flower your soul

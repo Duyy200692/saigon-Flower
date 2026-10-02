@@ -107,20 +107,20 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 md:p-6 animate-fadeIn">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-2xl flex items-center justify-center p-2 sm:p-4 md:p-6 animate-fadeIn">
       
-      {/* Modal Container */}
-      <div className="relative w-full max-w-5xl bg-[#dcd8cf] text-[#141414] rounded-2xl shadow-2xl border border-[#141414]/30 overflow-hidden my-auto max-h-[96vh] flex flex-col">
+      {/* Modal Container with Continuous Curves & Layered Depth */}
+      <div className="relative w-full max-w-5xl bg-[#dcd8cf] text-[#141414] squircle-2xl rounded-[32px] sm:rounded-[40px] shadow-soft-3 border border-white/60 overflow-hidden my-auto max-h-[96vh] flex flex-col">
         
-        {/* Top Floating Action Bar */}
-        <div className="px-4 sm:px-6 py-3.5 border-b border-[#141414]/15 bg-[#dcd8cf]/95 flex items-center justify-between z-20">
+        {/* Top Floating Action Bar with Frosted Glass */}
+        <div className="px-4 sm:px-6 py-3.5 border-b border-[#141414]/15 bg-[#dcd8cf]/90 backdrop-blur-2xl flex items-center justify-between z-20">
           
           {/* Navigation Controls (< Prev | Next >) */}
           <div className="flex items-center gap-2 sm:gap-4">
             {onPrev && (
               <button
                 onClick={onPrev}
-                className="p-1.5 sm:px-3 sm:py-1 rounded-full border border-[#141414]/20 hover:border-[#141414] hover:bg-[#141414] hover:text-[#dcd8cf] transition-all flex items-center gap-1 text-xs font-mono uppercase"
+                className="spring-press p-1.5 sm:px-3.5 sm:py-1 rounded-[18px] border border-[#141414]/20 hover:border-[#141414] hover:bg-[#141414] hover:text-[#dcd8cf] transition-all flex items-center gap-1 text-xs font-mono uppercase glass-frost-pill"
                 title="Previous Flower (Arrow Left)"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -128,14 +128,14 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
               </button>
             )}
 
-            <div className="text-xs font-mono text-[#141414]/70 px-2 py-0.5 rounded bg-black/5">
+            <div className="text-xs font-mono text-[#141414]/80 px-2.5 py-1 rounded-[14px] bg-black/5 border border-black/5">
               SPECIMEN <span className="font-bold text-[#141414]">{flower.indexNumber}</span> / {totalCount}
             </div>
 
             {onNext && (
               <button
                 onClick={onNext}
-                className="p-1.5 sm:px-3 sm:py-1 rounded-full border border-[#141414]/20 hover:border-[#141414] hover:bg-[#141414] hover:text-[#dcd8cf] transition-all flex items-center gap-1 text-xs font-mono uppercase"
+                className="spring-press p-1.5 sm:px-3.5 sm:py-1 rounded-[18px] border border-[#141414]/20 hover:border-[#141414] hover:bg-[#141414] hover:text-[#dcd8cf] transition-all flex items-center gap-1 text-xs font-mono uppercase glass-frost-pill"
                 title="Next Flower (Arrow Right)"
               >
                 <span className="hidden sm:inline">{lang === 'vi' ? 'Tiếp' : 'Next'}</span>
@@ -148,7 +148,7 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={handlePlayChime}
-              className="p-2 rounded-full border border-[#141414]/20 hover:border-[#141414] text-[#141414] hover:bg-[#141414] hover:text-[#dcd8cf] transition-all"
+              className="spring-press p-2 rounded-[18px] border border-[#141414]/20 hover:border-[#141414] text-[#141414] hover:bg-[#141414] hover:text-[#dcd8cf] transition-all glass-frost-pill"
               title="Play harmonic chime"
             >
               <Volume2 className="w-4 h-4 text-amber-600" />
@@ -156,7 +156,7 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
 
             <button
               onClick={handleShare}
-              className="p-2 rounded-full border border-[#141414]/20 hover:border-[#141414] text-[#141414] transition-all"
+              className="spring-press p-2 rounded-[18px] border border-[#141414]/20 hover:border-[#141414] text-[#141414] transition-all glass-frost-pill"
               title="Share"
             >
               {isCopied ? <Check className="w-4 h-4 text-emerald-600" /> : <Share2 className="w-4 h-4" />}
@@ -164,7 +164,7 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-2 rounded-full bg-[#141414] text-[#dcd8cf] hover:bg-[#2e2d2a] transition-all ml-1"
+              className="spring-press p-2 rounded-[18px] bg-[#141414] text-[#dcd8cf] hover:bg-[#2e2d2a] transition-all ml-1 shadow-sm"
               aria-label="Close detail modal"
             >
               <X className="w-4 h-4" />
@@ -183,7 +183,7 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
               
               {/* Main Adaptive Image Frame (Smoothly switches between 3:4 portrait and 4:3 landscape) */}
               <div
-                className={`relative w-full mx-auto rounded-xl overflow-hidden bg-[#181716] shadow-2xl border border-[#141414]/20 group transition-all duration-500 ${
+                className={`relative w-full mx-auto rounded-[26px] sm:rounded-[34px] overflow-hidden bg-[#181716] shadow-soft-3 border border-[#141414]/20 group transition-all duration-500 ${
                   isLandscape ? 'aspect-[4/3] max-w-lg' : 'aspect-[3/4] max-w-md'
                 }`}
               >

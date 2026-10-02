@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Minus, MapPin, Clock, Truck, ShieldCheck, Heart } from 'lucide-react';
 import { ATELIER_DATA } from '../data/flowers';
+import { soundEngine } from '../utils/audio';
 
 interface ManifestoSectionProps {
   lang: 'vi' | 'en';
@@ -51,23 +52,28 @@ export const ManifestoSection: React.FC<ManifestoSectionProps> = ({
       {/* Accordion Trigger matching "Details +" from Image 1 */}
       <div className="mt-10 pt-4 border-t border-b border-[#141414]/20">
         <button
-          onClick={() => setIsDetailsOpen(!isDetailsOpen)}
-          className="w-full py-4 flex items-center justify-between text-xs sm:text-sm font-semibold tracking-widest uppercase text-[#141414] hover:opacity-75 transition-opacity"
+          onClick={() => {
+            soundEngine.playFlowerChime(isDetailsOpen ? 432 : 528);
+            setIsDetailsOpen(!isDetailsOpen);
+          }}
+          className="spring-press-subtle w-full py-4 flex items-center justify-between text-xs sm:text-sm font-semibold tracking-widest uppercase text-[#141414] hover:opacity-75 transition-opacity"
           aria-expanded={isDetailsOpen}
         >
           <span>{lang === 'vi' ? 'CHI TIẾT VỀ ATELIER & DỊCH VỤ' : 'DETAILS & ATELIER PRACTICES'}</span>
-          {isDetailsOpen ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+          <span className="p-1.5 rounded-full bg-white/40 border border-[#141414]/15">
+            {isDetailsOpen ? <Minus className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+          </span>
         </button>
 
-        {/* Expandable Content Drawer */}
+        {/* Expandable Frosted Glass Squircle Content Card */}
         {isDetailsOpen && (
-          <div className="py-6 text-left space-y-6 text-xs sm:text-sm border-t border-[#141414]/10 animate-fadeIn">
+          <div className="my-6 p-6 sm:p-8 glass-frost-card squircle-2xl border border-white/70 shadow-soft-2 text-left space-y-6 text-xs sm:text-sm animate-fadeIn">
             {/* Grid of details */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               
-              <div className="space-y-2">
+              <div className="space-y-2 p-4 glass-frost-pill rounded-[22px] border border-white/80 shadow-soft-1">
                 <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-[#141414]">
-                  <MapPin className="w-4 h-4 text-[#141414]" />
+                  <MapPin className="w-4 h-4 text-amber-800" />
                   <span>{lang === 'vi' ? 'Địa Chỉ Atelier' : 'Atelier Location'}</span>
                 </div>
                 <p className="text-[#141414]/80 leading-relaxed font-sans">
@@ -75,15 +81,15 @@ export const ManifestoSection: React.FC<ManifestoSectionProps> = ({
                 </p>
                 <button
                   onClick={onOpenAtelier}
-                  className="text-xs font-bold underline underline-offset-4 hover:opacity-70 mt-1 inline-block"
+                  className="text-xs font-bold underline underline-offset-4 hover:opacity-70 mt-1 inline-block text-amber-900 spring-press-subtle"
                 >
                   {lang === 'vi' ? 'Xem chỉ đường & không gian →' : 'View map & space →'}
                 </button>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 p-4 glass-frost-pill rounded-[22px] border border-white/80 shadow-soft-1">
                 <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-[#141414]">
-                  <Clock className="w-4 h-4 text-[#141414]" />
+                  <Clock className="w-4 h-4 text-amber-800" />
                   <span>{lang === 'vi' ? 'Giờ Hoạt Động' : 'Operating Hours'}</span>
                 </div>
                 <p className="text-[#141414]/80 font-sans">
@@ -94,9 +100,9 @@ export const ManifestoSection: React.FC<ManifestoSectionProps> = ({
                 </p>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 p-4 glass-frost-pill rounded-[22px] border border-white/80 shadow-soft-1">
                 <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-[#141414]">
-                  <Truck className="w-4 h-4 text-[#141414]" />
+                  <Truck className="w-4 h-4 text-amber-800" />
                   <span>{lang === 'vi' ? 'Giao Hoa Chuyên Nghiệp' : 'White-Glove Delivery'}</span>
                 </div>
                 <p className="text-[#141414]/80 font-sans">
@@ -106,9 +112,9 @@ export const ManifestoSection: React.FC<ManifestoSectionProps> = ({
                 </p>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 p-4 glass-frost-pill rounded-[22px] border border-white/80 shadow-soft-1">
                 <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-[#141414]">
-                  <ShieldCheck className="w-4 h-4 text-[#141414]" />
+                  <ShieldCheck className="w-4 h-4 text-emerald-700" />
                   <span>{lang === 'vi' ? 'Cam Kết Chất Lượng' : 'Couture Quality Guarantee'}</span>
                 </div>
                 <p className="text-[#141414]/80 font-sans">
@@ -121,10 +127,13 @@ export const ManifestoSection: React.FC<ManifestoSectionProps> = ({
             </div>
 
             {/* Direct CTA */}
-            <div className="pt-4 text-center">
+            <div className="pt-2 text-center">
               <button
-                onClick={onOpenOrder}
-                className="px-6 py-2.5 rounded-full bg-[#141414] text-[#dcd8cf] text-xs font-bold tracking-widest uppercase hover:bg-[#2e2d2a] transition-all"
+                onClick={() => {
+                  soundEngine.playFlowerChime(580);
+                  onOpenOrder();
+                }}
+                className="spring-press px-8 py-3.5 rounded-[24px] bg-[#141414] text-[#dcd8cf] text-xs font-bold tracking-widest uppercase hover:bg-[#2e2d2a] shadow-soft-2 transition-all border border-white/10"
               >
                 {lang === 'vi' ? 'Bắt Đầu Tư Vấn Ngay' : 'Start Consultation Inquiry'}
               </button>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Plus,
@@ -17,7 +17,15 @@ import {
   Layers,
   Sliders,
   Maximize2,
-  Pin
+  Pin,
+  Instagram,
+  Facebook,
+  Globe,
+  MessageCircle,
+  ExternalLink,
+  Share2,
+  Link2,
+  AtSign
 } from 'lucide-react';
 import { useAtelier } from '../context/AtelierContext';
 import { FlowerItem } from '../data/flowers';
@@ -68,6 +76,12 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   
   // Branding Form State
   const [brandingForm, setBrandingForm] = useState(atelierData);
+
+  useEffect(() => {
+    if (isOpen) {
+      setBrandingForm(atelierData);
+    }
+  }, [isOpen, atelierData]);
   
   // Compression status feedback
   const [compressing, setCompressing] = useState(false);
@@ -406,7 +420,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
               activeTab === 'branding' ? 'bg-amber-400 text-[#141414] font-bold' : 'text-white/70 hover:text-white'
             }`}
           >
-            Logo & Thông Tin
+            Logo, Thông Tin & Social
           </button>
         </div>
 
@@ -1263,145 +1277,462 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
             </div>
           )}
 
-          {/* TAB 3: BRANDING & LOGO */}
+          {/* TAB 3: BRANDING & SOCIAL CHANNELS */}
           {activeTab === 'branding' && (
-            <div className="bg-[#1e1f1c] rounded-2xl p-6 border border-white/15 space-y-6">
+            <div className="bg-[#1e1f1c] rounded-2xl p-6 border border-white/15 space-y-8">
               <div className="border-b border-white/10 pb-4">
                 <h3 className="text-xl font-bagerich font-bold uppercase text-white">
-                  CẤU HÌNH LOGO & THÔNG TIN ATELIER
+                  CẤU HÌNH LOGO, THÔNG TIN & SOCIAL CHANNELS
                 </h3>
                 <p className="text-xs text-white/60 font-sans mt-0.5">
-                  Tải logo mới dạng ảnh (tự động nén WebP) hoặc chỉnh sửa địa chỉ, hotline, Zalo và slogan
+                  Quản lý nhận diện thương hiệu, thông tin liên hệ và toàn bộ hệ thống kênh mạng xã hội & truyền thông của JU et Saigon
                 </p>
               </div>
 
-              {/* Logo Management Section */}
+              {/* 1. Logo Management Section */}
               <div className="p-5 bg-black/40 rounded-xl border border-white/10 space-y-4">
-                <label className="font-mono uppercase text-[11px] font-bold text-amber-300 block">
-                  LOGO THƯƠNG HIỆU (ẢNH WEBP HOẶC CHỮ NGHỆ THUẬT)
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="font-mono uppercase text-[11px] font-bold text-amber-300 block">
+                    1. LOGO THƯƠNG HIỆU (ẢNH WEBP HOẶC CHỮ NGHỆ THUẬT)
+                  </label>
+                  <span className="text-[10px] font-mono text-white/40">HIỂN THỊ HEADER & FOOTER</span>
+                </div>
 
                 <div className="flex flex-col sm:flex-row items-center gap-6">
                   {/* Current Logo Preview */}
-                  <div className="w-36 h-20 rounded-xl border border-white/20 bg-white/10 flex items-center justify-center p-2 text-center">
+                  <div className="w-40 h-20 rounded-xl border border-white/20 bg-white/10 flex items-center justify-center p-2 text-center overflow-hidden">
                     {logoUrl ? (
                       <img src={logoUrl} alt="Logo" className="max-h-full max-w-full object-contain" />
                     ) : (
                       <span className="font-fleur-title font-bold text-base text-white">
-                        {brandingForm.name}
+                        {brandingForm.name || 'JU ET SAIGON'}
                       </span>
                     )}
                   </div>
 
                   {/* Upload Actions */}
                   <div className="space-y-2 flex-1">
-                    <label className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#141414] font-bold text-xs uppercase tracking-wider cursor-pointer shadow-md">
-                      <Upload className="w-4 h-4" />
-                      <span>Tải Ảnh Logo Mới (.WebP Auto)</span>
-                      <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-                    </label>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <label className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#141414] font-bold text-xs uppercase tracking-wider cursor-pointer shadow-md transition-colors">
+                        <Upload className="w-4 h-4" />
+                        <span>Tải Ảnh Logo Mới (.WebP Auto)</span>
+                        <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                      </label>
 
-                    {logoUrl && (
-                      <button
-                        type="button"
-                        onClick={() => updateLogoUrl(null)}
-                        className="ml-3 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-mono"
-                      >
-                        Khôi phục Logo chữ mặc định
-                      </button>
-                    )}
+                      {logoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => updateLogoUrl(null)}
+                          className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-mono transition-colors"
+                        >
+                          Khôi phục Logo chữ mặc định
+                        </button>
+                      )}
+                    </div>
                     <p className="text-[11px] text-white/50 font-mono">
-                      Khuyến nghị ảnh PNG/WebP trong suốt (kích thước ~400x120px)
+                      Khuyến nghị ảnh PNG/WebP nền trong suốt (kích thước ~400x120px)
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* General Info Form */}
-              <form onSubmit={handleSaveBranding} className="space-y-4 text-xs font-sans">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="font-bold text-white block mb-1">Tên Thương Hiệu (Brand Wordmark) *</label>
-                    <input
-                      type="text"
-                      required
-                      value={brandingForm.name}
-                      onChange={(e) => setBrandingForm((prev) => ({ ...prev, name: e.target.value }))}
-                      className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
-                    />
+              {/* Form Body */}
+              <form onSubmit={handleSaveBranding} className="space-y-8 text-xs font-sans">
+
+                {/* 2. General Brand & Atelier Info */}
+                <div className="p-5 bg-black/40 rounded-xl border border-white/10 space-y-4">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                    <label className="font-mono uppercase text-[11px] font-bold text-amber-300 block">
+                      2. THÔNG TIN THƯƠNG HIỆU & ATELIER
+                    </label>
+                    <span className="text-[10px] font-mono text-white/40">LIÊN HỆ & ĐỊA ĐIỂM</span>
                   </div>
 
-                  <div>
-                    <label className="font-bold text-white block mb-1">Slogan Tiếng Anh (Tagline)</label>
-                    <input
-                      type="text"
-                      value={brandingForm.tagline}
-                      onChange={(e) => setBrandingForm((prev) => ({ ...prev, tagline: e.target.value }))}
-                      className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
-                    />
-                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="font-bold text-white block mb-1">Tên Thương Hiệu (Brand Wordmark) *</label>
+                      <input
+                        type="text"
+                        required
+                        value={brandingForm.name || ''}
+                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, name: e.target.value }))}
+                        className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
+                        placeholder="JU et Saigon"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="font-bold text-white block mb-1">Hotline Liên Hệ *</label>
-                    <input
-                      type="text"
-                      required
-                      value={brandingForm.phone}
-                      onChange={(e) => setBrandingForm((prev) => ({ ...prev, phone: e.target.value }))}
-                      className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
-                    />
-                  </div>
+                    <div>
+                      <label className="font-bold text-white block mb-1">Slogan Tiếng Anh (Tagline)</label>
+                      <input
+                        type="text"
+                        value={brandingForm.tagline || ''}
+                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, tagline: e.target.value }))}
+                        className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
+                        placeholder="Flower your heart, Flower your soul"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="font-bold text-white block mb-1">Link Nhóm Zalo Bloom Daily *</label>
-                    <input
-                      type="url"
-                      required
-                      value={brandingForm.website ? "https://zalo.me/g/lbzvqb973" : "https://zalo.me/g/lbzvqb973"}
-                      onChange={() => {}}
-                      className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
-                    />
-                  </div>
+                    <div>
+                      <label className="font-bold text-white block mb-1">Hotline Gọi Trực Tiếp (Dùng cho tel: link) *</label>
+                      <input
+                        type="text"
+                        required
+                        value={brandingForm.phone || ''}
+                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, phone: e.target.value }))}
+                        className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
+                        placeholder="090 936 80 80"
+                      />
+                    </div>
 
-                  <div className="sm:col-span-2">
-                    <label className="font-bold text-white block mb-1">Địa Chỉ Atelier (Tiếng Việt) *</label>
-                    <input
-                      type="text"
-                      required
-                      value={brandingForm.addressVi}
-                      onChange={(e) => setBrandingForm((prev) => ({ ...prev, addressVi: e.target.value }))}
-                      className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
-                    />
-                  </div>
+                    <div>
+                      <label className="font-bold text-white block mb-1">Hotline Định Dạng Hiển Thị (Phone Formatted) *</label>
+                      <input
+                        type="text"
+                        required
+                        value={brandingForm.phoneFormatted || ''}
+                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, phoneFormatted: e.target.value }))}
+                        className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
+                        placeholder="0909 368 080"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="font-bold text-white block mb-1">Thời Gian Hoạt Động (Tiếng Việt)</label>
-                    <input
-                      type="text"
-                      value={brandingForm.hoursVi}
-                      onChange={(e) => setBrandingForm((prev) => ({ ...prev, hoursVi: e.target.value }))}
-                      className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
-                    />
-                  </div>
+                    <div>
+                      <label className="font-bold text-white block mb-1">Email Liên Hệ Chính Thức *</label>
+                      <input
+                        type="email"
+                        required
+                        value={brandingForm.email || ''}
+                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, email: e.target.value }))}
+                        className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
+                        placeholder="juetsaigon@gmail.com"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="font-bold text-white block mb-1">Email Liên Hệ</label>
-                    <input
-                      type="email"
-                      value={brandingForm.email}
-                      onChange={(e) => setBrandingForm((prev) => ({ ...prev, email: e.target.value }))}
-                      className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
-                    />
+                    <div>
+                      <label className="font-bold text-white block mb-1">Thời Gian Hoạt Động (Tiếng Việt)</label>
+                      <input
+                        type="text"
+                        value={brandingForm.hoursVi || ''}
+                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, hoursVi: e.target.value }))}
+                        className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
+                        placeholder="Thứ Hai – Chủ Nhật: 08:30 – 20:30"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="font-bold text-white block mb-1">Địa Chỉ Atelier (Tiếng Việt) *</label>
+                      <input
+                        type="text"
+                        required
+                        value={brandingForm.addressVi || ''}
+                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, addressVi: e.target.value }))}
+                        className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
+                        placeholder="Lầu 1 - 31 Nguyễn Trãi, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="font-bold text-white block mb-1">Giới Thiệu Ngắn (Sub-tagline Tiếng Việt)</label>
+                      <textarea
+                        rows={2}
+                        value={brandingForm.subTaglineVi || ''}
+                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, subTaglineVi: e.target.value }))}
+                        className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none resize-none"
+                        placeholder="Góc hoa nhỏ mang sứ mệnh trao gởi yêu thương..."
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="font-bold text-white block mb-1">Lưu Ý Đặt Lịch Tư Vấn (Tiếng Việt)</label>
+                      <input
+                        type="text"
+                        value={brandingForm.consultationNoticeVi || ''}
+                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, consultationNoticeVi: e.target.value }))}
+                        className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
+                        placeholder="Vui lòng đặt lịch hẹn trước 24h đối với hoa cưới Haute Couture..."
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-white/10 flex justify-end">
+                {/* 3. Dedicated SOCIAL & CHANNELS Section */}
+                <div className="p-5 bg-gradient-to-br from-[#23211d] to-[#1a1b18] rounded-xl border border-amber-400/30 shadow-lg space-y-6">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Share2 className="w-4 h-4 text-amber-300" />
+                      <label className="font-mono uppercase text-[12px] font-bold text-amber-300 block">
+                        3. MỤC CHỈNH SỬA SOCIAL & CHANNELS (MẠNG XÃ HỘI & KÊNH KẾT NỐI)
+                      </label>
+                    </div>
+                    <span className="text-[10px] font-mono text-amber-300/80 bg-amber-400/10 px-2.5 py-0.5 rounded-full border border-amber-400/20">
+                      TỰ ĐỘNG ĐỒNG BỘ FOOTER & ATELIER
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-white/60">
+                    Cập nhật đường dẫn các kênh mạng xã hội, hotline Zalo, TikTok và website chính thức. Các đường dẫn này sẽ hiển thị trực tiếp ở phần <strong>SOCIAL & CHANNELS</strong> cuối chân trang và các nút liên hệ.
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    
+                    {/* Instagram */}
+                    <div className="p-4 bg-black/40 rounded-xl border border-pink-500/20 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 font-bold text-pink-400">
+                          <Instagram className="w-4 h-4" />
+                          <span>INSTAGRAM ATELIER</span>
+                        </div>
+                        {brandingForm.instagramUrl && (
+                          <a
+                            href={brandingForm.instagramUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] font-mono text-pink-300 hover:underline flex items-center gap-1"
+                          >
+                            <span>Thử link</span>
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-[11px] text-white/70 block mb-0.5">Tên tài khoản (Handle)</label>
+                          <div className="relative">
+                            <span className="absolute left-2.5 top-2 text-white/40 font-mono text-xs">@</span>
+                            <input
+                              type="text"
+                              value={brandingForm.instagram || ''}
+                              onChange={(e) => setBrandingForm((prev) => ({ ...prev, instagram: e.target.value.replace(/^@/, '') }))}
+                              className="w-full pl-7 pr-3 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white font-mono focus:border-pink-400 focus:outline-none text-xs"
+                              placeholder="juetsaigon"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] text-white/70 block mb-0.5">Đường dẫn đầy đủ (URL)</label>
+                          <input
+                            type="url"
+                            value={brandingForm.instagramUrl || ''}
+                            onChange={(e) => setBrandingForm((prev) => ({ ...prev, instagramUrl: e.target.value }))}
+                            className="w-full px-3 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white font-mono focus:border-pink-400 focus:outline-none text-xs"
+                            placeholder="https://instagram.com/juetsaigon"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Facebook */}
+                    <div className="p-4 bg-black/40 rounded-xl border border-blue-500/20 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 font-bold text-blue-400">
+                          <Facebook className="w-4 h-4" />
+                          <span>FACEBOOK FANPAGE</span>
+                        </div>
+                        {brandingForm.facebookUrl && (
+                          <a
+                            href={brandingForm.facebookUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] font-mono text-blue-300 hover:underline flex items-center gap-1"
+                          >
+                            <span>Thử link</span>
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-[11px] text-white/70 block mb-0.5">Tên hiển thị Fanpage</label>
+                          <input
+                            type="text"
+                            value={brandingForm.facebookName || ''}
+                            onChange={(e) => setBrandingForm((prev) => ({ ...prev, facebookName: e.target.value }))}
+                            className="w-full px-3 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white focus:border-blue-400 focus:outline-none text-xs"
+                            placeholder="JU et Saigon"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] text-white/70 block mb-0.5">Đường dẫn Fanpage (URL)</label>
+                          <input
+                            type="url"
+                            value={brandingForm.facebookUrl || ''}
+                            onChange={(e) => setBrandingForm((prev) => ({ ...prev, facebookUrl: e.target.value }))}
+                            className="w-full px-3 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white font-mono focus:border-blue-400 focus:outline-none text-xs"
+                            placeholder="https://www.facebook.com/juetsaigon/"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Zalo */}
+                    <div className="p-4 bg-black/40 rounded-xl border border-cyan-500/20 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 font-bold text-cyan-400">
+                          <MessageCircle className="w-4 h-4" />
+                          <span>ZALO CSKH & BLOOM DAILY</span>
+                        </div>
+                        {brandingForm.zaloUrl && (
+                          <a
+                            href={brandingForm.zaloUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] font-mono text-cyan-300 hover:underline flex items-center gap-1"
+                          >
+                            <span>Thử link</span>
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] text-white/70 block mb-0.5">Đường dẫn Nhóm Zalo hoặc Zalo Chat (URL)</label>
+                        <input
+                          type="url"
+                          value={brandingForm.zaloUrl || ''}
+                          onChange={(e) => setBrandingForm((prev) => ({ ...prev, zaloUrl: e.target.value }))}
+                          className="w-full px-3 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white font-mono focus:border-cyan-400 focus:outline-none text-xs"
+                          placeholder="https://zalo.me/g/lbzvqb973"
+                        />
+                        <p className="text-[10px] text-white/40 mt-1 font-mono">
+                          Hỗ trợ link nhóm Zalo (zalo.me/g/...) hoặc link số điện thoại (zalo.me/0909368080)
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* TikTok */}
+                    <div className="p-4 bg-black/40 rounded-xl border border-purple-500/20 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 font-bold text-purple-400">
+                          <span className="font-mono font-bold text-sm">♪</span>
+                          <span>TIKTOK ATELIER</span>
+                        </div>
+                        {brandingForm.tiktokUrl && (
+                          <a
+                            href={brandingForm.tiktokUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] font-mono text-purple-300 hover:underline flex items-center gap-1"
+                          >
+                            <span>Thử link</span>
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] text-white/70 block mb-0.5">Đường dẫn kênh TikTok (URL)</label>
+                        <input
+                          type="url"
+                          value={brandingForm.tiktokUrl || ''}
+                          onChange={(e) => setBrandingForm((prev) => ({ ...prev, tiktokUrl: e.target.value }))}
+                          className="w-full px-3 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white font-mono focus:border-purple-400 focus:outline-none text-xs"
+                          placeholder="https://www.tiktok.com/@juetsaigon"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Website */}
+                    <div className="p-4 bg-black/40 rounded-xl border border-amber-500/20 space-y-3 sm:col-span-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 font-bold text-amber-300">
+                          <Globe className="w-4 h-4" />
+                          <span>WEBSITE & HỆ THỐNG TRỰC TUYẾN</span>
+                        </div>
+                        {(brandingForm.websiteUrl || brandingForm.website) && (
+                          <a
+                            href={brandingForm.websiteUrl || `https://${brandingForm.website}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] font-mono text-amber-300 hover:underline flex items-center gap-1"
+                          >
+                            <span>Thử link</span>
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[11px] text-white/70 block mb-0.5">Tên miền hiển thị (Domain text)</label>
+                          <input
+                            type="text"
+                            value={brandingForm.website || ''}
+                            onChange={(e) => setBrandingForm((prev) => ({ ...prev, website: e.target.value }))}
+                            className="w-full px-3 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none text-xs"
+                            placeholder="juinternational.com"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] text-white/70 block mb-0.5">Đường dẫn Website đầy đủ (URL)</label>
+                          <input
+                            type="url"
+                            value={brandingForm.websiteUrl || ''}
+                            onChange={(e) => setBrandingForm((prev) => ({ ...prev, websiteUrl: e.target.value }))}
+                            className="w-full px-3 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none text-xs"
+                            placeholder="https://juinternational.com"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Live Preview Strip */}
+                  <div className="pt-3 border-t border-white/10">
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-white/50 block mb-2">
+                      XEM TRƯỚC HIỂN THỊ CHÂN TRANG (FOOTER PREVIEW):
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {brandingForm.instagramUrl && (
+                        <span className="px-2.5 py-1 bg-white/10 rounded-md text-[11px] font-mono flex items-center gap-1 text-pink-300 border border-pink-400/20">
+                          <Instagram className="w-3 h-3" />
+                          <span>@{brandingForm.instagram || 'juetsaigon'}</span>
+                        </span>
+                      )}
+                      {brandingForm.facebookUrl && (
+                        <span className="px-2.5 py-1 bg-white/10 rounded-md text-[11px] font-mono flex items-center gap-1 text-blue-300 border border-blue-400/20">
+                          <Facebook className="w-3 h-3" />
+                          <span>{brandingForm.facebookName || 'Facebook Fanpage'}</span>
+                        </span>
+                      )}
+                      {brandingForm.zaloUrl && (
+                        <span className="px-2.5 py-1 bg-white/10 rounded-md text-[11px] font-mono flex items-center gap-1 text-cyan-300 border border-cyan-400/20">
+                          <MessageCircle className="w-3 h-3" />
+                          <span>Zalo CSKH</span>
+                        </span>
+                      )}
+                      {brandingForm.tiktokUrl && (
+                        <span className="px-2.5 py-1 bg-white/10 rounded-md text-[11px] font-mono flex items-center gap-1 text-purple-300 border border-purple-400/20">
+                          <span>♪</span>
+                          <span>TikTok</span>
+                        </span>
+                      )}
+                      {brandingForm.website && (
+                        <span className="px-2.5 py-1 bg-white/10 rounded-md text-[11px] font-mono flex items-center gap-1 text-amber-300 border border-amber-400/20">
+                          <Globe className="w-3 h-3" />
+                          <span>{brandingForm.website}</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Submit Action */}
+                <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+                  <span className="text-[11px] text-white/50 font-mono">
+                    * Mọi thay đổi sẽ được lưu vào cơ sở dữ liệu và đồng bộ tức thời trên toàn trang.
+                  </span>
                   <button
                     type="submit"
-                    className="px-7 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#141414] font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg"
+                    className="px-7 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#141414] font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg transition-all transform hover:scale-102"
                   >
                     <Check className="w-4 h-4" />
-                    <span>Lưu Cấu Hình Thương Hiệu</span>
+                    <span>Lưu Cấu Hình Thương Hiệu & Social Channels</span>
                   </button>
                 </div>
               </form>

@@ -16,13 +16,13 @@ export const CreditsModal: React.FC<CreditsModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
-      <div className="relative w-full max-w-lg bg-[#dcd8cf] text-[#141414] rounded-xl shadow-2xl border border-[#141414]/30 overflow-hidden p-6 sm:p-8 space-y-6">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-2xl flex items-center justify-center p-4 animate-fadeIn">
+      <div className="relative w-full max-w-lg bg-[#dcd8cf] text-[#141414] squircle-2xl rounded-[32px] sm:rounded-[36px] shadow-soft-3 border border-white/60 overflow-hidden p-6 sm:p-8 space-y-6">
         
         {/* Close */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full bg-black/60 text-white hover:bg-black transition-colors"
+          className="spring-press absolute top-4 right-4 p-2 rounded-full bg-black/60 text-white hover:bg-black transition-colors backdrop-blur-xl border border-white/20 shadow-sm"
           aria-label="Close credits"
         >
           <X className="w-5 h-5" />
@@ -40,7 +40,7 @@ export const CreditsModal: React.FC<CreditsModalProps> = ({
 
         {/* Text */}
         <div className="space-y-4 text-xs font-sans leading-relaxed text-[#141414]/90">
-          <div>
+          <div className="p-3.5 glass-frost-pill rounded-[20px] border border-white/80 shadow-soft-1">
             <span className="font-bold uppercase block tracking-wider text-[#141414]">
               FLORAL ATELIER & BOTANICAL ART:
             </span>
@@ -49,7 +49,7 @@ export const CreditsModal: React.FC<CreditsModalProps> = ({
             </p>
           </div>
 
-          <div>
+          <div className="p-3.5 glass-frost-pill rounded-[20px] border border-white/80 shadow-soft-1">
             <span className="font-bold uppercase block tracking-wider text-[#141414]">
               UI / UX ARCHITECTURE:
             </span>
@@ -58,7 +58,7 @@ export const CreditsModal: React.FC<CreditsModalProps> = ({
             </p>
           </div>
 
-          <div>
+          <div className="p-3.5 glass-frost-pill rounded-[20px] border border-white/80 shadow-soft-1">
             <span className="font-bold uppercase block tracking-wider text-[#141414]">
               BOTANICAL SOUND SYNTHESIS:
             </span>
@@ -67,7 +67,7 @@ export const CreditsModal: React.FC<CreditsModalProps> = ({
             </p>
           </div>
 
-          <div>
+          <div className="p-3.5 glass-frost-pill rounded-[20px] border border-white/80 shadow-soft-1">
             <span className="font-bold uppercase block tracking-wider text-[#141414]">
               TAGLINE:
             </span>
@@ -81,7 +81,7 @@ export const CreditsModal: React.FC<CreditsModalProps> = ({
         <div className="pt-4 border-t border-[#141414]/15 text-center">
           <button
             onClick={onClose}
-            className="px-6 py-2 rounded-full bg-[#141414] text-[#dcd8cf] text-xs font-bold uppercase tracking-widest hover:bg-[#2c2a27] transition-all"
+            className="spring-press px-7 py-3 rounded-[22px] bg-[#141414] text-[#dcd8cf] text-xs font-bold uppercase tracking-widest hover:bg-[#2c2a27] transition-all shadow-soft-2 border border-white/10"
           >
             {lang === 'vi' ? 'Đóng Bảng Thông Tin' : 'Close Credits'}
           </button>
