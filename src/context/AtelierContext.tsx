@@ -1,6 +1,16 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { FlowerItem, FLOWERS, ATELIER_DATA } from '../data/flowers';
 import { WorkshopItem, WORKSHOPS } from '../data/workshop';
+import { db, handleFirestoreError, OperationType, testFirestoreConnection } from '../lib/firebase';
+import {
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  deleteDoc,
+  onSnapshot,
+  writeBatch
+} from 'firebase/firestore';
 
 interface AtelierContextType {
   flowers: FlowerItem[];
@@ -8,18 +18,21 @@ interface AtelierContextType {
   atelierData: typeof ATELIER_DATA;
   logoUrl: string | null;
   isAdmin: boolean;
+  isCloudConnected: boolean;
+  isSyncing: boolean;
   login: (password: string) => boolean;
   logout: () => void;
-  addFlower: (flower: Omit<FlowerItem, 'id' | 'indexNumber'>) => void;
-  updateFlower: (id: string, flower: Partial<FlowerItem>) => void;
-  deleteFlower: (id: string) => void;
-  togglePinFlower: (id: string) => void;
-  addWorkshop: (workshop: Omit<WorkshopItem, 'id' | 'indexNumber'>) => void;
-  updateWorkshop: (id: string, workshop: Partial<WorkshopItem>) => void;
-  deleteWorkshop: (id: string) => void;
-  updateAtelierData: (data: Partial<typeof ATELIER_DATA>) => void;
-  updateLogoUrl: (url: string | null) => void;
-  resetAllData: () => void;
+  addFlower: (flower: Omit<FlowerItem, 'id' | 'indexNumber'>) => Promise<void>;
+  updateFlower: (id: string, flower: Partial<FlowerItem>) => Promise<void>;
+  deleteFlower: (id: string) => Promise<void>;
+  togglePinFlower: (id: string) => Promise<void>;
+  addWorkshop: (workshop: Omit<WorkshopItem, 'id' | 'indexNumber'>) => Promise<void>;
+  updateWorkshop: (id: string, workshop: Partial<WorkshopItem>) => Promise<void>;
+  deleteWorkshop: (id: string) => Promise<void>;
+  updateAtelierData: (data: Partial<typeof ATELIER_DATA>) => Promise<void>;
+  updateLogoUrl: (url: string | null) => Promise<void>;
+  syncAllToCloud: () => Promise<void>;
+  resetAllData: () => Promise<void>;
 }
 
 const AtelierContext = createContext<AtelierContextType | undefined>(undefined);
@@ -45,7 +58,6 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
         console.error('Failed to parse saved flowers', e);
       }
     }
-    // Ensure pinnedToLanding property exists; default top 12 to true if not explicitly set
     return list.map((item, idx) => ({
       ...item,
       pinnedToLanding: item.pinnedToLanding !== undefined ? item.pinnedToLanding : idx < 12
@@ -84,7 +96,11 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return localStorage.getItem(STORAGE_KEYS.AUTH) === 'true';
   });
 
-  // Sync to localStorage
+  const [isCloudConnected, setIsCloudConnected] = useState<boolean>(false);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const isInitialCloudSyncDone = useRef<boolean>(false);
+
+  // Sync state to localStorage for offline fallback
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.FLOWERS, JSON.stringify(flowers));
   }, [flowers]);
@@ -105,6 +121,175 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [logoUrl]);
 
+  // Firestore Realtime Subscription & Initial Seeding
+  useEffect(() => {
+    let unsubscribeFlowers: (() => void) | null = null;
+    let unsubscribeWorkshops: (() => void) | null = null;
+    let unsubscribeSettings: (() => void) | null = null;
+
+    const setupFirestoreSync = async () => {
+      try {
+        const connected = await testFirestoreConnection();
+        setIsCloudConnected(connected);
+
+        // 1. Listen to Flowers Collection
+        const flowersCollectionRef = collection(db, 'flowers');
+        unsubscribeFlowers = onSnapshot(
+          flowersCollectionRef,
+          (snapshot) => {
+            if (!snapshot.empty) {
+              const cloudFlowers: FlowerItem[] = [];
+              snapshot.forEach((docSnap) => {
+                const data = docSnap.data() as FlowerItem;
+                cloudFlowers.push({ ...data, id: docSnap.id });
+              });
+              // Sort by indexNumber or preserve catalog order
+              cloudFlowers.sort((a, b) => (a.indexNumber || '').localeCompare(b.indexNumber || ''));
+              setFlowers(cloudFlowers);
+            } else if (!isInitialCloudSyncDone.current) {
+              // Seed default flowers to Firestore if collection is empty
+              seedInitialDataToCloud();
+            }
+          },
+          (error) => {
+            handleFirestoreError(error, OperationType.GET, 'flowers');
+          }
+        );
+
+        // 2. Listen to Workshops Collection
+        const workshopsCollectionRef = collection(db, 'workshops');
+        unsubscribeWorkshops = onSnapshot(
+          workshopsCollectionRef,
+          (snapshot) => {
+            if (!snapshot.empty) {
+              const cloudWorkshops: WorkshopItem[] = [];
+              snapshot.forEach((docSnap) => {
+                const data = docSnap.data() as WorkshopItem;
+                cloudWorkshops.push({ ...data, id: docSnap.id });
+              });
+              cloudWorkshops.sort((a, b) => (a.indexNumber || '').localeCompare(b.indexNumber || ''));
+              setWorkshops(cloudWorkshops);
+            }
+          },
+          (error) => {
+            handleFirestoreError(error, OperationType.GET, 'workshops');
+          }
+        );
+
+        // 3. Listen to Atelier Settings Document
+        const settingsDocRef = doc(db, 'settings', 'atelier');
+        unsubscribeSettings = onSnapshot(
+          settingsDocRef,
+          (docSnap) => {
+            if (docSnap.exists()) {
+              const data = docSnap.data();
+              const { logoUrl: cloudLogo, ...restSettings } = data;
+              setAtelierData((prev) => ({ ...prev, ...restSettings }));
+              if (cloudLogo !== undefined) {
+                setLogoUrl(cloudLogo);
+              }
+            }
+          },
+          (error) => {
+            handleFirestoreError(error, OperationType.GET, 'settings/atelier');
+          }
+        );
+      } catch (err) {
+        console.warn('Firestore initial sync encountered notice:', err);
+      }
+    };
+
+    setupFirestoreSync();
+
+    return () => {
+      if (unsubscribeFlowers) unsubscribeFlowers();
+      if (unsubscribeWorkshops) unsubscribeWorkshops();
+      if (unsubscribeSettings) unsubscribeSettings();
+    };
+  }, []);
+
+  // Seed default data if database is fresh
+  const seedInitialDataToCloud = async () => {
+    if (isInitialCloudSyncDone.current) return;
+    isInitialCloudSyncDone.current = true;
+    try {
+      setIsSyncing(true);
+      const batch = writeBatch(db);
+
+      // Seed flowers
+      FLOWERS.forEach((flower, idx) => {
+        const flowerRef = doc(db, 'flowers', flower.id);
+        batch.set(flowerRef, {
+          ...flower,
+          pinnedToLanding: idx < 12,
+          updatedAt: new Date().toISOString()
+        });
+      });
+
+      // Seed workshops
+      WORKSHOPS.forEach((workshop) => {
+        const workshopRef = doc(db, 'workshops', workshop.id);
+        batch.set(workshopRef, {
+          ...workshop,
+          updatedAt: new Date().toISOString()
+        });
+      });
+
+      // Seed settings
+      const settingsRef = doc(db, 'settings', 'atelier');
+      batch.set(settingsRef, {
+        ...ATELIER_DATA,
+        logoUrl: null,
+        updatedAt: new Date().toISOString()
+      });
+
+      await batch.commit();
+      console.log('Successfully seeded initial atelier catalog to Firebase Firestore.');
+    } catch (error) {
+      console.error('Error seeding initial data to Firestore:', error);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Manual Force Full Sync to Cloud
+  const syncAllToCloud = async () => {
+    setIsSyncing(true);
+    try {
+      const batch = writeBatch(db);
+
+      flowers.forEach((flower) => {
+        const flowerRef = doc(db, 'flowers', flower.id);
+        batch.set(flowerRef, {
+          ...flower,
+          updatedAt: new Date().toISOString()
+        });
+      });
+
+      workshops.forEach((workshop) => {
+        const workshopRef = doc(db, 'workshops', workshop.id);
+        batch.set(workshopRef, {
+          ...workshop,
+          updatedAt: new Date().toISOString()
+        });
+      });
+
+      const settingsRef = doc(db, 'settings', 'atelier');
+      batch.set(settingsRef, {
+        ...atelierData,
+        logoUrl,
+        updatedAt: new Date().toISOString()
+      });
+
+      await batch.commit();
+      setIsCloudConnected(true);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'syncAllToCloud');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   // Authentication
   const login = (password: string): boolean => {
     if (password === DEFAULT_ADMIN_PASS || password === 'admin') {
@@ -120,8 +305,8 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     localStorage.removeItem(STORAGE_KEYS.AUTH);
   };
 
-  // Flower CRUD
-  const addFlower = (flowerData: Omit<FlowerItem, 'id' | 'indexNumber'>) => {
+  // Flower CRUD with Firestore Persistence
+  const addFlower = async (flowerData: Omit<FlowerItem, 'id' | 'indexNumber'>) => {
     const nextIdx = String(flowers.length + 1).padStart(2, '0');
     const newId = `flower-${Date.now()}`;
     const newFlower: FlowerItem = {
@@ -129,34 +314,73 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
       id: newId,
       indexNumber: nextIdx
     };
+
+    // Optimistic UI update
     setFlowers((prev) => [newFlower, ...prev]);
+
+    try {
+      await setDoc(doc(db, 'flowers', newId), {
+        ...newFlower,
+        updatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, `flowers/${newId}`);
+    }
   };
 
-  const updateFlower = (id: string, updatedFields: Partial<FlowerItem>) => {
+  const updateFlower = async (id: string, updatedFields: Partial<FlowerItem>) => {
     setFlowers((prev) =>
       prev.map((f) => (f.id === id ? { ...f, ...updatedFields } : f))
     );
+
+    try {
+      await setDoc(
+        doc(db, 'flowers', id),
+        { ...updatedFields, updatedAt: new Date().toISOString() },
+        { merge: true }
+      );
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `flowers/${id}`);
+    }
   };
 
-  const deleteFlower = (id: string) => {
+  const deleteFlower = async (id: string) => {
     setFlowers((prev) => {
       const filtered = prev.filter((f) => f.id !== id);
-      // Re-index
       return filtered.map((item, idx) => ({
         ...item,
         indexNumber: String(idx + 1).padStart(2, '0')
       }));
     });
+
+    try {
+      await deleteDoc(doc(db, 'flowers', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `flowers/${id}`);
+    }
   };
 
-  const togglePinFlower = (id: string) => {
+  const togglePinFlower = async (id: string) => {
+    const targetFlower = flowers.find((f) => f.id === id);
+    const newPinned = targetFlower ? !targetFlower.pinnedToLanding : true;
+
     setFlowers((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, pinnedToLanding: !f.pinnedToLanding } : f))
+      prev.map((f) => (f.id === id ? { ...f, pinnedToLanding: newPinned } : f))
     );
+
+    try {
+      await setDoc(
+        doc(db, 'flowers', id),
+        { pinnedToLanding: newPinned, updatedAt: new Date().toISOString() },
+        { merge: true }
+      );
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `flowers/${id}`);
+    }
   };
 
-  // Workshop CRUD
-  const addWorkshop = (workshopData: Omit<WorkshopItem, 'id' | 'indexNumber'>) => {
+  // Workshop CRUD with Firestore Persistence
+  const addWorkshop = async (workshopData: Omit<WorkshopItem, 'id' | 'indexNumber'>) => {
     const nextIdx = String(workshops.length + 1).padStart(2, '0');
     const newId = `workshop-${Date.now()}`;
     const newWorkshop: WorkshopItem = {
@@ -164,16 +388,36 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
       id: newId,
       indexNumber: nextIdx
     };
+
     setWorkshops((prev) => [...prev, newWorkshop]);
+
+    try {
+      await setDoc(doc(db, 'workshops', newId), {
+        ...newWorkshop,
+        updatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, `workshops/${newId}`);
+    }
   };
 
-  const updateWorkshop = (id: string, updatedFields: Partial<WorkshopItem>) => {
+  const updateWorkshop = async (id: string, updatedFields: Partial<WorkshopItem>) => {
     setWorkshops((prev) =>
       prev.map((w) => (w.id === id ? { ...w, ...updatedFields } : w))
     );
+
+    try {
+      await setDoc(
+        doc(db, 'workshops', id),
+        { ...updatedFields, updatedAt: new Date().toISOString() },
+        { merge: true }
+      );
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `workshops/${id}`);
+    }
   };
 
-  const deleteWorkshop = (id: string) => {
+  const deleteWorkshop = async (id: string) => {
     setWorkshops((prev) => {
       const filtered = prev.filter((w) => w.id !== id);
       return filtered.map((item, idx) => ({
@@ -181,17 +425,44 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
         indexNumber: String(idx + 1).padStart(2, '0')
       }));
     });
+
+    try {
+      await deleteDoc(doc(db, 'workshops', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `workshops/${id}`);
+    }
   };
 
-  const updateAtelierData = (data: Partial<typeof ATELIER_DATA>) => {
+  // Atelier Brand Settings
+  const updateAtelierData = async (data: Partial<typeof ATELIER_DATA>) => {
     setAtelierData((prev) => ({ ...prev, ...data }));
+
+    try {
+      await setDoc(
+        doc(db, 'settings', 'atelier'),
+        { ...data, updatedAt: new Date().toISOString() },
+        { merge: true }
+      );
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'settings/atelier');
+    }
   };
 
-  const updateLogoUrl = (url: string | null) => {
+  const updateLogoUrl = async (url: string | null) => {
     setLogoUrl(url);
+
+    try {
+      await setDoc(
+        doc(db, 'settings', 'atelier'),
+        { logoUrl: url, updatedAt: new Date().toISOString() },
+        { merge: true }
+      );
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'settings/atelier');
+    }
   };
 
-  const resetAllData = () => {
+  const resetAllData = async () => {
     setFlowers(FLOWERS);
     setWorkshops(WORKSHOPS);
     setAtelierData(ATELIER_DATA);
@@ -200,6 +471,12 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     localStorage.removeItem(STORAGE_KEYS.WORKSHOPS);
     localStorage.removeItem(STORAGE_KEYS.ATELIER);
     localStorage.removeItem(STORAGE_KEYS.LOGO);
+
+    try {
+      await syncAllToCloud();
+    } catch (e) {
+      console.warn('Error resetting cloud data:', e);
+    }
   };
 
   return (
@@ -210,6 +487,8 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
         atelierData,
         logoUrl,
         isAdmin,
+        isCloudConnected,
+        isSyncing,
         login,
         logout,
         addFlower,
@@ -221,6 +500,7 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
         deleteWorkshop,
         updateAtelierData,
         updateLogoUrl,
+        syncAllToCloud,
         resetAllData
       }}
     >

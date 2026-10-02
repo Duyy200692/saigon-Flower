@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128;
+    }
+
+    // Botanical Flowers Collection - Public read, write permitted
+    match /flowers/{flowerId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(flowerId);
+    }
+
+    // Workshops Collection - Public read, write permitted
+    match /workshops/{workshopId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(workshopId);
+    }
+
+    // Atelier Global Brand & Social Settings Document - Public read, write permitted
+    match /settings/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(docId);
+    }
+
+    // Test connection document
+    match /test/{testId} {
+      allow read, write: if true;
+    }
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "entities": {
+    "Flower": {
+      "title": "Flower",
+      "description": "Botanical floral arrangement specimen created by JU et Saigon atelier",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the flower specimen" },
+        "indexNumber": { "type": "string", "description": "Display order index e.g. 01, 02" },
+        "name": { "type": "string", "description": "Botanical arrangement title" },
+        "vietnameseName": { "type": "string", "description": "Vietnamese title" },
+        "latinName": { "type": "string", "description": "Latin monograph name" },
+        "subtitle": { "type": "string", "description": "Short poetic subtitle" },
+        "poeticConceptVi": { "type": "string", "description": "Poetic concept in Vietnamese" },
+        "poeticConceptEn": { "type": "string", "description": "Poetic concept in English" },
+        "descriptionVi": { "type": "string", "description": "Detailed description in Vietnamese" },
+        "descriptionEn": { "type": "string", "description": "Detailed description in English" },
+        "palette": { "type": "array", "description": "Color palette names" },
+        "paletteColorCodes": { "type": "array", "description": "Hex color codes" },
+        "botanicalNotesVi": { "type": "string", "description": "Botanical ingredients notes in Vietnamese" },
+        "botanicalNotesEn": { "type": "string", "description": "Botanical ingredients notes in English" },
+        "fragranceVi": { "type": "string", "description": "Fragrance notes in Vietnamese" },
+        "fragranceEn": { "type": "string", "description": "Fragrance notes in English" },
+        "image": { "type": "string", "description": "Primary artwork image URL or WebP data URL" },
+        "galleryImages": { "type": "array", "description": "Additional photographic view angles" },
+        "audioFrequency": { "type": "number", "description": "Solfeggio or botanical chime resonance frequency" },
+        "highlight": { "type": "boolean", "description": "Whether this piece is marked as highlight" },
+        "pinnedToLanding": { "type": "boolean", "description": "Whether this piece is pinned on the 3-column landing matrix" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp of last modification" }
+      },
+      "required": ["id", "name", "vietnameseName", "image"]
+    },
+    "Workshop": {
+      "title": "Workshop",
+      "description": "Curated botanical workshop program for clients and corporate partners",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the workshop" },
+        "indexNumber": { "type": "string", "description": "Display order index e.g. 01, 02" },
+        "name": { "type": "string", "description": "Program title in display typeface" },
+        "latinMonographName": { "type": "string", "description": "Latin monograph classification" },
+        "titleVi": { "type": "string", "description": "Main title in Vietnamese" },
+        "titleEn": { "type": "string", "description": "Main title in English" },
+        "subtitleVi": { "type": "string", "description": "Subtitle in Vietnamese" },
+        "subtitleEn": { "type": "string", "description": "Subtitle in English" },
+        "editorialQuoteVi": { "type": "string", "description": "Editorial quote in Vietnamese" },
+        "editorialQuoteEn": { "type": "string", "description": "Editorial quote in English" },
+        "descriptionVi": { "type": "string", "description": "Description in Vietnamese" },
+        "descriptionEn": { "type": "string", "description": "Description in English" },
+        "fullContentVi": { "type": "array", "description": "Full paragraph contents in Vietnamese" },
+        "fullContentEn": { "type": "array", "description": "Full paragraph contents in English" },
+        "highlightsVi": { "type": "array", "description": "Feature highlights in Vietnamese" },
+        "highlightsEn": { "type": "array", "description": "Feature highlights in English" },
+        "image": { "type": "string", "description": "Cover hero image" },
+        "gallery": { "type": "array", "description": "Gallery photographs" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp of last modification" }
+      },
+      "required": ["id", "name", "titleVi", "image"]
+    },
+    "AtelierSettings": {
+      "title": "AtelierSettings",
+      "description": "Global atelier identity, contact numbers, social channels, and brand logo",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Brand Wordmark name" },
+        "tagline": { "type": "string", "description": "Brand slogan tagline" },
+        "subTaglineVi": { "type": "string", "description": "Sub tagline in Vietnamese" },
+        "subTaglineEn": { "type": "string", "description": "Sub tagline in English" },
+        "addressVi": { "type": "string", "description": "Studio address in Vietnamese" },
+        "addressEn": { "type": "string", "description": "Studio address in English" },
+        "phone": { "type": "string", "description": "Hotline telephone link" },
+        "phoneFormatted": { "type": "string", "description": "Formatted display phone number" },
+        "email": { "type": "string", "description": "Official contact email" },
+        "instagram": { "type": "string", "description": "Instagram handle" },
+        "instagramUrl": { "type": "string", "description": "Instagram URL" },
+        "facebookName": { "type": "string", "description": "Facebook fanpage name" },
+        "facebookUrl": { "type": "string", "description": "Facebook fanpage URL" },
+        "zaloUrl": { "type": "string", "description": "Zalo group or contact URL" },
+        "tiktokUrl": { "type": "string", "description": "TikTok channel URL" },
+        "website": { "type": "string", "description": "Official domain name" },
+        "websiteUrl": { "type": "string", "description": "Official website URL" },
+        "hoursVi": { "type": "string", "description": "Operating hours in Vietnamese" },
+        "hoursEn": { "type": "string", "description": "Operating hours in English" },
+        "consultationNoticeVi": { "type": "string", "description": "Consultation booking notice in Vietnamese" },
+        "consultationNoticeEn": { "type": "string", "description": "Consultation booking notice in English" },
+        "logoUrl": { "type": "string", "description": "Custom brand logo URL or WebP data URL" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp of last modification" }
+      },
+      "required": ["name", "phone", "addressVi"]
+    }
+  },
+  "firestore": {
+    "/flowers/{flowerId}": {
+      "schema": { "$ref": "#/entities/Flower" },
+      "description": "Collection storing all botanical flower arrangement specimens"
+    },
+    "/workshops/{workshopId}": {
+      "schema": { "$ref": "#/entities/Workshop" },
+      "description": "Collection storing all botanical workshop programs"
+    },
+    "/settings/atelier": {
+      "schema": { "$ref": "#/entities/AtelierSettings" },
+      "description": "Singleton document storing atelier brand configuration, social links, and logo"
+    }
+  }
+}

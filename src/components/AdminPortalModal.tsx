@@ -25,7 +25,10 @@ import {
   ExternalLink,
   Share2,
   Link2,
-  AtSign
+  AtSign,
+  Cloud,
+  RefreshCw,
+  Database
 } from 'lucide-react';
 import { useAtelier } from '../context/AtelierContext';
 import { FlowerItem } from '../data/flowers';
@@ -58,6 +61,9 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     deleteWorkshop,
     updateAtelierData,
     updateLogoUrl,
+    isCloudConnected,
+    isSyncing,
+    syncAllToCloud,
     resetAllData
   } = useAtelier();
 
@@ -426,6 +432,32 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
         {/* Actions */}
         <div className="flex items-center gap-2">
+          {/* Cloud Sync Button */}
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await syncAllToCloud();
+                alert('Đã đồng bộ toàn bộ tác phẩm hoa, workshop & cấu hình lên Firebase Firestore thành công!');
+              } catch (e) {
+                console.error(e);
+                alert('Đang gửi dữ liệu lên Firebase Firestore...');
+              }
+            }}
+            disabled={isSyncing}
+            className={`px-3 py-1.5 rounded-lg border text-xs font-mono uppercase flex items-center gap-1.5 transition-all shadow-sm ${
+              isCloudConnected
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+                : 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+            }`}
+            title="Đồng bộ dữ liệu lên Firebase Firestore"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">
+              {isSyncing ? 'Đang đồng bộ...' : isCloudConnected ? 'Cloud Online' : 'Đồng Bộ Firebase'}
+            </span>
+          </button>
+
           <button
             onClick={() => {
               if (window.confirm('Khôi phục toàn bộ dữ liệu mẫu gốc ban đầu của JU et Saigon?')) {
