@@ -1,12 +1,11 @@
 {
-  "projectId": "prefab-sanctum-gt8c4",
-  "appId": "1:304685916109:web:ac1abfcee0a340cb576e84",
-  "apiKey": "AIzaSyCu9UsYl-oRIqOBfoj384jmGrkvJTuKoQw",
-  "authDomain": "prefab-sanctum-gt8c4.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-juetsaigonencycl-87669f34-1e31-4ad8-8402-d978af341d7d",
-  "storageBucket": "prefab-sanctum-gt8c4.firebasestorage.app",
-  "messagingSenderId": "304685916109",
+  "projectId": "saigon-hoa",
+  "appId": "1:704980454131:web:805ccd34cdffaadc110586",
+  "apiKey": "AIzaSyCvygCLAwuFTGnCYQKcBhZFuXJJKeQuGu8",
+  "authDomain": "saigon-hoa.firebaseapp.com",
+  "storageBucket": "saigon-hoa.firebasestorage.app",
+  "messagingSenderId": "704980454131",
+  "firestoreDatabaseId": "(default)",
   "measurementId": "",
-  "oAuthClientId": "304685916109-4dnbbn7drpvd2pcaf5o1ff6kp3o9a3r9.apps.googleusercontent.com",
   "recaptchaSiteKey": ""
 }
