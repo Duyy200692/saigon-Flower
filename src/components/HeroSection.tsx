@@ -1,5 +1,4 @@
 import React from 'react';
-import { FlowerItem } from '../data/flowers';
 
 interface HeroSectionProps {
   lang: 'vi' | 'en';
@@ -9,8 +8,7 @@ interface HeroSectionProps {
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
   lang,
-  onOpenIndex,
-  onOpenCredits
+  onOpenIndex
 }) => {
   return (
     <section className="pt-10 pb-8 px-4 text-center max-w-4xl mx-auto flex flex-col items-center">
@@ -22,7 +20,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         <div className="flex items-center gap-6">
           <button
             onClick={onOpenIndex}
-            className="spring-press px-3.5 py-1.5 rounded-[18px] glass-frost-pill tracking-widest font-mono text-[11px] shadow-soft-1 border border-white/80 hover:border-[#141414]/30 text-[#141414]"
+            className="hover:text-[#141414] transition-colors underline underline-offset-4 tracking-widest font-mono text-[11px]"
           >
             INDEX
           </button>

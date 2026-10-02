@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { FlowerItem } from '../data/flowers';
 import { soundEngine } from '../utils/audio';
-import { ArrowRight, Pin } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 interface BotanicalMatrixProps {
   flowers: FlowerItem[];
@@ -55,7 +55,6 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
   };
 
   const handleTouchEnd = () => {
-    // Keep brief delay so user sees tap effect
     setTimeout(() => {
       setHoveredId(null);
     }, 1200);
@@ -77,12 +76,12 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
         )}
       </div>
 
-      {/* 3-column mosaic grid with continuous curves & frosted glass depth */}
+      {/* 3-column mosaic grid matching classic editorial atelier */}
       <div
         ref={gridRef}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="grid grid-cols-3 gap-2 sm:gap-3 bg-[#151513]/95 backdrop-blur-2xl p-2.5 sm:p-4 shadow-soft-3 rounded-[28px] sm:rounded-[36px] border border-white/15 relative overflow-visible"
+        className="grid grid-cols-3 gap-2 sm:gap-3 bg-[#151513] p-2.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-white/10 shadow-2xl relative overflow-visible"
       >
         {displayFlowers.map((flower, idx) => {
           const isHovered = hoveredId === flower.id;
@@ -94,20 +93,20 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
               onClick={() => handleTileClick(flower)}
               onMouseEnter={() => handleMouseEnter(flower)}
               onMouseLeave={handleMouseLeave}
-              className={`group relative aspect-[3/4] cursor-pointer transition-all duration-300 ease-out select-none spring-press ${
+              className={`group relative aspect-[3/4] cursor-pointer transition-all duration-300 ease-out select-none ${
                 isHovered
-                  ? 'z-30 scale-115 sm:scale-125 rounded-[24px] sm:rounded-[28px] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.95)] ring-1 ring-white/50'
-                  : 'z-10 scale-100 rounded-[20px] sm:rounded-[24px] hover:z-20'
+                  ? 'z-30 scale-110 sm:scale-120 rounded-xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.95)] ring-1 ring-white/50'
+                  : 'z-10 scale-100 rounded-lg hover:z-20'
               }`}
               style={{
                 transformOrigin: 'center center',
-                willChange: 'transform, box-shadow, border-radius',
+                willChange: 'transform, box-shadow',
               }}
             >
-              {/* Inner card container for clipping image with continuous rounded corners */}
+              {/* Inner card container for clipping image */}
               <div
                 className={`w-full h-full overflow-hidden bg-[#1f1e1c] transition-all duration-300 ${
-                  isHovered ? 'rounded-[24px] sm:rounded-[28px]' : 'rounded-[20px] sm:rounded-[24px]'
+                  isHovered ? 'rounded-xl' : 'rounded-lg'
                 }`}
               >
                 {/* Image */}
@@ -127,7 +126,7 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
                 <div
                   className={`absolute inset-0 transition-opacity duration-300 ${
                     isHovered
-                      ? 'bg-gradient-to-t from-black/85 via-black/30 to-black/35 opacity-100 rounded-[24px] sm:rounded-[28px]'
+                      ? 'bg-gradient-to-t from-black/85 via-black/30 to-black/35 opacity-100'
                       : 'opacity-0'
                   }`}
                 />
@@ -160,9 +159,9 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
                   </span>
                 </div>
 
-                {/* Frosted glass index tag top-left */}
+                {/* Index tag top-left */}
                 <div
-                  className={`absolute top-2 left-2 px-2.5 py-0.5 backdrop-blur-xl bg-black/65 border border-white/20 rounded-full text-[9px] font-mono text-white/90 tracking-widest transition-opacity duration-200 shadow-sm ${
+                  className={`absolute top-2 left-2 px-2 py-0.5 bg-black/70 rounded text-[9px] font-mono text-white/90 tracking-widest transition-opacity duration-200 ${
                     isHovered ? 'opacity-0' : 'opacity-90'
                   }`}
                 >
@@ -179,17 +178,14 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
         <div className="mt-8 flex justify-center">
           <button
             onClick={onOpenCollection}
-            className="spring-press group px-8 py-3.5 rounded-[26px] bg-[#141414] hover:bg-[#252422] text-[#ede9df] transition-all flex items-center gap-3 border border-white/15 shadow-soft-2 text-xs font-mono tracking-widest uppercase hover:scale-[1.02] active:scale-[0.96]"
+            className="px-6 py-3 rounded-full bg-[#141414] text-[#dcd8cf] hover:bg-[#282725] text-xs font-mono uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg"
           >
-            <span>
-              {lang === 'vi'
-                ? `Xem Toàn Bộ Bộ Sưu Tập (${flowers.length} Tác Phẩm Theo Mùa & Danh Mục)`
-                : `Explore Full Catalog (${flowers.length} Seasonal Specimens & Categories)`}
-            </span>
-            <ArrowRight className="w-4 h-4 text-amber-300 group-hover:translate-x-1.5 transition-transform" />
+            <span>{lang === 'vi' ? `Xem Toàn Bộ Bộ Sưu Tập (${flowers.length} Mẫu)` : `View Complete Archive (${flowers.length} Specimens)`}</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
+
     </section>
   );
 };

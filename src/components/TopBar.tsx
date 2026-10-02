@@ -31,14 +31,14 @@ export const TopBar: React.FC<TopBarProps> = ({
   const { atelierData, logoUrl, isAdmin } = useAtelier();
 
   return (
-    <header className="sticky top-0 z-40 w-full backdrop-blur-2xl bg-[#dcd8cf]/85 border-b border-white/60 shadow-soft-1 transition-all">
+    <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-[#dcd8cf]/90 border-b border-[#141414]/15 transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
         {/* Zone 1: Custom Logo or Brand Wordmark in display face */}
         <div className="flex items-center gap-4">
           <a
             href="#"
-            className="flex items-center gap-2 hover:opacity-85 transition-opacity spring-press-subtle"
+            className="flex items-center gap-2 hover:opacity-85 transition-opacity"
           >
             {logoUrl ? (
               <img
@@ -57,14 +57,14 @@ export const TopBar: React.FC<TopBarProps> = ({
           </span>
         </div>
 
-        {/* Zone 2: 4-6 Clean Text Navigation Links */}
+        {/* Zone 2: Clean Text Navigation Links */}
         <nav className="hidden md:flex items-center gap-7 text-xs font-semibold tracking-widest uppercase text-[#141414]/75">
           <button
             onClick={() => {
               soundEngine.playFlowerChime(432);
               onOpenIndex();
             }}
-            className="hover:text-[#141414] transition-colors text-left spring-press-subtle"
+            className="hover:text-[#141414] transition-colors text-left"
           >
             {lang === 'vi' ? 'Bộ Sưu Tập' : 'Collection Archive'}
           </button>
@@ -74,16 +74,16 @@ export const TopBar: React.FC<TopBarProps> = ({
                 soundEngine.playFlowerChime(528);
                 onOpenWorkshop();
               }}
-              className="hover:text-[#141414] transition-colors text-amber-900 font-bold spring-press-subtle"
+              className="hover:text-[#141414] transition-colors text-amber-900 font-bold"
             >
               {lang === 'vi' ? 'Workshop Cắm Hoa' : 'Workshop'}
             </button>
           ) : (
-            <a href="#workshop" className="hover:text-[#141414] transition-colors text-amber-900 font-bold spring-press-subtle">
+            <a href="#workshop" className="hover:text-[#141414] transition-colors text-amber-900 font-bold">
               {lang === 'vi' ? 'Workshop Cắm Hoa' : 'Workshop'}
             </a>
           )}
-          <a href="#philosophy" className="hover:text-[#141414] transition-colors spring-press-subtle">
+          <a href="#philosophy" className="hover:text-[#141414] transition-colors">
             {lang === 'vi' ? 'Triết Lý Hoa' : 'Philosophy'}
           </a>
         </nav>
@@ -93,10 +93,10 @@ export const TopBar: React.FC<TopBarProps> = ({
           {/* Admin Portal Button */}
           <button
             onClick={onOpenAdmin}
-            className={`spring-press p-2 rounded-[20px] border transition-all flex items-center gap-1.5 text-[10px] font-mono uppercase shadow-sm ${
+            className={`p-2 rounded-full border transition-all flex items-center gap-1.5 text-[10px] font-mono uppercase shadow-sm ${
               isAdmin
                 ? 'bg-amber-400 text-[#141414] border-amber-500 font-bold'
-                : 'glass-frost-pill border-white/80 text-[#141414]/70 hover:text-[#141414]'
+                : 'bg-white/60 hover:bg-white border-[#141414]/15 text-[#141414]/70 hover:text-[#141414]'
             }`}
             title="Quản Trị Admin"
           >
@@ -110,7 +110,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               soundEngine.playFlowerChime(432);
               onOpenIndex();
             }}
-            className="spring-press px-3.5 py-1.5 text-xs font-mono font-medium tracking-wider uppercase rounded-[20px] border border-white/80 glass-frost-pill text-[#141414] transition-all flex items-center gap-1.5 shadow-sm hover:border-[#141414]/30"
+            className="px-3.5 py-1.5 text-xs font-mono font-medium tracking-wider uppercase rounded-full border border-[#141414]/15 bg-white/60 hover:bg-white text-[#141414] transition-all flex items-center gap-1.5 shadow-sm hover:border-[#141414]/30"
             title="Open Botanical Index"
           >
             <Menu className="w-3.5 h-3.5" />
@@ -123,10 +123,10 @@ export const TopBar: React.FC<TopBarProps> = ({
               soundEngine.playFlowerChime(528);
               onToggleAudio();
             }}
-            className={`spring-press p-2 rounded-[20px] border transition-all ${
+            className={`p-2 rounded-full border transition-all ${
               isAudioPlaying
                 ? 'bg-[#141414] text-[#dcd8cf] border-[#141414] shadow-sm'
-                : 'glass-frost-pill border-white/80 text-[#141414] hover:bg-white/90'
+                : 'bg-white/60 hover:bg-white border-[#141414]/15 text-[#141414]'
             }`}
             title={isAudioPlaying ? 'Mute Ambient Soundscape' : 'Play Ambient Soundscape'}
             aria-label="Toggle ambient sound"
@@ -139,13 +139,13 @@ export const TopBar: React.FC<TopBarProps> = ({
           </button>
 
           {/* Language Switcher */}
-          <div className="flex items-center text-[11px] font-bold border border-white/80 glass-frost-pill rounded-[20px] p-0.5 shadow-sm">
+          <div className="flex items-center text-[11px] font-bold border border-[#141414]/15 bg-white/60 rounded-full p-0.5 shadow-sm">
             <button
               onClick={() => {
                 soundEngine.playFlowerChime(640);
                 setLang('vi');
               }}
-              className={`spring-press-subtle px-2 py-0.5 rounded-[16px] transition-all ${
+              className={`px-2 py-0.5 rounded-full transition-all ${
                 lang === 'vi' ? 'bg-[#141414] text-[#dcd8cf] shadow-sm' : 'text-[#141414]/70 hover:text-[#141414]'
               }`}
             >
@@ -156,7 +156,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 soundEngine.playFlowerChime(640);
                 setLang('en');
               }}
-              className={`spring-press-subtle px-2 py-0.5 rounded-[16px] transition-all ${
+              className={`px-2 py-0.5 rounded-full transition-all ${
                 lang === 'en' ? 'bg-[#141414] text-[#dcd8cf] shadow-sm' : 'text-[#141414]/70 hover:text-[#141414]'
               }`}
             >
@@ -170,7 +170,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               soundEngine.playFlowerChime(580);
               onOpenOrder();
             }}
-            className="spring-press hidden sm:flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold tracking-wider text-[#dcd8cf] bg-[#141414] rounded-[22px] hover:bg-[#2c2b28] shadow-md transition-all whitespace-nowrap border border-white/10"
+            className="hidden sm:flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold tracking-wider text-[#dcd8cf] bg-[#141414] rounded-full hover:bg-[#2c2b28] shadow-md transition-all whitespace-nowrap"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-300" />
             <span>{lang === 'vi' ? 'Đặt Hoa' : 'Bespoke Order'}</span>
@@ -180,4 +180,3 @@ export const TopBar: React.FC<TopBarProps> = ({
     </header>
   );
 };
-
