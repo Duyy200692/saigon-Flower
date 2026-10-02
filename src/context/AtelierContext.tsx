@@ -5,7 +5,6 @@ import { db, handleFirestoreError, OperationType, testFirestoreConnection } from
 import {
   collection,
   doc,
-  getDocs,
   setDoc,
   deleteDoc,
   onSnapshot,
@@ -18,10 +17,15 @@ interface AtelierContextType {
   atelierData: typeof ATELIER_DATA;
   logoUrl: string | null;
   isAdmin: boolean;
+  adminPassword?: string;
   isCloudConnected: boolean;
   isSyncing: boolean;
   login: (password: string) => boolean;
   logout: () => void;
+  changeAdminPassword: (
+    currentPass: string,
+    newPass: string
+  ) => Promise<{ success: boolean; message: string }>;
   addFlower: (flower: Omit<FlowerItem, 'id' | 'indexNumber'>) => Promise<void>;
   updateFlower: (id: string, flower: Partial<FlowerItem>) => Promise<void>;
   deleteFlower: (id: string) => Promise<void>;
@@ -42,10 +46,9 @@ const STORAGE_KEYS = {
   WORKSHOPS: 'juet_workshops_data_v2',
   ATELIER: 'juet_atelier_data_v2',
   LOGO: 'juet_logo_url_v2',
-  AUTH: 'juet_admin_authenticated'
+  AUTH: 'juet_admin_authenticated',
+  PASS: 'juet_admin_password_v2'
 };
-
-const DEFAULT_ADMIN_PASS = 'juetsaigon2026';
 
 export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [flowers, setFlowers] = useState<FlowerItem[]>(() => {
@@ -96,11 +99,15 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return localStorage.getItem(STORAGE_KEYS.AUTH) === 'true';
   });
 
+  const [adminPassword, setAdminPassword] = useState<string>(() => {
+    return localStorage.getItem(STORAGE_KEYS.PASS) || '';
+  });
+
   const [isCloudConnected, setIsCloudConnected] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const isInitialCloudSyncDone = useRef<boolean>(false);
 
-  // Sync state to localStorage for offline fallback
+  // Sync state to localStorage for offline resilience
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.FLOWERS, JSON.stringify(flowers));
   }, [flowers]);
@@ -121,11 +128,18 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [logoUrl]);
 
-  // Firestore Realtime Subscription & Initial Seeding
+  useEffect(() => {
+    if (adminPassword) {
+      localStorage.setItem(STORAGE_KEYS.PASS, adminPassword);
+    }
+  }, [adminPassword]);
+
+  // Firestore Realtime Subscription
   useEffect(() => {
     let unsubscribeFlowers: (() => void) | null = null;
     let unsubscribeWorkshops: (() => void) | null = null;
     let unsubscribeSettings: (() => void) | null = null;
+    let unsubscribeSecurity: (() => void) | null = null;
 
     const setupFirestoreSync = async () => {
       try {
@@ -143,11 +157,9 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 const data = docSnap.data() as FlowerItem;
                 cloudFlowers.push({ ...data, id: docSnap.id });
               });
-              // Sort by indexNumber or preserve catalog order
               cloudFlowers.sort((a, b) => (a.indexNumber || '').localeCompare(b.indexNumber || ''));
               setFlowers(cloudFlowers);
             } else if (!isInitialCloudSyncDone.current) {
-              // Seed default flowers to Firestore if collection is empty
               seedInitialDataToCloud();
             }
           },
@@ -194,8 +206,25 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
             handleFirestoreError(error, OperationType.GET, 'settings/atelier');
           }
         );
+
+        // 4. Listen to Security Settings Document (Admin Password purely from Firestore)
+        const securityDocRef = doc(db, 'settings', 'security');
+        unsubscribeSecurity = onSnapshot(
+          securityDocRef,
+          (docSnap) => {
+            if (docSnap.exists()) {
+              const data = docSnap.data();
+              if (data.adminPassword) {
+                setAdminPassword(data.adminPassword);
+              }
+            }
+          },
+          (error) => {
+            handleFirestoreError(error, OperationType.GET, 'settings/security');
+          }
+        );
       } catch (err) {
-        console.warn('Firestore initial sync encountered notice:', err);
+        console.warn('Firestore initial sync notice:', err);
       }
     };
 
@@ -205,6 +234,7 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (unsubscribeFlowers) unsubscribeFlowers();
       if (unsubscribeWorkshops) unsubscribeWorkshops();
       if (unsubscribeSettings) unsubscribeSettings();
+      if (unsubscribeSecurity) unsubscribeSecurity();
     };
   }, []);
 
@@ -235,7 +265,7 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
         });
       });
 
-      // Seed settings
+      // Seed atelier settings
       const settingsRef = doc(db, 'settings', 'atelier');
       batch.set(settingsRef, {
         ...ATELIER_DATA,
@@ -281,6 +311,15 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
         updatedAt: new Date().toISOString()
       });
 
+      if (adminPassword) {
+        const securityRef = doc(db, 'settings', 'security');
+        batch.set(securityRef, {
+          adminPassword,
+          updatedAt: new Date().toISOString(),
+          updatedBy: 'admin'
+        });
+      }
+
       await batch.commit();
       setIsCloudConnected(true);
     } catch (error) {
@@ -290,9 +329,10 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
-  // Authentication
+  // Strict Authentication directly against Firebase synced password
   const login = (password: string): boolean => {
-    if (password === DEFAULT_ADMIN_PASS || password === 'admin') {
+    const trimmed = password.trim();
+    if (adminPassword && trimmed === adminPassword) {
       setIsAdmin(true);
       localStorage.setItem(STORAGE_KEYS.AUTH, 'true');
       return true;
@@ -305,6 +345,47 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     localStorage.removeItem(STORAGE_KEYS.AUTH);
   };
 
+  // Change Admin Password and Sync to Firebase
+  const changeAdminPassword = async (
+    currentPass: string,
+    newPass: string
+  ): Promise<{ success: boolean; message: string }> => {
+    if (!adminPassword || currentPass.trim() !== adminPassword) {
+      return { success: false, message: 'Mật khẩu hiện tại không chính xác.' };
+    }
+
+    if (!newPass || newPass.trim().length < 6) {
+      return { success: false, message: 'Mật khẩu mới phải có tối thiểu 6 ký tự.' };
+    }
+
+    const cleanNewPass = newPass.trim();
+    setAdminPassword(cleanNewPass);
+    localStorage.setItem(STORAGE_KEYS.PASS, cleanNewPass);
+
+    try {
+      const securityDocRef = doc(db, 'settings', 'security');
+      await setDoc(
+        securityDocRef,
+        {
+          adminPassword: cleanNewPass,
+          updatedAt: new Date().toISOString(),
+          updatedBy: 'admin'
+        },
+        { merge: true }
+      );
+      return {
+        success: true,
+        message: 'Đã cập nhật mật khẩu mới lên Firebase Firestore thành công!'
+      };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'settings/security');
+      return {
+        success: true,
+        message: 'Đã lưu mật khẩu cục bộ và đang đồng bộ lên Firebase.'
+      };
+    }
+  };
+
   // Flower CRUD with Firestore Persistence
   const addFlower = async (flowerData: Omit<FlowerItem, 'id' | 'indexNumber'>) => {
     const nextIdx = String(flowers.length + 1).padStart(2, '0');
@@ -315,7 +396,6 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
       indexNumber: nextIdx
     };
 
-    // Optimistic UI update
     setFlowers((prev) => [newFlower, ...prev]);
 
     try {
@@ -487,10 +567,12 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
         atelierData,
         logoUrl,
         isAdmin,
+        adminPassword,
         isCloudConnected,
         isSyncing,
         login,
         logout,
+        changeAdminPassword,
         addFlower,
         updateFlower,
         deleteFlower,

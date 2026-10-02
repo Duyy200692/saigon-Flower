@@ -28,7 +28,13 @@ import {
   AtSign,
   Cloud,
   RefreshCw,
-  Database
+  Database,
+  ShieldCheck,
+  Shield,
+  Lock,
+  Key,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useAtelier } from '../context/AtelierContext';
 import { FlowerItem } from '../data/flowers';
@@ -61,14 +67,24 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     deleteWorkshop,
     updateAtelierData,
     updateLogoUrl,
+    adminPassword,
+    changeAdminPassword,
     isCloudConnected,
     isSyncing,
     syncAllToCloud,
     resetAllData
   } = useAtelier();
 
-  const [activeTab, setActiveTab] = useState<'flowers' | 'workshops' | 'branding'>('flowers');
+  const [activeTab, setActiveTab] = useState<'flowers' | 'workshops' | 'branding' | 'security'>('flowers');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Security / Password State
+  const [currentPassInput, setCurrentPassInput] = useState('');
+  const [newPassInput, setNewPassInput] = useState('');
+  const [confirmPassInput, setConfirmPassInput] = useState('');
+  const [showPass, setShowPass] = useState(false);
+  const [passChangeMsg, setPassChangeMsg] = useState<{ text: string; isError: boolean } | null>(null);
+  const [isSubmittingPass, setIsSubmittingPass] = useState(false);
   
   // Flower Editing State
   const [editingFlower, setEditingFlower] = useState<FlowerItem | null>(null);
@@ -427,6 +443,15 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
             }`}
           >
             Logo, Thông Tin & Social
+          </button>
+          <button
+            onClick={() => setActiveTab('security')}
+            className={`px-4 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+              activeTab === 'security' ? 'bg-amber-400 text-[#141414] font-bold' : 'text-white/70 hover:text-white'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Bảo Mật & Mật Khẩu</span>
           </button>
         </div>
 
@@ -1768,6 +1793,189 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                   </button>
                 </div>
               </form>
+            </div>
+          )}
+
+          {/* TAB 4: SECURITY & ADMIN PASSWORD */}
+          {activeTab === 'security' && (
+            <div className="bg-[#1e1f1c] rounded-2xl p-6 border border-white/15 space-y-6 animate-fadeIn">
+              <div className="border-b border-white/10 pb-4 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bagerich font-bold uppercase text-white flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-amber-400" />
+                    <span>QUẢN TRỊ BẢO MẬT & ĐỔI MẬT KHẨU ADMIN</span>
+                  </h3>
+                  <p className="text-xs text-white/60 font-sans mt-0.5">
+                    Quản lý và cập nhật mật khẩu đăng nhập an toàn cho quản trị viên Atelier
+                  </p>
+                </div>
+              </div>
+
+              {/* Status Info Box */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 bg-black/40 rounded-xl border border-amber-500/20 space-y-3">
+                  <div className="flex items-center gap-2 font-mono text-xs font-bold text-amber-300 uppercase">
+                    <Shield className="w-4 h-4" />
+                    <span>THÔNG TIN XÁC THỰC QUẢN TRỊ</span>
+                  </div>
+
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between items-center py-1.5 border-b border-white/10">
+                      <span className="text-white/60">Tài khoản quản trị:</span>
+                      <span className="font-mono text-white font-bold">Admin (JU et Saigon Atelier)</span>
+                    </div>
+                    <div className="flex justify-between items-center py-1.5 border-b border-white/10">
+                      <span className="text-white/60">Trạng thái đám mây:</span>
+                      <span className="font-mono text-emerald-400 flex items-center gap-1">
+                        <Database className="w-3 h-3" />
+                        <span>Đã kết nối bảo mật</span>
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-1.5">
+                      <span className="text-white/60">Mật khẩu đang sử dụng:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-amber-300 bg-white/5 px-2 py-0.5 rounded border border-white/10">
+                          {showPass ? (adminPassword || '••••••••') : '••••••••••••'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowPass(!showPass)}
+                          className="p-1 hover:text-amber-300 text-white/60 transition-colors"
+                          title={showPass ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                        >
+                          {showPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-black/40 rounded-xl border border-white/10 space-y-3 flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 font-mono text-xs font-bold text-white uppercase">
+                      <Lock className="w-4 h-4 text-amber-400" />
+                      <span>HƯỚNG DẪN BẢO MẬT</span>
+                    </div>
+                    <ul className="text-xs text-white/70 space-y-1.5 list-disc pl-4 font-sans leading-relaxed">
+                      <li>Nên đặt mật khẩu từ 8 ký tự trở lên bao gồm cả chữ và số.</li>
+                      <li>Sau khi đổi, mật khẩu mới sẽ có hiệu lực ngay lập tức cho các lần đăng nhập tiếp theo.</li>
+                      <li>Bạn cũng có thể thay đổi mật khẩu trực tiếp trong cơ sở dữ liệu Firebase.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Password Change Form */}
+              <div className="p-5 bg-[#141513] rounded-xl border border-white/15 space-y-5">
+                <div className="flex items-center gap-2 font-mono text-xs font-bold text-amber-300 uppercase">
+                  <Key className="w-4 h-4" />
+                  <span>BIỂU MẪU ĐỔI MẬT KHẨU MỚI</span>
+                </div>
+
+                {passChangeMsg && (
+                  <div
+                    className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
+                      passChangeMsg.isError
+                        ? 'bg-red-500/15 border-red-500/40 text-red-300'
+                        : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                    }`}
+                  >
+                    {passChangeMsg.isError ? (
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    ) : (
+                      <Check className="w-4 h-4 flex-shrink-0" />
+                    )}
+                    <span>{passChangeMsg.text}</span>
+                  </div>
+                )}
+
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setPassChangeMsg(null);
+                    if (newPassInput !== confirmPassInput) {
+                      setPassChangeMsg({ text: 'Mật khẩu xác nhận không khớp.', isError: true });
+                      return;
+                    }
+                    if (newPassInput.length < 6) {
+                      setPassChangeMsg({ text: 'Mật khẩu mới phải có tối thiểu 6 ký tự.', isError: true });
+                      return;
+                    }
+                    setIsSubmittingPass(true);
+                    const res = await changeAdminPassword(currentPassInput, newPassInput);
+                    setIsSubmittingPass(false);
+                    if (res.success) {
+                      setPassChangeMsg({ text: res.message, isError: false });
+                      setCurrentPassInput('');
+                      setNewPassInput('');
+                      setConfirmPassInput('');
+                    } else {
+                      setPassChangeMsg({ text: res.message, isError: true });
+                    }
+                  }}
+                  className="space-y-4"
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-[11px] text-white/70 block mb-1">Mật khẩu hiện tại</label>
+                      <input
+                        type={showPass ? 'text' : 'password'}
+                        value={currentPassInput}
+                        onChange={(e) => setCurrentPassInput(e.target.value)}
+                        required
+                        className="w-full px-3 py-2 bg-black/60 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none text-xs"
+                        placeholder="Nhập mật khẩu hiện tại"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] text-white/70 block mb-1">Mật khẩu mới (tối thiểu 6 ký tự)</label>
+                      <input
+                        type={showPass ? 'text' : 'password'}
+                        value={newPassInput}
+                        onChange={(e) => setNewPassInput(e.target.value)}
+                        required
+                        minLength={6}
+                        className="w-full px-3 py-2 bg-black/60 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none text-xs"
+                        placeholder="Nhập mật khẩu mới"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] text-white/70 block mb-1">Xác nhận mật khẩu mới</label>
+                      <input
+                        type={showPass ? 'text' : 'password'}
+                        value={confirmPassInput}
+                        onChange={(e) => setConfirmPassInput(e.target.value)}
+                        required
+                        minLength={6}
+                        className="w-full px-3 py-2 bg-black/60 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none text-xs"
+                        placeholder="Nhập lại mật khẩu mới"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3 border-t border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setShowPass(!showPass)}
+                      className="text-xs text-white/60 hover:text-white flex items-center gap-1.5 font-mono"
+                    >
+                      {showPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      <span>{showPass ? 'Ẩn ký tự mật khẩu' : 'Hiển thị ký tự mật khẩu'}</span>
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmittingPass}
+                      className="px-6 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#141414] font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg transition-all transform hover:scale-102 disabled:opacity-50"
+                    >
+                      <Check className="w-4 h-4" />
+                      <span>{isSubmittingPass ? 'Đang lưu lên Firebase...' : 'Lưu & Đổi Mật Khẩu Admin'}</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           )}
 

@@ -87,6 +87,17 @@
         "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp of last modification" }
       },
       "required": ["name", "phone", "addressVi"]
+    },
+    "SecuritySettings": {
+      "title": "SecuritySettings",
+      "description": "Admin access security credentials and authentication configurations",
+      "type": "object",
+      "properties": {
+        "adminPassword": { "type": "string", "description": "Administrative password for managing the atelier" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp when password was last changed" },
+        "updatedBy": { "type": "string", "description": "Actor who made the modification" }
+      },
+      "required": ["adminPassword"]
     }
   },
   "firestore": {
@@ -101,6 +112,10 @@
     "/settings/atelier": {
       "schema": { "$ref": "#/entities/AtelierSettings" },
       "description": "Singleton document storing atelier brand configuration, social links, and logo"
+    },
+    "/settings/security": {
+      "schema": { "$ref": "#/entities/SecuritySettings" },
+      "description": "Singleton document storing admin password and security credentials"
     }
   }
 }
