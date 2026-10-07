@@ -39,7 +39,14 @@ import {
 import { useAtelier } from '../context/AtelierContext';
 import { FlowerItem } from '../data/flowers';
 import { WorkshopItem } from '../data/workshop';
-import { compressAndConvertToWebP, formatFileSize, CompressionResult } from '../utils/imageOptimizer';
+import {
+  compressAndConvertToWebP,
+  convertUrlToWebP,
+  isFacebookWebpageUrl,
+  isFacebookCdnUrl,
+  formatFileSize,
+  CompressionResult
+} from '../utils/imageOptimizer';
 
 interface AdminPortalModalProps {
   isOpen: boolean;
@@ -108,8 +115,283 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   // Compression status feedback
   const [compressing, setCompressing] = useState(false);
   const [lastCompression, setLastCompression] = useState<CompressionResult | null>(null);
+  const [imageUrlWarning, setImageUrlWarning] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  // Handle Clipboard Paste (Ctrl+V) for Flower Image
+  const handleFlowerPaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (!file) continue;
+        try {
+          setCompressing(true);
+          setImageUrlWarning(null);
+          const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
+          setFlowerForm((prev) => ({
+            ...prev,
+            image: result.webpDataUrl,
+            galleryImages: [
+              { url: result.webpDataUrl, captionVi: "Góc nhìn toàn cảnh", captionEn: "Full architectural view" },
+              ...(prev.galleryImages?.slice(1) || [])
+            ]
+          }));
+          setLastCompression(result);
+        } catch (err) {
+          console.error(err);
+          setImageUrlWarning('Không thể xử lý ảnh từ bộ nhớ tạm.');
+        } finally {
+          setCompressing(false);
+        }
+        return;
+      }
+    }
+  };
+
+  // Convert Pasted Flower URL to Permanent WebP
+  const handleConvertFlowerUrl = async (urlToConvert?: string) => {
+    const targetUrl = (urlToConvert ?? flowerForm.image ?? '').trim();
+    if (!targetUrl || targetUrl.startsWith('data:image/') || targetUrl.startsWith('/src/')) return;
+
+    try {
+      setCompressing(true);
+      setImageUrlWarning(null);
+      const result = await convertUrlToWebP(targetUrl, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
+      setFlowerForm((prev) => ({
+        ...prev,
+        image: result.webpDataUrl,
+        galleryImages: [
+          { url: result.webpDataUrl, captionVi: prev.galleryImages?.[0]?.captionVi || "Góc nhìn toàn cảnh", captionEn: prev.galleryImages?.[0]?.captionEn || "Full architectural view" },
+          ...(prev.galleryImages?.slice(1) || [])
+        ]
+      }));
+      setLastCompression(result);
+    } catch (err: any) {
+      setImageUrlWarning(err?.message || 'Không thể tải ảnh từ đường dẫn này.');
+    } finally {
+      setCompressing(false);
+    }
+  };
+
+  // Handle Clipboard Paste (Ctrl+V) for Workshop Image
+  const handleWorkshopPaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (!file) continue;
+        try {
+          setCompressing(true);
+          setImageUrlWarning(null);
+          const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
+          setWorkshopForm((prev) => ({
+            ...prev,
+            image: result.webpDataUrl,
+            galleryImages: [
+              { url: result.webpDataUrl, captionVi: "Poster chính thức", captionEn: "Official visual" },
+              ...(prev.galleryImages?.slice(1) || [])
+            ]
+          }));
+          setLastCompression(result);
+        } catch (err) {
+          console.error(err);
+          setImageUrlWarning('Không thể xử lý ảnh từ bộ nhớ tạm.');
+        } finally {
+          setCompressing(false);
+        }
+        return;
+      }
+    }
+  };
+
+  // Convert Pasted Workshop URL to Permanent WebP
+  const handleConvertWorkshopUrl = async (urlToConvert?: string) => {
+    const targetUrl = (urlToConvert ?? workshopForm.image ?? '').trim();
+    if (!targetUrl || targetUrl.startsWith('data:image/') || targetUrl.startsWith('/src/')) return;
+
+    try {
+      setCompressing(true);
+      setImageUrlWarning(null);
+      const result = await convertUrlToWebP(targetUrl, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
+      setWorkshopForm((prev) => ({
+        ...prev,
+        image: result.webpDataUrl,
+        galleryImages: [
+          { url: result.webpDataUrl, captionVi: prev.galleryImages?.[0]?.captionVi || "Poster chính thức", captionEn: prev.galleryImages?.[0]?.captionEn || "Official visual" },
+          ...(prev.galleryImages?.slice(1) || [])
+        ]
+      }));
+      setLastCompression(result);
+    } catch (err: any) {
+      setImageUrlWarning(err?.message || 'Không thể tải ảnh từ đường dẫn này.');
+    } finally {
+      setCompressing(false);
+    }
+  };
+
+  // Convert Pasted Flower Gallery Angle URL to Permanent WebP
+  const handleConvertGalleryUrl = async (index: number, urlToConvert?: string) => {
+    const targetUrl = (urlToConvert ?? flowerForm.galleryImages?.[index]?.url ?? '').trim();
+    if (!targetUrl || targetUrl.startsWith('data:image/') || targetUrl.startsWith('/src/')) return;
+
+    try {
+      setCompressing(true);
+      setImageUrlWarning(null);
+      const result = await convertUrlToWebP(targetUrl, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
+      setFlowerForm((prev) => {
+        const currentGallery = [...(prev.galleryImages || [])];
+        while (currentGallery.length <= index) {
+          currentGallery.push({
+            url: '',
+            captionVi: `Góc chụp chi tiết 0${currentGallery.length + 1}`,
+            captionEn: `Detailed angle 0${currentGallery.length + 1}`
+          });
+        }
+        currentGallery[index] = {
+          ...currentGallery[index],
+          url: result.webpDataUrl
+        };
+        return {
+          ...prev,
+          ...(index === 0 ? { image: result.webpDataUrl } : {}),
+          galleryImages: currentGallery
+        };
+      });
+      setLastCompression(result);
+    } catch (err: any) {
+      setImageUrlWarning(err?.message || 'Không thể tải ảnh góc chụp từ đường dẫn này.');
+    } finally {
+      setCompressing(false);
+    }
+  };
+
+  // Handle Clipboard Paste (Ctrl+V) for a specific Flower Gallery Angle slot
+  const handleGalleryPaste = async (index: number, e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        e.preventDefault();
+        e.stopPropagation();
+        const file = items[i].getAsFile();
+        if (!file) continue;
+        try {
+          setCompressing(true);
+          setImageUrlWarning(null);
+          const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
+          setFlowerForm((prev) => {
+            const currentGallery = [...(prev.galleryImages || [])];
+            while (currentGallery.length <= index) {
+              currentGallery.push({
+                url: '',
+                captionVi: `Góc chụp chi tiết 0${currentGallery.length + 1}`,
+                captionEn: `Detailed angle 0${currentGallery.length + 1}`
+              });
+            }
+            currentGallery[index] = {
+              ...currentGallery[index],
+              url: result.webpDataUrl
+            };
+            return {
+              ...prev,
+              ...(index === 0 ? { image: result.webpDataUrl } : {}),
+              galleryImages: currentGallery
+            };
+          });
+          setLastCompression(result);
+        } catch (err) {
+          console.error(err);
+          setImageUrlWarning('Không thể xử lý ảnh từ bộ nhớ tạm.');
+        } finally {
+          setCompressing(false);
+        }
+        return;
+      }
+    }
+  };
+
+  // Convert Pasted Workshop Gallery Angle URL to Permanent WebP
+  const handleConvertWorkshopGalleryUrl = async (idx: number, urlToConvert?: string) => {
+    const targetUrl = (urlToConvert ?? workshopForm.galleryImages?.[idx]?.url ?? '').trim();
+    if (!targetUrl || targetUrl.startsWith('data:image/') || targetUrl.startsWith('/src/')) return;
+
+    try {
+      setCompressing(true);
+      setImageUrlWarning(null);
+      const result = await convertUrlToWebP(targetUrl, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
+      setWorkshopForm((prev) => {
+        const currentGallery = [...(prev.galleryImages || [])];
+        while (currentGallery.length <= idx) {
+          currentGallery.push({ url: '', captionVi: `Góc ảnh #${currentGallery.length + 1}`, captionEn: `Angle photo #${currentGallery.length + 1}` });
+        }
+        currentGallery[idx] = {
+          ...currentGallery[idx],
+          url: result.webpDataUrl
+        };
+        return {
+          ...prev,
+          ...(idx === 0 ? { image: result.webpDataUrl } : {}),
+          galleryImages: currentGallery
+        };
+      });
+      setLastCompression(result);
+    } catch (err: any) {
+      setImageUrlWarning(err?.message || 'Không thể tải ảnh góc chụp workshop từ đường dẫn này.');
+    } finally {
+      setCompressing(false);
+    }
+  };
+
+  // Handle Clipboard Paste (Ctrl+V) for a specific Workshop Gallery Angle slot
+  const handleWorkshopGalleryPaste = async (idx: number, e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        e.preventDefault();
+        e.stopPropagation();
+        const file = items[i].getAsFile();
+        if (!file) continue;
+        try {
+          setCompressing(true);
+          setImageUrlWarning(null);
+          const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
+          setWorkshopForm((prev) => {
+            const currentGallery = [...(prev.galleryImages || [])];
+            while (currentGallery.length <= idx) {
+              currentGallery.push({ url: '', captionVi: `Góc ảnh #${currentGallery.length + 1}`, captionEn: `Angle photo #${currentGallery.length + 1}` });
+            }
+            currentGallery[idx] = {
+              ...currentGallery[idx],
+              url: result.webpDataUrl
+            };
+            return {
+              ...prev,
+              ...(idx === 0 ? { image: result.webpDataUrl } : {}),
+              galleryImages: currentGallery
+            };
+          });
+          setLastCompression(result);
+        } catch (err) {
+          console.error(err);
+          setImageUrlWarning('Không thể xử lý ảnh từ bộ nhớ tạm.');
+        } finally {
+          setCompressing(false);
+        }
+        return;
+      }
+    }
+  };
 
   // Handle Logo Upload with Auto WebP Conversion
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -136,7 +418,8 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
     try {
       setCompressing(true);
-      const result = await compressAndConvertToWebP(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.85 });
+      setImageUrlWarning(null);
+      const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
       setFlowerForm((prev) => ({
         ...prev,
         image: result.webpDataUrl,
@@ -161,7 +444,8 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
     try {
       setCompressing(true);
-      const result = await compressAndConvertToWebP(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.85 });
+      setImageUrlWarning(null);
+      const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
       setFlowerForm((prev) => {
         const currentGallery = [...(prev.galleryImages || [])];
         if (currentGallery[index]) {
@@ -173,7 +457,11 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
             captionEn: `Detailed angle 0${index + 1}`
           };
         }
-        return { ...prev, galleryImages: currentGallery };
+        return {
+          ...prev,
+          ...(index === 0 ? { image: result.webpDataUrl } : {}),
+          galleryImages: currentGallery
+        };
       });
       setLastCompression(result);
     } catch (err) {
@@ -191,7 +479,8 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
     try {
       setCompressing(true);
-      const result = await compressAndConvertToWebP(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.85 });
+      setImageUrlWarning(null);
+      const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
       setWorkshopForm((prev) => ({
         ...prev,
         image: result.webpDataUrl,
@@ -216,7 +505,8 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
     try {
       setCompressing(true);
-      const result = await compressAndConvertToWebP(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.85 });
+      setImageUrlWarning(null);
+      const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
       setWorkshopForm((prev) => {
         const currentGallery = [...(prev.galleryImages || [])];
         while (currentGallery.length <= idx) {
@@ -227,7 +517,11 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           captionVi: currentGallery[idx]?.captionVi || `Góc ảnh #${idx + 1}`,
           captionEn: currentGallery[idx]?.captionEn || `Angle photo #${idx + 1}`
         };
-        return { ...prev, galleryImages: currentGallery };
+        return {
+          ...prev,
+          ...(idx === 0 ? { image: result.webpDataUrl } : {}),
+          galleryImages: currentGallery
+        };
       });
       setLastCompression(result);
     } catch (err) {
@@ -560,10 +854,13 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                     )}
 
                     {/* Image Uploader with Auto WebP Conversion */}
-                    <div className="p-4 bg-black/40 rounded-xl border border-white/10 space-y-4">
+                    <div
+                      onPaste={handleFlowerPaste}
+                      className="p-4 bg-black/40 rounded-xl border border-white/10 space-y-4"
+                    >
                       <div className="flex items-center justify-between">
                         <label className="font-mono uppercase text-[11px] font-bold text-amber-300">
-                          1. ẢNH ĐẠI DIỆN CHÍNH (TỰ ĐỘNG NÉN .WEBP KHI ĐĂNG LÊN)
+                          1. ẢNH ĐẠI DIỆN CHÍNH (HỖ TRỢ TẢI FILE, DÁN CTRL+V TỪ FACEBOOK, HOẶC LINK ẢNH)
                         </label>
                         {compressing && (
                           <span className="text-amber-400 font-mono text-[11px] animate-pulse">
@@ -572,23 +869,45 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                         )}
                       </div>
 
+                      {imageUrlWarning && (
+                        <div className="p-3 bg-amber-950/80 border border-amber-400/50 rounded-xl text-amber-200 flex items-start gap-2.5 text-xs">
+                          <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                          <div className="space-y-1">
+                            <p className="font-bold text-amber-300">{imageUrlWarning}</p>
+                            <p className="text-[11px] text-white/80">
+                              💡 <strong>Mẹo lấy ảnh từ Facebook không bao giờ lỗi:</strong> Nhấp chuột phải vào ảnh trên Facebook ➔ Chọn <strong>"Sao chép hình ảnh" (Copy image)</strong> ➔ Quay lại khung này và bấm <strong>Ctrl + V</strong>!
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
-                        <div className="sm:col-span-4 aspect-[3/4] max-w-[160px] rounded-lg overflow-hidden border border-white/20 bg-black">
+                        <div className="sm:col-span-4 aspect-[3/4] max-w-[160px] rounded-lg overflow-hidden border border-white/20 bg-black relative">
                           <img
                             src={flowerForm.image}
                             alt="Preview"
+                            referrerPolicy="no-referrer"
+                            onError={() => {
+                              if (flowerForm.image && !flowerForm.image.startsWith('data:')) {
+                                setImageUrlWarning(
+                                  isFacebookWebpageUrl(flowerForm.image)
+                                    ? 'Bạn đang dán link trang bài viết Facebook (không phải link file ảnh).'
+                                    : 'Link ảnh bị chặn hiển thị hoặc đã hết hạn chữ ký bảo mật.'
+                                );
+                              }
+                            }}
                             className="w-full h-full object-cover"
                           />
                         </div>
 
                         <div className="sm:col-span-8 space-y-3">
-                          <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-white/20 rounded-xl hover:border-amber-400/60 bg-white/5 cursor-pointer transition-colors">
-                            <Upload className="w-6 h-6 text-amber-300 mb-2" />
+                          <label className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-white/20 rounded-xl hover:border-amber-400/60 bg-white/5 cursor-pointer transition-colors text-center">
+                            <Upload className="w-6 h-6 text-amber-300 mb-1.5" />
                             <span className="font-bold text-white text-xs">
-                              Chọn ảnh từ máy tính (PNG, JPG, HEIC...)
+                              Chọn ảnh từ máy tính HOẶC bấm Ctrl + V để dán ảnh vừa Copy từ Facebook
                             </span>
                             <span className="text-[11px] text-white/60 font-mono mt-1">
-                              Hệ thống sẽ tự động nén & chuyển đổi tức thì sang định dạng WebP siêu nhẹ
+                              Tự động nén & chuyển đổi tức thì sang định dạng .WebP lưu vĩnh viễn trên Firebase
                             </span>
                             <input
                               type="file"
@@ -598,14 +917,55 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                             />
                           </label>
 
-                          <div className="space-y-1">
-                            <span className="text-[10px] font-mono text-white/60 block">HOẶC DÁN ĐƯỜNG DẪN ẢNH TRỰC TIẾP:</span>
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-mono text-white/60">
+                                HOẶC DÁN ĐỊA CHỈ ẢNH TRỰC TIẾP (COPY IMAGE ADDRESS):
+                              </span>
+                              {flowerForm.image &&
+                                !flowerForm.image.startsWith('data:image/') &&
+                                !flowerForm.image.startsWith('/src/') && (
+                                  <button
+                                    type="button"
+                                    disabled={compressing}
+                                    onClick={() => handleConvertFlowerUrl(flowerForm.image)}
+                                    className="px-2.5 py-1 rounded bg-amber-400/20 hover:bg-amber-400 text-amber-300 hover:text-black border border-amber-400/40 font-mono text-[10px] font-bold transition-all"
+                                  >
+                                    ⚡ Chuyển Link này sang .WebP vĩnh viễn
+                                  </button>
+                                )}
+                            </div>
                             <input
                               type="text"
+                              placeholder="Dán link ảnh trực tiếp hoặc nhấn Ctrl+V để dán hình ảnh..."
                               value={flowerForm.image || ''}
-                              onChange={(e) =>
-                                setFlowerForm((prev) => ({ ...prev, image: e.target.value }))
-                              }
+                              onPaste={handleFlowerPaste}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (isFacebookWebpageUrl(val)) {
+                                  setImageUrlWarning(
+                                    'Đây là link trang bài viết Facebook (facebook.com/photo...), không phải file ảnh trực tiếp.'
+                                  );
+                                } else if (isFacebookCdnUrl(val)) {
+                                  setImageUrlWarning(
+                                    'Link ảnh Facebook (fbcdn.net) sẽ tự hết hạn sau vài ngày. Hãy bấm nút "⚡ Chuyển Link này sang .WebP vĩnh viễn" bên trên để lưu ảnh vĩnh viễn!'
+                                  );
+                                } else {
+                                  setImageUrlWarning(null);
+                                }
+                                setFlowerForm((prev) => ({
+                                  ...prev,
+                                  image: val,
+                                  galleryImages: [
+                                    {
+                                      url: val,
+                                      captionVi: prev.galleryImages?.[0]?.captionVi || 'Góc nhìn toàn cảnh',
+                                      captionEn: prev.galleryImages?.[0]?.captionEn || 'Full architectural view'
+                                    },
+                                    ...(prev.galleryImages?.slice(1) || [])
+                                  ]
+                                }));
+                              }}
                               className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono text-xs focus:outline-none focus:border-amber-400"
                             />
                           </div>
@@ -614,24 +974,31 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
                       {/* 4 Multi-Image Gallery Uploader */}
                       <div className="pt-4 border-t border-white/10 space-y-2">
-                        <label className="font-mono uppercase text-[11px] font-bold text-amber-300 block">
-                          2. BỘ SƯU TẬP 4 GÓC CHỤP CHI TIẾT (GALLERY 4 ẢNH .WEBP)
-                        </label>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                          <label className="font-mono uppercase text-[11px] font-bold text-amber-300 block">
+                            2. BỘ SƯU TẬP 4 GÓC CHỤP CHI TIẾT (TẢI FILE MÁY HOẶC DÁN LINK FACEBOOK / CTRL+V CHO TỪNG GÓC)
+                          </label>
+                          <span className="text-[10px] font-mono text-white/50">
+                            Không có ảnh gốc trên máy? Dán link ảnh Facebook hoặc bấm Ctrl+V vào từng ô góc chụp bên dưới
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                           {[0, 1, 2, 3].map((idx) => {
                             const img = flowerForm.galleryImages?.[idx];
+                            const hasExternalUrl =
+                              img?.url &&
+                              !img.url.startsWith('data:image/') &&
+                              !img.url.startsWith('/src/');
                             return (
-                              <div key={idx} className="p-2 bg-black/50 rounded-lg border border-white/10 space-y-2">
-                                <div className="aspect-[3/4] rounded overflow-hidden bg-black relative group">
-                                  {img?.url ? (
-                                    <img src={img.url} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-white/40 text-xs">
-                                      Góc 0{idx + 1}
-                                    </div>
-                                  )}
-                                  <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity text-[10px] font-mono text-amber-300">
-                                    Đổi ảnh .WebP
+                              <div
+                                key={idx}
+                                onPaste={(e) => handleGalleryPaste(idx, e)}
+                                className="p-2.5 bg-black/50 rounded-xl border border-white/15 space-y-2"
+                              >
+                                <div className="flex items-center justify-between text-[10px] font-mono text-amber-300/90">
+                                  <span className="font-bold">GÓC CHỤP 0{idx + 1}</span>
+                                  <label className="cursor-pointer px-2 py-0.5 rounded bg-white/10 hover:bg-amber-400 hover:text-black text-white transition-colors">
+                                    + File máy
                                     <input
                                       type="file"
                                       accept="image/*"
@@ -640,22 +1007,100 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                                     />
                                   </label>
                                 </div>
-                                <input
-                                  type="text"
-                                  placeholder={`Chú thích góc 0${idx + 1}`}
-                                  value={img?.captionVi || ''}
-                                  onChange={(e) => {
-                                    const text = e.target.value;
-                                    setFlowerForm((prev) => {
-                                      const current = [...(prev.galleryImages || [])];
-                                      if (current[idx]) {
-                                        current[idx] = { ...current[idx], captionVi: text };
+
+                                <div className="aspect-[3/4] rounded-lg overflow-hidden bg-black relative group border border-white/10">
+                                  {img?.url ? (
+                                    <img
+                                      src={img.url}
+                                      alt={`Gallery ${idx}`}
+                                      referrerPolicy="no-referrer"
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-white/40 text-xs">
+                                      Góc 0{idx + 1}
+                                    </div>
+                                  )}
+                                  <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-[10px] font-mono text-amber-300 text-center p-2">
+                                    <Upload className="w-4 h-4 mb-1" />
+                                    <span>Chọn file từ máy hoặc bấm Ctrl+V</span>
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={(e) => handleGalleryImageUpload(idx, e)}
+                                      className="hidden"
+                                    />
+                                  </label>
+                                </div>
+
+                                <div className="space-y-1">
+                                  <label className="text-[9px] font-mono text-amber-300/80 block uppercase">
+                                    🔗 Link ảnh góc 0{idx + 1} (Facebook / Web):
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder={`Dán link ảnh hoặc Ctrl+V góc 0${idx + 1}...`}
+                                    value={img?.url || ''}
+                                    onPaste={(e) => handleGalleryPaste(idx, e)}
+                                    onChange={(e) => {
+                                      const urlVal = e.target.value;
+                                      if (isFacebookWebpageUrl(urlVal)) {
+                                        setImageUrlWarning(
+                                          `Góc 0${idx + 1}: Đây là link bài viết Facebook, không phải link file ảnh trực tiếp.`
+                                        );
                                       }
-                                      return { ...prev, galleryImages: current };
-                                    });
-                                  }}
-                                  className="w-full px-2 py-1 bg-black/60 border border-white/10 rounded text-[10px] text-white"
-                                />
+                                      setFlowerForm((prev) => {
+                                        const current = [...(prev.galleryImages || [])];
+                                        while (current.length <= idx) {
+                                          current.push({
+                                            url: '',
+                                            captionVi: `Góc chụp 0${current.length + 1}`,
+                                            captionEn: `Angle 0${current.length + 1}`
+                                          });
+                                        }
+                                        current[idx] = { ...current[idx], url: urlVal };
+                                        return {
+                                          ...prev,
+                                          ...(idx === 0 ? { image: urlVal } : {}),
+                                          galleryImages: current
+                                        };
+                                      });
+                                    }}
+                                    className="w-full px-2 py-1.5 bg-black/70 border border-white/15 rounded text-[10px] text-white font-mono focus:border-amber-400 focus:outline-none"
+                                  />
+                                  {hasExternalUrl && (
+                                    <button
+                                      type="button"
+                                      disabled={compressing}
+                                      onClick={() => handleConvertGalleryUrl(idx, img?.url)}
+                                      className="w-full py-1 rounded bg-amber-400/20 hover:bg-amber-400 text-amber-300 hover:text-black border border-amber-400/40 font-mono text-[10px] font-bold transition-all"
+                                    >
+                                      ⚡ Nạp & Nén Link sang .WebP
+                                    </button>
+                                  )}
+                                </div>
+
+                                <div>
+                                  <label className="text-[9px] font-mono text-white/50 block uppercase mb-0.5">
+                                    Chú thích góc 0{idx + 1}:
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder={`Chú thích góc 0${idx + 1}`}
+                                    value={img?.captionVi || ''}
+                                    onChange={(e) => {
+                                      const text = e.target.value;
+                                      setFlowerForm((prev) => {
+                                        const current = [...(prev.galleryImages || [])];
+                                        if (current[idx]) {
+                                          current[idx] = { ...current[idx], captionVi: text };
+                                        }
+                                        return { ...prev, galleryImages: current };
+                                      });
+                                    }}
+                                    className="w-full px-2 py-1 bg-black/60 border border-white/10 rounded text-[10px] text-white"
+                                  />
+                                </div>
                               </div>
                             );
                           })}
@@ -990,10 +1435,13 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                     )}
 
                     {/* Image Uploader for Workshop with Auto WebP */}
-                    <div className="p-4 bg-black/40 rounded-xl border border-white/10 space-y-3">
+                    <div
+                      onPaste={handleWorkshopPaste}
+                      className="p-4 bg-black/40 rounded-xl border border-white/10 space-y-3"
+                    >
                       <div className="flex items-center justify-between">
                         <label className="font-mono uppercase text-[11px] font-bold text-amber-300 block">
-                          1. ẢNH POSTER ĐẠI DIỆN WORKSHOP (TỰ ĐỘNG NÉN SANG .WEBP)
+                          1. ẢNH POSTER ĐẠI DIỆN WORKSHOP (HỖ TRỢ TẢI FILE, CTRL+V TỪ FACEBOOK, HOẶC LINK ẢNH)
                         </label>
                         {compressing && (
                           <span className="text-amber-400 font-mono text-[11px] animate-pulse">
@@ -1002,30 +1450,87 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                         )}
                       </div>
 
+                      {imageUrlWarning && (
+                        <div className="p-3 bg-amber-950/80 border border-amber-400/50 rounded-xl text-amber-200 flex items-start gap-2.5 text-xs">
+                          <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                          <div className="space-y-1">
+                            <p className="font-bold text-amber-300">{imageUrlWarning}</p>
+                            <p className="text-[11px] text-white/80">
+                              💡 <strong>Mẹo lấy ảnh từ Facebook:</strong> Nhấp chuột phải vào ảnh trên Facebook ➔ Chọn <strong>"Sao chép hình ảnh" (Copy image)</strong> ➔ Quay lại khung này và bấm <strong>Ctrl + V</strong>!
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
                         <div className="sm:col-span-4 aspect-[3/4] max-w-[160px] rounded-lg overflow-hidden border border-white/20 bg-black">
-                          <img src={workshopForm.image} alt="Workshop Poster" className="w-full h-full object-cover" />
+                          <img
+                            src={workshopForm.image}
+                            alt="Workshop Poster"
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover"
+                          />
                         </div>
                         <div className="sm:col-span-8 space-y-3">
-                          <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-white/20 rounded-xl hover:border-amber-400/60 bg-white/5 cursor-pointer transition-colors">
-                            <Upload className="w-6 h-6 text-amber-300 mb-2" />
+                          <label className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-white/20 rounded-xl hover:border-amber-400/60 bg-white/5 cursor-pointer transition-colors text-center">
+                            <Upload className="w-6 h-6 text-amber-300 mb-1.5" />
                             <span className="font-bold text-white text-xs">
-                              Chọn ảnh poster mới từ thiết bị
+                              Chọn ảnh từ thiết bị HOẶC bấm Ctrl + V để dán ảnh vừa Copy từ Facebook
                             </span>
                             <span className="text-[11px] text-white/60 font-mono mt-1">
-                              Tự động nén sang WebP tối ưu tốc độ tải trang
+                              Tự động nén sang .WebP lưu vĩnh viễn trên Firebase
                             </span>
                             <input type="file" accept="image/*" onChange={handleWorkshopImageUpload} className="hidden" />
                           </label>
 
-                          <div className="space-y-1">
-                            <span className="text-[10px] font-mono text-white/60 block">HOẶC DÁN ĐƯỜNG DẪN ẢNH:</span>
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-mono text-white/60 block">
+                                HOẶC DÁN ĐỊA CHỈ ẢNH TRỰC TIẾP:
+                              </span>
+                              {workshopForm.image &&
+                                !workshopForm.image.startsWith('data:image/') &&
+                                !workshopForm.image.startsWith('/src/') && (
+                                  <button
+                                    type="button"
+                                    disabled={compressing}
+                                    onClick={() => handleConvertWorkshopUrl(workshopForm.image)}
+                                    className="px-2.5 py-1 rounded bg-amber-400/20 hover:bg-amber-400 text-amber-300 hover:text-black border border-amber-400/40 font-mono text-[10px] font-bold transition-all"
+                                  >
+                                    ⚡ Chuyển Link này sang .WebP vĩnh viễn
+                                  </button>
+                                )}
+                            </div>
                             <input
                               type="text"
                               value={workshopForm.image || ''}
-                              onChange={(e) =>
-                                setWorkshopForm((prev) => ({ ...prev, image: e.target.value }))
-                              }
+                              onPaste={handleWorkshopPaste}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (isFacebookWebpageUrl(val)) {
+                                  setImageUrlWarning(
+                                    'Đây là link trang bài viết Facebook, không phải link file ảnh trực tiếp.'
+                                  );
+                                } else if (isFacebookCdnUrl(val)) {
+                                  setImageUrlWarning(
+                                    'Link ảnh Facebook (fbcdn.net) sẽ tự hết hạn sau vài ngày. Hãy bấm nút "⚡ Chuyển Link này sang .WebP vĩnh viễn" để lưu vĩnh viễn!'
+                                  );
+                                } else {
+                                  setImageUrlWarning(null);
+                                }
+                                setWorkshopForm((prev) => ({
+                                  ...prev,
+                                  image: val,
+                                  galleryImages: [
+                                    {
+                                      url: val,
+                                      captionVi: prev.galleryImages?.[0]?.captionVi || 'Poster chính thức',
+                                      captionEn: prev.galleryImages?.[0]?.captionEn || 'Official visual'
+                                    },
+                                    ...(prev.galleryImages?.slice(1) || [])
+                                  ]
+                                }));
+                              }}
                               className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono text-xs focus:outline-none focus:border-amber-400"
                             />
                           </div>
@@ -1034,28 +1539,31 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
                       {/* 4 Multi-Image Gallery for Horizontal Slider */}
                       <div className="pt-4 border-t border-white/10 space-y-2">
-                        <label className="font-mono uppercase text-[11px] font-bold text-amber-300 block">
-                          2. BỘ 4 ẢNH TRƯỢT NGANG CHI TIẾT (GALLERY SLIDER 4 GÓC CHỤP)
-                        </label>
-                        <p className="text-[11px] text-white/60">
-                          Khách hàng có thể trượt ngang vuốt xem 4 góc ảnh này khi bấm vào workshop.
-                        </p>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                          <label className="font-mono uppercase text-[11px] font-bold text-amber-300 block">
+                            2. BỘ 4 ẢNH GÓC CHỤP WORKSHOP (TẢI FILE MÁY HOẶC DÁN LINK FACEBOOK / CTRL+V CHO TỪNG GÓC)
+                          </label>
+                          <span className="text-[10px] font-mono text-white/50">
+                            Hỗ trợ dán link trực tiếp từ Facebook hoặc bấm Ctrl+V cho từng góc chụp
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                           {[0, 1, 2, 3].map((idx) => {
                             const img = workshopForm.galleryImages?.[idx];
+                            const hasExternalUrl =
+                              img?.url &&
+                              !img.url.startsWith('data:image/') &&
+                              !img.url.startsWith('/src/');
                             return (
-                              <div key={idx} className="p-2 bg-black/50 rounded-lg border border-white/10 space-y-2">
-                                <div className="aspect-[3/4] rounded overflow-hidden bg-black relative group">
-                                  {img?.url ? (
-                                    <img src={img.url} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-white/30 text-xs font-mono">
-                                      Trống
-                                    </div>
-                                  )}
-                                  <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-mono">
-                                    <Upload className="w-4 h-4 mb-1 text-amber-300" />
-                                    <span>Thay ảnh</span>
+                              <div
+                                key={idx}
+                                onPaste={(e) => handleWorkshopGalleryPaste(idx, e)}
+                                className="p-2.5 bg-black/50 rounded-xl border border-white/15 space-y-2"
+                              >
+                                <div className="flex items-center justify-between text-[10px] font-mono text-amber-300/90">
+                                  <span className="font-bold">GÓC ẢNH #{idx + 1}</span>
+                                  <label className="cursor-pointer px-2 py-0.5 rounded bg-white/10 hover:bg-amber-400 hover:text-black text-white transition-colors">
+                                    + File máy
                                     <input
                                       type="file"
                                       accept="image/*"
@@ -1064,6 +1572,70 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                                     />
                                   </label>
                                 </div>
+
+                                <div className="aspect-[3/4] rounded-lg overflow-hidden bg-black relative group border border-white/10">
+                                  {img?.url ? (
+                                    <img
+                                      src={img.url}
+                                      alt={`Gallery ${idx}`}
+                                      referrerPolicy="no-referrer"
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-white/30 text-xs font-mono">
+                                      Trống
+                                    </div>
+                                  )}
+                                  <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[10px] font-mono text-center p-2">
+                                    <Upload className="w-4 h-4 mb-1 text-amber-300" />
+                                    <span>Chọn file máy hoặc Ctrl+V</span>
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={(e) => handleWorkshopGalleryImageUpload(idx, e)}
+                                      className="hidden"
+                                    />
+                                  </label>
+                                </div>
+
+                                <div className="space-y-1">
+                                  <label className="text-[9px] font-mono text-amber-300/80 block uppercase">
+                                    🔗 Link ảnh góc #{idx + 1} (Facebook / Web):
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder={`Dán link ảnh góc #${idx + 1}...`}
+                                    value={img?.url || ''}
+                                    onPaste={(e) => handleWorkshopGalleryPaste(idx, e)}
+                                    onChange={(e) => {
+                                      const urlVal = e.target.value;
+                                      setWorkshopForm((prev) => {
+                                        const current = [...(prev.galleryImages || [])];
+                                        while (current.length <= idx) {
+                                          current.push({ url: '', captionVi: '', captionEn: '' });
+                                        }
+                                        current[idx] = { ...current[idx], url: urlVal };
+                                        return {
+                                          ...prev,
+                                          ...(idx === 0 ? { image: urlVal } : {}),
+                                          galleryImages: current
+                                        };
+                                      });
+                                    }}
+                                    className="w-full px-2 py-1.5 bg-black/70 border border-white/15 rounded text-[10px] text-white font-mono focus:border-amber-400 focus:outline-none"
+                                  />
+                                  {hasExternalUrl && (
+                                    <button
+                                      type="button"
+                                      disabled={compressing}
+                                      onClick={() => handleConvertWorkshopGalleryUrl(idx, img?.url)}
+                                      className="w-full py-1 rounded bg-amber-400/20 hover:bg-amber-400 text-amber-300 hover:text-black border border-amber-400/40 font-mono text-[10px] font-bold transition-all"
+                                    >
+                                      ⚡ Nạp & Nén Link sang .WebP
+                                    </button>
+                                  )}
+                                </div>
+
                                 <input
                                   type="text"
                                   placeholder={`Chú thích góc #${idx + 1}`}

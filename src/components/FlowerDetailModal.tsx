@@ -301,6 +301,7 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                     <img
                       src={img.url}
                       alt={`Thumbnail ${idx + 1}`}
+                      referrerPolicy="no-referrer"
                       className="w-full h-full object-cover"
                     />
                     <span className="absolute bottom-1 right-1 px-1 py-0.5 bg-black/70 text-[9px] font-mono text-white rounded">
@@ -477,6 +478,7 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
             <img
               src={currentImage.url}
               alt={currentImage.captionEn}
+              referrerPolicy="no-referrer"
               className="w-full h-full object-contain"
             />
             <button
