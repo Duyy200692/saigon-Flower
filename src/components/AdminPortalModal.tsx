@@ -64,6 +64,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     workshops,
     atelierData,
     logoUrl,
+    logoWhiteUrl,
     logout,
     addFlower,
     updateFlower,
@@ -74,6 +75,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     deleteWorkshop,
     updateAtelierData,
     updateLogoUrl,
+    updateLogoWhiteUrl,
     adminPassword,
     changeAdminPassword,
     isCloudConnected,
@@ -393,7 +395,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     }
   };
 
-  // Handle Logo Upload with Auto WebP Conversion
+  // Handle Logo Đen (Light Mode) Upload with Auto WebP Conversion
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -405,7 +407,75 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       setLastCompression(result);
     } catch (err) {
       console.error(err);
-      alert('Không thể nén ảnh logo. Vui lòng thử lại.');
+      alert('Không thể nén ảnh Logo Đen. Vui lòng thử lại.');
+    } finally {
+      setCompressing(false);
+    }
+  };
+
+  // Handle Logo Trắng (Dark Mode) Upload with Auto WebP Conversion
+  const handleLogoWhiteUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setCompressing(true);
+      const result = await compressAndConvertToWebP(file, { maxWidth: 600, maxHeight: 600, quality: 0.9 });
+      updateLogoWhiteUrl(result.webpDataUrl);
+      setLastCompression(result);
+    } catch (err) {
+      console.error(err);
+      alert('Không thể nén ảnh Logo Trắng. Vui lòng thử lại.');
+    } finally {
+      setCompressing(false);
+    }
+  };
+
+  // Handle Clipboard Paste (Ctrl+V) for Logo Đen or Logo Trắng
+  const handleLogoPaste = async (variant: 'dark' | 'white', e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (!file) continue;
+        try {
+          setCompressing(true);
+          const result = await compressAndConvertToWebP(file, { maxWidth: 600, maxHeight: 600, quality: 0.9 });
+          if (variant === 'dark') {
+            updateLogoUrl(result.webpDataUrl);
+          } else {
+            updateLogoWhiteUrl(result.webpDataUrl);
+          }
+          setLastCompression(result);
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setCompressing(false);
+        }
+        return;
+      }
+    }
+  };
+
+  // Convert Pasted Logo URL to Permanent WebP
+  const handleConvertLogoUrl = async (variant: 'dark' | 'white', urlToConvert?: string | null) => {
+    const targetUrl = (urlToConvert ?? '').trim();
+    if (!targetUrl || targetUrl.startsWith('data:image/') || targetUrl.startsWith('/src/')) return;
+
+    try {
+      setCompressing(true);
+      const result = await convertUrlToWebP(targetUrl, { maxWidth: 600, maxHeight: 600, quality: 0.9 });
+      if (variant === 'dark') {
+        updateLogoUrl(result.webpDataUrl);
+      } else {
+        updateLogoWhiteUrl(result.webpDataUrl);
+      }
+      setLastCompression(result);
+    } catch (err: any) {
+      alert(err?.message || 'Không thể tải logo từ đường dẫn này.');
     } finally {
       setCompressing(false);
     }
@@ -689,125 +759,185 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   return (
     <div className="fixed inset-0 z-60 bg-black/90 backdrop-blur-md flex flex-col justify-between overflow-hidden animate-fadeIn">
       
-      {/* Top Admin Header */}
-      <header className="h-16 bg-[#181917] border-b border-white/15 px-4 sm:px-8 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-amber-400/20 text-amber-300 flex items-center justify-center font-bold text-xs font-mono">
-            AD
+      {/* Top Admin Header (Responsive: Shows 4 Navigation Tabs on BOTH Mobile & Desktop) */}
+      <header className="bg-[#181917] border-b border-white/15 px-3 sm:px-8 py-2.5 sm:py-3 flex flex-col gap-2.5 flex-shrink-0">
+        {/* Top Row: Brand Badge + Desktop Tabs + Action Controls */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-amber-400/20 text-amber-300 flex items-center justify-center font-bold text-xs font-mono shrink-0">
+              AD
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-xs sm:text-sm font-bold font-mono uppercase tracking-wider text-white truncate">
+                JU ET SAIGON · BẢNG QUẢN TRỊ ADMIN
+              </h2>
+              <p className="hidden sm:block text-[10px] text-white/60 font-sans truncate">
+                Quản lý tác phẩm hoa · Dịch vụ Workshop · Thay đổi logo & thông tin thương hiệu
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-sm font-bold font-mono uppercase tracking-wider text-white">
-              JU ET SAIGON · BẢNG QUẢN TRỊ ADMIN
-            </h2>
-            <p className="text-[10px] text-white/60 font-sans">
-              Quản lý tác phẩm hoa · Dịch vụ Workshop · Thay đổi logo & thông tin thương hiệu
-            </p>
+
+          {/* Desktop Tab Navigation (lg and up) */}
+          <div className="hidden lg:flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10 text-xs font-medium shrink-0">
+            <button
+              onClick={() => {
+                setActiveTab('flowers');
+                setEditingFlower(null);
+                setIsAddingFlower(false);
+              }}
+              className={`px-4 py-1.5 rounded-lg transition-all ${
+                activeTab === 'flowers' ? 'bg-amber-400 text-[#141414] font-bold' : 'text-white/70 hover:text-white'
+              }`}
+            >
+              Tác Phẩm Hoa ({flowers.length})
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('workshops');
+                setEditingWorkshop(null);
+              }}
+              className={`px-4 py-1.5 rounded-lg transition-all ${
+                activeTab === 'workshops' ? 'bg-amber-400 text-[#141414] font-bold' : 'text-white/70 hover:text-white'
+              }`}
+            >
+              Workshop ({workshops.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('branding')}
+              className={`px-4 py-1.5 rounded-lg transition-all ${
+                activeTab === 'branding' ? 'bg-amber-400 text-[#141414] font-bold' : 'text-white/70 hover:text-white'
+              }`}
+            >
+              Logo, Thông Tin & Social
+            </button>
+            <button
+              onClick={() => setActiveTab('security')}
+              className={`px-4 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === 'security' ? 'bg-amber-400 text-[#141414] font-bold' : 'text-white/70 hover:text-white'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Bảo Mật & Mật Khẩu</span>
+            </button>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Cloud Sync Button */}
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await syncAllToCloud();
+                  alert('Đã đồng bộ toàn bộ tác phẩm hoa, workshop & cấu hình lên Firebase Firestore thành công!');
+                } catch (e) {
+                  console.error(e);
+                  alert('Đang gửi dữ liệu lên Firebase Firestore...');
+                }
+              }}
+              disabled={isSyncing}
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg border text-xs font-mono uppercase flex items-center gap-1.5 transition-all shadow-sm ${
+                isCloudConnected
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+                  : 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+              }`}
+              title="Đồng bộ dữ liệu lên Firebase Firestore"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">
+                {isSyncing ? 'Đang đồng bộ...' : isCloudConnected ? 'Cloud Online' : 'Đồng Bộ Firebase'}
+              </span>
+            </button>
+
+            <button
+              onClick={() => {
+                if (window.confirm('Khôi phục toàn bộ dữ liệu mẫu gốc ban đầu của JU et Saigon?')) {
+                  resetAllData();
+                  alert('Đã khôi phục dữ liệu mặc định!');
+                }
+              }}
+              className="p-2 text-xs font-mono rounded-lg border border-white/10 hover:border-amber-400/50 text-white/60 hover:text-amber-300 transition-colors"
+              title="Khôi phục dữ liệu gốc"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={() => {
+                logout();
+                onClose();
+              }}
+              className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-red-900/40 hover:bg-red-900/80 text-red-200 border border-red-500/30 text-xs font-mono uppercase flex items-center gap-1 transition-all"
+              title="Đăng xuất quản trị"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Đăng Xuất</span>
+            </button>
+
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="hidden md:flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10 text-xs font-medium">
+        {/* Mobile & Tablet Tab Navigation Bar (Visible on screens < lg so mobile users see all 4 tabs clearly) */}
+        <div className="lg:hidden grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-black/50 p-1.5 rounded-xl border border-white/15 text-[11px] sm:text-xs font-medium">
           <button
+            type="button"
             onClick={() => {
               setActiveTab('flowers');
               setEditingFlower(null);
               setIsAddingFlower(false);
             }}
-            className={`px-4 py-1.5 rounded-lg transition-all ${
-              activeTab === 'flowers' ? 'bg-amber-400 text-[#141414] font-bold' : 'text-white/70 hover:text-white'
+            className={`px-2.5 py-2 rounded-lg transition-all text-center truncate ${
+              activeTab === 'flowers'
+                ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
+                : 'text-white/80 hover:text-white bg-white/5'
             }`}
           >
             Tác Phẩm Hoa ({flowers.length})
           </button>
           <button
+            type="button"
             onClick={() => {
               setActiveTab('workshops');
               setEditingWorkshop(null);
+              setIsAddingWorkshop(false);
             }}
-            className={`px-4 py-1.5 rounded-lg transition-all ${
-              activeTab === 'workshops' ? 'bg-amber-400 text-[#141414] font-bold' : 'text-white/70 hover:text-white'
+            className={`px-2.5 py-2 rounded-lg transition-all text-center truncate ${
+              activeTab === 'workshops'
+                ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
+                : 'text-white/80 hover:text-white bg-white/5'
             }`}
           >
             Workshop ({workshops.length})
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('branding')}
-            className={`px-4 py-1.5 rounded-lg transition-all ${
-              activeTab === 'branding' ? 'bg-amber-400 text-[#141414] font-bold' : 'text-white/70 hover:text-white'
+            className={`px-2.5 py-2 rounded-lg transition-all text-center truncate ${
+              activeTab === 'branding'
+                ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
+                : 'text-white/80 hover:text-white bg-white/5'
             }`}
           >
             Logo, Thông Tin & Social
           </button>
           <button
-            onClick={() => setActiveTab('security')}
-            className={`px-4 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-              activeTab === 'security' ? 'bg-amber-400 text-[#141414] font-bold' : 'text-white/70 hover:text-white'
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Bảo Mật & Mật Khẩu</span>
-          </button>
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-2">
-          {/* Cloud Sync Button */}
-          <button
             type="button"
-            onClick={async () => {
-              try {
-                await syncAllToCloud();
-                alert('Đã đồng bộ toàn bộ tác phẩm hoa, workshop & cấu hình lên Firebase Firestore thành công!');
-              } catch (e) {
-                console.error(e);
-                alert('Đang gửi dữ liệu lên Firebase Firestore...');
-              }
-            }}
-            disabled={isSyncing}
-            className={`px-3 py-1.5 rounded-lg border text-xs font-mono uppercase flex items-center gap-1.5 transition-all shadow-sm ${
-              isCloudConnected
-                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
-                : 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+            onClick={() => setActiveTab('security')}
+            className={`px-2.5 py-2 rounded-lg transition-all flex items-center justify-center gap-1 truncate ${
+              activeTab === 'security'
+                ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
+                : 'text-white/80 hover:text-white bg-white/5'
             }`}
-            title="Đồng bộ dữ liệu lên Firebase Firestore"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">
-              {isSyncing ? 'Đang đồng bộ...' : isCloudConnected ? 'Cloud Online' : 'Đồng Bộ Firebase'}
-            </span>
-          </button>
-
-          <button
-            onClick={() => {
-              if (window.confirm('Khôi phục toàn bộ dữ liệu mẫu gốc ban đầu của JU et Saigon?')) {
-                resetAllData();
-                alert('Đã khôi phục dữ liệu mặc định!');
-              }
-            }}
-            className="p-2 text-xs font-mono rounded-lg border border-white/10 hover:border-amber-400/50 text-white/60 hover:text-amber-300 transition-colors"
-            title="Khôi phục dữ liệu gốc"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={() => {
-              logout();
-              onClose();
-            }}
-            className="px-3 py-1.5 rounded-lg bg-red-900/40 hover:bg-red-900/80 text-red-200 border border-red-500/30 text-xs font-mono uppercase flex items-center gap-1 transition-all"
-            title="Đăng xuất quản trị"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Đăng Xuất</span>
-          </button>
-
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
-            aria-label="Close"
-          >
-            <X className="w-5 h-5" />
+            <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Bảo Mật & Mật Khẩu</span>
           </button>
         </div>
       </header>
@@ -1918,51 +2048,211 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                 </p>
               </div>
 
-              {/* 1. Logo Management Section */}
-              <div className="p-5 bg-black/40 rounded-xl border border-white/10 space-y-4">
-                <div className="flex items-center justify-between">
-                  <label className="font-mono uppercase text-[11px] font-bold text-amber-300 block">
-                    1. LOGO THƯƠNG HIỆU (ẢNH WEBP HOẶC CHỮ NGHỆ THUẬT)
-                  </label>
-                  <span className="text-[10px] font-mono text-white/40">HIỂN THỊ HEADER & FOOTER</span>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center gap-6">
-                  {/* Current Logo Preview */}
-                  <div className="w-40 h-20 rounded-xl border border-white/20 bg-white/10 flex items-center justify-center p-2 text-center overflow-hidden">
-                    {logoUrl ? (
-                      <img src={logoUrl} alt="Logo" className="max-h-full max-w-full object-contain" />
-                    ) : (
-                      <span className="font-fleur-title font-bold text-base text-white">
-                        {brandingForm.name || 'JU ET SAIGON'}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Upload Actions */}
-                  <div className="space-y-2 flex-1">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <label className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#141414] font-bold text-xs uppercase tracking-wider cursor-pointer shadow-md transition-colors">
-                        <Upload className="w-4 h-4" />
-                        <span>Tải Ảnh Logo Mới (.WebP Auto)</span>
-                        <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-                      </label>
-
-                      {logoUrl && (
-                        <button
-                          type="button"
-                          onClick={() => updateLogoUrl(null)}
-                          className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-mono transition-colors"
-                        >
-                          Khôi phục Logo chữ mặc định
-                        </button>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-white/50 font-mono">
-                      Khuyến nghị ảnh PNG/WebP nền trong suốt (kích thước ~400x120px)
+              {/* 1. Dual Logo Management Section (Logo Đen cho Light Mode & Logo Trắng cho Dark Mode) */}
+              <div className="p-5 bg-black/40 rounded-xl border border-white/10 space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+                  <div>
+                    <label className="font-mono uppercase text-[11px] font-bold text-amber-300 block">
+                      1. HỆ THỐNG 2 LOGO THƯƠNG HIỆU TỰ ĐỘNG THEO CHẾ ĐỘ (LOGO ĐEN & LOGO TRẮNG)
+                    </label>
+                    <p className="text-[11px] text-white/60 mt-0.5">
+                      Hệ thống tự động nhận diện chế độ giao diện để hiển thị <strong>Logo Đen</strong> khi ở nền Sáng (Light Mode) và <strong>Logo Trắng</strong> khi ở nền Tối (Dark Mode).
                     </p>
                   </div>
+                  <span className="text-[10px] font-mono text-amber-300 bg-amber-400/10 px-2.5 py-1 rounded-full border border-amber-400/20 shrink-0 self-start sm:self-auto">
+                    TỰ ĐỘNG NHẬN DIỆN LIGHT / DARK MODE
+                  </span>
                 </div>
+
+                {lastCompression && (
+                  <div className="p-3 bg-emerald-950/70 border border-emerald-500/40 rounded-xl text-emerald-200 flex items-center gap-3 font-mono text-xs">
+                    <FileCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                    <span>
+                      Đã tự động nén Logo sang .WebP ({formatFileSize(lastCompression.originalSize)} → {formatFileSize(lastCompression.compressedSize)}, tiết kiệm {lastCompression.compressionRatio}%)
+                    </span>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  
+                  {/* SLOT 1: LOGO ĐEN (LIGHT MODE) */}
+                  <div
+                    onPaste={(e) => handleLogoPaste('dark', e)}
+                    className="p-4 rounded-xl bg-white/5 border border-white/15 space-y-4 flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold text-amber-300 uppercase">
+                          ☀️ PHẦN 1: LOGO ĐEN (CHẾ ĐỘ LIGHT MODE)
+                        </span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#dcd8cf] text-[#141414] font-bold">
+                          Nền Sáng
+                        </span>
+                      </div>
+
+                      {/* Preview on Light Mode Background */}
+                      <div className="w-full h-24 rounded-xl border border-[#141414]/20 bg-[#dcd8cf] flex items-center justify-center p-3 text-center overflow-hidden relative shadow-inner">
+                        {logoUrl ? (
+                          <img
+                            src={logoUrl}
+                            alt="Logo Đen (Light Mode)"
+                            referrerPolicy="no-referrer"
+                            className="max-h-full max-w-full object-contain"
+                          />
+                        ) : (
+                          <span className="font-fleur-title font-bold text-lg text-[#141414] uppercase tracking-wider">
+                            {brandingForm.name || 'JU ET SAIGON'}
+                          </span>
+                        )}
+                        <span className="absolute bottom-1 right-2 text-[9px] font-mono text-[#141414]/50">
+                          Xem trước trên nền Light Mode
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label className="flex-1 min-w-[160px] inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#141414] font-bold text-xs uppercase tracking-wider cursor-pointer shadow-md transition-colors text-center">
+                          <Upload className="w-3.5 h-3.5 shrink-0" />
+                          <span>Tải Ảnh Logo Đen (.WebP)</span>
+                          <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                        </label>
+
+                        {logoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => updateLogoUrl(null)}
+                            className="px-3 py-2 rounded-xl bg-red-950/60 hover:bg-red-800 text-red-200 border border-red-500/30 text-xs font-mono transition-colors"
+                          >
+                            Xóa Logo Đen
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Direct Link / Ctrl+V Input for Logo Đen */}
+                    <div className="space-y-1.5 pt-2 border-t border-white/10">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-mono text-white/60 uppercase">
+                          Hoặc dán Link ảnh / bấm Ctrl+V:
+                        </label>
+                        {logoUrl && !logoUrl.startsWith('data:image/') && !logoUrl.startsWith('/src/') && (
+                          <button
+                            type="button"
+                            disabled={compressing}
+                            onClick={() => handleConvertLogoUrl('dark', logoUrl)}
+                            className="px-2 py-0.5 rounded bg-amber-400/20 hover:bg-amber-400 text-amber-300 hover:text-black border border-amber-400/40 font-mono text-[9px] font-bold transition-all"
+                          >
+                            ⚡ Chuyển sang .WebP
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Dán link Logo Đen hoặc nhấn Ctrl+V..."
+                        value={logoUrl || ''}
+                        onPaste={(e) => handleLogoPaste('dark', e)}
+                        onChange={(e) => updateLogoUrl(e.target.value || null)}
+                        className="w-full px-3 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white font-mono text-[11px] focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                  </div>
+
+                  {/* SLOT 2: LOGO TRẮNG (DARK MODE) */}
+                  <div
+                    onPaste={(e) => handleLogoPaste('white', e)}
+                    className="p-4 rounded-xl bg-white/5 border border-white/15 space-y-4 flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold text-amber-300 uppercase">
+                          🌙 PHẦN 2: LOGO TRẮNG (CHẾ ĐỘ DARK MODE)
+                        </span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#0f100e] text-[#ede9df] border border-white/20 font-bold">
+                          Nền Tối
+                        </span>
+                      </div>
+
+                      {/* Preview on Dark Mode Background */}
+                      <div className="w-full h-24 rounded-xl border border-white/20 bg-[#0f100e] flex items-center justify-center p-3 text-center overflow-hidden relative shadow-inner">
+                        {logoWhiteUrl ? (
+                          <img
+                            src={logoWhiteUrl}
+                            alt="Logo Trắng (Dark Mode)"
+                            referrerPolicy="no-referrer"
+                            className="max-h-full max-w-full object-contain"
+                          />
+                        ) : logoUrl ? (
+                          <img
+                            src={logoUrl}
+                            alt="Logo Tự Động Đảo Trắng"
+                            referrerPolicy="no-referrer"
+                            className="max-h-full max-w-full object-contain brightness-0 invert opacity-90"
+                          />
+                        ) : (
+                          <span className="font-fleur-title font-bold text-lg text-[#ede9df] uppercase tracking-wider">
+                            {brandingForm.name || 'JU ET SAIGON'}
+                          </span>
+                        )}
+                        <span className="absolute bottom-1 right-2 text-[9px] font-mono text-white/40">
+                          {logoWhiteUrl
+                            ? 'Đang dùng Logo Trắng riêng'
+                            : logoUrl
+                              ? 'Tự động chuyển trắng từ Logo Đen'
+                              : 'Xem trước trên nền Dark Mode'}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label className="flex-1 min-w-[160px] inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-[#ede9df] text-[#141414] font-bold text-xs uppercase tracking-wider cursor-pointer shadow-md transition-colors text-center">
+                          <Upload className="w-3.5 h-3.5 shrink-0" />
+                          <span>Tải Ảnh Logo Trắng (.WebP)</span>
+                          <input type="file" accept="image/*" onChange={handleLogoWhiteUpload} className="hidden" />
+                        </label>
+
+                        {logoWhiteUrl && (
+                          <button
+                            type="button"
+                            onClick={() => updateLogoWhiteUrl(null)}
+                            className="px-3 py-2 rounded-xl bg-red-950/60 hover:bg-red-800 text-red-200 border border-red-500/30 text-xs font-mono transition-colors"
+                          >
+                            Xóa Logo Trắng
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Direct Link / Ctrl+V Input for Logo Trắng */}
+                    <div className="space-y-1.5 pt-2 border-t border-white/10">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-mono text-white/60 uppercase">
+                          Hoặc dán Link ảnh / bấm Ctrl+V:
+                        </label>
+                        {logoWhiteUrl && !logoWhiteUrl.startsWith('data:image/') && !logoWhiteUrl.startsWith('/src/') && (
+                          <button
+                            type="button"
+                            disabled={compressing}
+                            onClick={() => handleConvertLogoUrl('white', logoWhiteUrl)}
+                            className="px-2 py-0.5 rounded bg-amber-400/20 hover:bg-amber-400 text-amber-300 hover:text-black border border-amber-400/40 font-mono text-[9px] font-bold transition-all"
+                          >
+                            ⚡ Chuyển sang .WebP
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Dán link Logo Trắng hoặc nhấn Ctrl+V..."
+                        value={logoWhiteUrl || ''}
+                        onPaste={(e) => handleLogoPaste('white', e)}
+                        onChange={(e) => updateLogoWhiteUrl(e.target.value || null)}
+                        className="w-full px-3 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white font-mono text-[11px] focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                  </div>
+
+                </div>
+
+                <p className="text-[11px] text-white/50 font-mono">
+                  💡 Khuyến nghị sử dụng file PNG hoặc WebP nền trong suốt (kích thước khoảng 400x120px). Khi chuyển đổi qua lại giữa <strong>Sáng (Light)</strong> và <strong>Tối (Dark)</strong>, hệ thống sẽ tự động thay đổi giữa 2 bản Logo này.
+                </p>
               </div>
 
               {/* Form Body */}

@@ -16,6 +16,7 @@ interface AtelierContextType {
   workshops: WorkshopItem[];
   atelierData: typeof ATELIER_DATA;
   logoUrl: string | null;
+  logoWhiteUrl: string | null;
   isAdmin: boolean;
   adminPassword?: string;
   isCloudConnected: boolean;
@@ -35,6 +36,7 @@ interface AtelierContextType {
   deleteWorkshop: (id: string) => Promise<void>;
   updateAtelierData: (data: Partial<typeof ATELIER_DATA>) => Promise<void>;
   updateLogoUrl: (url: string | null) => Promise<void>;
+  updateLogoWhiteUrl: (url: string | null) => Promise<void>;
   syncAllToCloud: () => Promise<void>;
   resetAllData: () => Promise<void>;
 }
@@ -46,6 +48,7 @@ const STORAGE_KEYS = {
   WORKSHOPS: 'juet_workshops_data_v2',
   ATELIER: 'juet_atelier_data_v2',
   LOGO: 'juet_logo_url_v2',
+  LOGO_WHITE: 'juet_logo_white_url_v2',
   AUTH: 'juet_admin_authenticated',
   PASS: 'juet_admin_password_v2'
 };
@@ -95,6 +98,10 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return localStorage.getItem(STORAGE_KEYS.LOGO);
   });
 
+  const [logoWhiteUrl, setLogoWhiteUrl] = useState<string | null>(() => {
+    return localStorage.getItem(STORAGE_KEYS.LOGO_WHITE);
+  });
+
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
     return localStorage.getItem(STORAGE_KEYS.AUTH) === 'true';
   });
@@ -127,6 +134,14 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
       localStorage.removeItem(STORAGE_KEYS.LOGO);
     }
   }, [logoUrl]);
+
+  useEffect(() => {
+    if (logoWhiteUrl) {
+      localStorage.setItem(STORAGE_KEYS.LOGO_WHITE, logoWhiteUrl);
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.LOGO_WHITE);
+    }
+  }, [logoWhiteUrl]);
 
   useEffect(() => {
     if (adminPassword) {
@@ -195,10 +210,13 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
           (docSnap) => {
             if (docSnap.exists()) {
               const data = docSnap.data();
-              const { logoUrl: cloudLogo, ...restSettings } = data;
+              const { logoUrl: cloudLogo, logoWhiteUrl: cloudLogoWhite, ...restSettings } = data;
               setAtelierData((prev) => ({ ...prev, ...restSettings }));
               if (cloudLogo !== undefined) {
                 setLogoUrl(cloudLogo);
+              }
+              if (cloudLogoWhite !== undefined) {
+                setLogoWhiteUrl(cloudLogoWhite);
               }
             }
           },
@@ -270,6 +288,7 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
       batch.set(settingsRef, {
         ...ATELIER_DATA,
         logoUrl: null,
+        logoWhiteUrl: null,
         updatedAt: new Date().toISOString()
       });
 
@@ -308,6 +327,7 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
       batch.set(settingsRef, {
         ...atelierData,
         logoUrl,
+        logoWhiteUrl,
         updatedAt: new Date().toISOString()
       });
 
@@ -542,15 +562,31 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
+  const updateLogoWhiteUrl = async (url: string | null) => {
+    setLogoWhiteUrl(url);
+
+    try {
+      await setDoc(
+        doc(db, 'settings', 'atelier'),
+        { logoWhiteUrl: url, updatedAt: new Date().toISOString() },
+        { merge: true }
+      );
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'settings/atelier');
+    }
+  };
+
   const resetAllData = async () => {
     setFlowers(FLOWERS);
     setWorkshops(WORKSHOPS);
     setAtelierData(ATELIER_DATA);
     setLogoUrl(null);
+    setLogoWhiteUrl(null);
     localStorage.removeItem(STORAGE_KEYS.FLOWERS);
     localStorage.removeItem(STORAGE_KEYS.WORKSHOPS);
     localStorage.removeItem(STORAGE_KEYS.ATELIER);
     localStorage.removeItem(STORAGE_KEYS.LOGO);
+    localStorage.removeItem(STORAGE_KEYS.LOGO_WHITE);
 
     try {
       await syncAllToCloud();
@@ -566,6 +602,7 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
         workshops,
         atelierData,
         logoUrl,
+        logoWhiteUrl,
         isAdmin,
         adminPassword,
         isCloudConnected,
@@ -582,6 +619,7 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
         deleteWorkshop,
         updateAtelierData,
         updateLogoUrl,
+        updateLogoWhiteUrl,
         syncAllToCloud,
         resetAllData
       }}

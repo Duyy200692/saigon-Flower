@@ -1,13 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { X, Search, Filter, Pin, Sparkles, ChevronRight, SlidersHorizontal, ArrowUpRight } from 'lucide-react';
+import { X, Search, Filter, Pin } from 'lucide-react';
 import { FlowerItem, BOTANICAL_CATEGORIES, BOTANICAL_SEASONS } from '../data/flowers';
-import { soundEngine } from '../utils/audio';
 
 interface CollectionCatalogModalProps {
   isOpen: boolean;
   onClose: () => void;
   flowers: FlowerItem[];
   lang: 'vi' | 'en';
+  theme?: 'light' | 'dark';
   onSelectFlower: (flower: FlowerItem) => void;
 }
 
@@ -16,13 +16,14 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
   onClose,
   flowers,
   lang,
+  theme = 'light',
   onSelectFlower
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedSeason, setSelectedSeason] = useState<string>('all');
   const [showPinnedOnly, setShowPinnedOnly] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const isDark = theme === 'dark';
 
   // Multi-tier filtering
   const filteredFlowers = useMemo(() => {
@@ -67,17 +68,14 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
   if (!isOpen) return null;
 
   const handleFlowerClick = (flower: FlowerItem) => {
-    soundEngine.playFlowerChime(flower.audioFrequency);
     onSelectFlower(flower);
   };
 
   const handleCategoryChange = (catId: string) => {
-    soundEngine.playFlowerChime(432);
     setSelectedCategory(catId);
   };
 
   const handleSeasonChange = (seasonId: string) => {
-    soundEngine.playFlowerChime(528);
     setSelectedSeason(seasonId);
   };
 
@@ -86,18 +84,30 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col justify-between overflow-hidden animate-fadeIn font-sans">
       
-      {/* Top Header Bar with Frosted Glass & Squircle */}
-      <header className="h-18 bg-[#181917]/90 backdrop-blur-2xl border-b border-white/15 px-4 sm:px-8 flex items-center justify-between flex-shrink-0 z-20">
+      {/* Top Header Bar */}
+      <header
+        className={`h-18 backdrop-blur-2xl border-b px-4 sm:px-8 flex items-center justify-between flex-shrink-0 z-20 transition-colors ${
+          isDark
+            ? 'bg-[#181917]/95 border-white/15 text-white'
+            : 'bg-[#dcd8cf]/95 border-[#141414]/15 text-[#141414]'
+        }`}
+      >
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono tracking-widest uppercase text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-full border border-amber-400/20">
+            <span
+              className={`text-[10px] font-mono tracking-widest uppercase px-2.5 py-0.5 rounded-full border ${
+                isDark
+                  ? 'text-amber-400 bg-amber-400/10 border-amber-400/20'
+                  : 'text-amber-900 bg-amber-500/15 border-amber-700/25'
+              }`}
+            >
               JU ET SAIGON · ARCHIVE
             </span>
-            <span className="text-xs text-white/50 font-mono hidden sm:inline-block">
+            <span className={`text-xs font-mono hidden sm:inline-block ${isDark ? 'text-white/50' : 'text-[#141414]/60'}`}>
               {flowers.length} Tác Phẩm Độc Bản · 12 Ghim Landing Page
             </span>
           </div>
-          <h2 className="text-lg sm:text-xl font-bagerich uppercase tracking-wider text-white mt-0.5">
+          <h2 className="text-lg sm:text-xl font-bagerich uppercase tracking-wider mt-0.5">
             {lang === 'vi' ? 'BỘ SƯU TẬP HOA & MÙA (COLLECTION ARCHIVE)' : 'BOTANICAL COLLECTION & SEASONS'}
           </h2>
         </div>
@@ -105,34 +115,55 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
         <div className="flex items-center gap-3">
           {/* Quick Search */}
           <div className="relative hidden md:block w-64">
-            <Search className="w-3.5 h-3.5 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search
+              className={`w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 ${
+                isDark ? 'text-white/40' : 'text-[#141414]/50'
+              }`}
+            />
             <input
               type="text"
               placeholder={lang === 'vi' ? 'Tìm hoa, mùa, nốt hương...' : 'Search species, season...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-4 py-1.5 bg-black/40 border border-white/20 rounded-[20px] text-white text-xs font-mono placeholder-white/40 focus:outline-none focus:border-amber-400 backdrop-blur-xl"
+              className={`w-full pl-8 pr-4 py-1.5 border rounded-[20px] text-xs font-mono focus:outline-none backdrop-blur-xl ${
+                isDark
+                  ? 'bg-black/40 border-white/20 text-white placeholder-white/40 focus:border-amber-400'
+                  : 'bg-white/70 border-[#141414]/20 text-[#141414] placeholder-[#141414]/45 focus:border-[#141414]'
+              }`}
             />
           </div>
 
           {/* Close button */}
           <button
             onClick={onClose}
-            className="spring-press p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors flex items-center gap-1.5 text-xs font-mono uppercase border border-white/10"
+            className={`p-2 px-3 rounded-full transition-colors flex items-center gap-1.5 text-xs font-mono uppercase border ${
+              isDark
+                ? 'bg-white/10 hover:bg-white/20 text-white border-white/10'
+                : 'bg-[#141414] hover:bg-[#2b2a28] text-[#dcd8cf] border-[#141414]'
+            }`}
             aria-label="Close collection modal"
           >
             <span className="hidden sm:inline">{lang === 'vi' ? 'Đóng' : 'Close'}</span>
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
       </header>
 
-      {/* Filter Toolbar Bar (Multi-Category + Seasonal Pills) */}
-      <div className="bg-[#141513]/90 backdrop-blur-2xl border-b border-white/10 px-4 sm:px-8 py-3.5 flex-shrink-0 space-y-3 z-10">
-        
+      {/* Filter Toolbar Bar */}
+      <div
+        className={`backdrop-blur-2xl border-b px-4 sm:px-8 py-3.5 flex-shrink-0 space-y-3 z-10 transition-colors ${
+          isDark
+            ? 'bg-[#141513]/95 border-white/10 text-white'
+            : 'bg-[#e6e2da]/95 border-[#141414]/10 text-[#141414]'
+        }`}
+      >
         {/* Row 1: Categories */}
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
-          <span className="text-[11px] font-mono text-amber-300 uppercase tracking-wider flex-shrink-0 flex items-center gap-1 font-bold">
+          <span
+            className={`text-[11px] font-mono uppercase tracking-wider flex-shrink-0 flex items-center gap-1 font-bold ${
+              isDark ? 'text-amber-300' : 'text-amber-900'
+            }`}
+          >
             <Filter className="w-3 h-3" />
             <span>{lang === 'vi' ? 'DANH MỤC:' : 'CATEGORY:'}</span>
           </span>
@@ -147,20 +178,34 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
                       f.categoryLabelEn.toLowerCase().includes(cat.id.toLowerCase())
                   ).length;
 
+            const isActive = selectedCategory === cat.id;
+
             return (
               <button
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.id)}
-                className={`spring-press-subtle px-4 py-1.5 rounded-[20px] text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1.5 border ${
-                  selectedCategory === cat.id
-                    ? 'bg-amber-400 text-[#141414] font-bold border-amber-400 shadow-md ring-2 ring-amber-400/30'
-                    : 'bg-white/10 text-white/80 hover:bg-white/20 border-white/15 hover:text-white backdrop-blur-md'
+                className={`px-4 py-1.5 rounded-[20px] text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1.5 border ${
+                  isActive
+                    ? isDark
+                      ? 'bg-amber-400 text-[#141414] font-bold border-amber-400 shadow-md'
+                      : 'bg-[#141414] text-[#dcd8cf] font-bold border-[#141414] shadow-md'
+                    : isDark
+                      ? 'bg-white/10 text-white/80 hover:bg-white/20 border-white/15 hover:text-white'
+                      : 'bg-white/70 text-[#141414]/80 hover:bg-white border-[#141414]/15 hover:text-[#141414]'
                 }`}
               >
                 <span>{lang === 'vi' ? cat.labelVi : cat.labelEn}</span>
-                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
-                  selectedCategory === cat.id ? 'bg-black/20 text-[#141414] font-bold' : 'bg-black/40 text-white/60'
-                }`}>
+                <span
+                  className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
+                    isActive
+                      ? isDark
+                        ? 'bg-black/20 text-[#141414] font-bold'
+                        : 'bg-white/20 text-[#dcd8cf] font-bold'
+                      : isDark
+                        ? 'bg-black/40 text-white/60'
+                        : 'bg-black/10 text-[#141414]/70'
+                  }`}
+                >
                   {count}
                 </span>
               </button>
@@ -171,7 +216,7 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
         {/* Row 2: Seasonality + Pinned Landing Quick Filter */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-            <span className="text-[11px] font-mono text-white/50 uppercase tracking-wider flex-shrink-0">
+            <span className={`text-[11px] font-mono uppercase tracking-wider flex-shrink-0 ${isDark ? 'text-white/50' : 'text-[#141414]/60'}`}>
               {lang === 'vi' ? 'LỌC THEO MÙA:' : 'BY SEASON:'}
             </span>
 
@@ -179,10 +224,14 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
               <button
                 key={season.id}
                 onClick={() => handleSeasonChange(season.id)}
-                className={`spring-press-subtle px-3.5 py-1 rounded-[18px] text-[11px] font-mono whitespace-nowrap transition-all border ${
+                className={`px-3.5 py-1 rounded-[18px] text-[11px] font-mono whitespace-nowrap transition-all border ${
                   selectedSeason === season.id
-                    ? 'bg-white/25 text-white border-white/50 font-bold shadow-sm backdrop-blur-md'
-                    : 'bg-transparent text-white/60 hover:text-white border-white/10 hover:border-white/25'
+                    ? isDark
+                      ? 'bg-white/25 text-white border-white/50 font-bold shadow-sm'
+                      : 'bg-[#141414] text-[#dcd8cf] border-[#141414] font-bold shadow-sm'
+                    : isDark
+                      ? 'bg-transparent text-white/60 hover:text-white border-white/10 hover:border-white/25'
+                      : 'bg-white/50 text-[#141414]/70 hover:text-[#141414] border-[#141414]/15'
                 }`}
               >
                 {lang === 'vi' ? season.labelVi : season.labelEn}
@@ -191,24 +240,25 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
 
             {/* Quick Toggle: Ghim Landing Page */}
             <button
-              onClick={() => {
-                soundEngine.playFlowerChime(640);
-                setShowPinnedOnly((prev) => !prev);
-              }}
-              className={`spring-press-subtle px-3.5 py-1 rounded-[18px] text-[11px] font-mono whitespace-nowrap transition-all border flex items-center gap-1.5 ${
+              onClick={() => setShowPinnedOnly((prev) => !prev)}
+              className={`px-3.5 py-1 rounded-[18px] text-[11px] font-mono whitespace-nowrap transition-all border flex items-center gap-1.5 ${
                 showPinnedOnly
-                  ? 'bg-amber-400/25 text-amber-300 border-amber-400/60 font-bold shadow-sm backdrop-blur-md'
-                  : 'bg-transparent text-white/60 hover:text-amber-300 border-white/10 hover:border-amber-400/30'
+                  ? isDark
+                    ? 'bg-amber-400/25 text-amber-300 border-amber-400/60 font-bold shadow-sm'
+                    : 'bg-amber-500/20 text-amber-950 border-amber-700/50 font-bold shadow-sm'
+                  : isDark
+                    ? 'bg-transparent text-white/60 hover:text-amber-300 border-white/10 hover:border-amber-400/30'
+                    : 'bg-white/50 text-[#141414]/70 hover:text-amber-900 border-[#141414]/15'
               }`}
               title="Chỉ hiển thị các tác phẩm đang được ghim tại trang chủ"
             >
-              <Pin className={`w-3 h-3 ${showPinnedOnly ? 'fill-amber-300' : ''}`} />
+              <Pin className={`w-3 h-3 ${showPinnedOnly ? 'fill-current' : ''}`} />
               <span>{lang === 'vi' ? `Ghim Trang Chủ (${pinnedCount})` : `Pinned Landing (${pinnedCount})`}</span>
             </button>
           </div>
 
-          {/* Results Counter & Mobile Search */}
-          <div className="flex items-center gap-3 text-xs font-mono text-white/50 ml-auto">
+          {/* Results Counter */}
+          <div className={`flex items-center gap-3 text-xs font-mono ml-auto ${isDark ? 'text-white/50' : 'text-[#141414]/60'}`}>
             <span>
               {lang === 'vi'
                 ? `Hiển thị ${filteredFlowers.length} / ${flowers.length} tác phẩm`
@@ -220,13 +270,21 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
         {/* Mobile Search input */}
         <div className="md:hidden pt-1">
           <div className="relative w-full">
-            <Search className="w-3.5 h-3.5 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search
+              className={`w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 ${
+                isDark ? 'text-white/40' : 'text-[#141414]/50'
+              }`}
+            />
             <input
               type="text"
               placeholder={lang === 'vi' ? 'Tìm hoa, mùi hương, mùa...' : 'Search species, season...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-4 py-2 bg-black/50 border border-white/20 rounded-[22px] text-white text-xs font-mono placeholder-white/40 focus:outline-none focus:border-amber-400 backdrop-blur-xl"
+              className={`w-full pl-8 pr-4 py-2 border rounded-[22px] text-xs font-mono focus:outline-none backdrop-blur-xl ${
+                isDark
+                  ? 'bg-black/50 border-white/20 text-white placeholder-white/40 focus:border-amber-400'
+                  : 'bg-white/80 border-[#141414]/20 text-[#141414] placeholder-[#141414]/45 focus:border-[#141414]'
+              }`}
             />
           </div>
         </div>
@@ -234,12 +292,16 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
       </div>
 
       {/* Main Content Area (Visual Grid of Floral Specimens) */}
-      <main className="flex-1 overflow-y-auto p-4 sm:p-8 bg-[#0e0f0d]">
+      <main
+        className={`flex-1 overflow-y-auto p-4 sm:p-8 transition-colors ${
+          isDark ? 'bg-[#0e0f0d]' : 'bg-[#dcd8cf]'
+        }`}
+      >
         <div className="max-w-7xl mx-auto">
           
           {filteredFlowers.length === 0 ? (
             <div className="text-center py-20 space-y-3">
-              <p className="text-lg font-serif-editorial italic text-white/60">
+              <p className={`text-lg font-serif-editorial italic ${isDark ? 'text-white/60' : 'text-[#141414]/70'}`}>
                 {lang === 'vi'
                   ? 'Không có tác phẩm hoa nào phù hợp với bộ lọc mùa & danh mục hiện tại.'
                   : 'No botanical specimens match the current filter selection.'}
@@ -251,7 +313,7 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
                   setShowPinnedOnly(false);
                   setSearchQuery('');
                 }}
-                className="px-5 py-2.5 rounded-[18px] bg-amber-400 text-black text-xs font-mono font-bold uppercase tracking-wider spring-press"
+                className="px-5 py-2.5 rounded-[18px] bg-amber-400 text-black text-xs font-mono font-bold uppercase tracking-wider"
               >
                 {lang === 'vi' ? 'Đặt lại bộ lọc' : 'Reset filters'}
               </button>
@@ -265,9 +327,13 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
                   <div
                     key={flower.id}
                     onClick={() => handleFlowerClick(flower)}
-                    className="spring-card group glass-frost-dark rounded-[28px] sm:rounded-[34px] p-2.5 sm:p-3 border border-white/15 hover:border-amber-400/60 transition-all duration-300 cursor-pointer flex flex-col shadow-soft-2 hover:shadow-soft-3 hover:-translate-y-1 active:scale-[0.97]"
+                    className={`group rounded-[28px] sm:rounded-[34px] p-2.5 sm:p-3 border transition-all duration-300 cursor-pointer flex flex-col shadow-lg hover:shadow-2xl hover:-translate-y-1 active:scale-[0.98] ${
+                      isDark
+                        ? 'bg-[#181916] border-white/15 hover:border-amber-400/60 text-white'
+                        : 'bg-[#e8e4dc] border-[#141414]/15 hover:border-[#141414]/50 text-[#141414]'
+                    }`}
                   >
-                    {/* Image Stage with Continuous Curve Squircle Container */}
+                    {/* Image Stage */}
                     <div className="relative aspect-[3/4] bg-black rounded-[22px] sm:rounded-[26px] overflow-hidden">
                       <img
                         src={flower.image}
@@ -280,7 +346,7 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
                       {/* Vignette */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 opacity-70 group-hover:opacity-40 transition-opacity" />
 
-                      {/* Specimen Index Badge in Frosted Glass */}
+                      {/* Specimen Index Badge */}
                       <div className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full backdrop-blur-xl bg-black/60 border border-white/20 text-[10px] font-mono text-white/95 shadow-sm">
                         #{flower.indexNumber}
                       </div>
@@ -307,24 +373,38 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
                     {/* Content Details */}
                     <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between space-y-2">
                       <div>
-                        <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400/80 block truncate">
+                        <span
+                          className={`text-[10px] font-mono uppercase tracking-widest block truncate ${
+                            isDark ? 'text-amber-400/80' : 'text-amber-900'
+                          }`}
+                        >
                           {flower.categoryLabelVi || flower.category}
                         </span>
                         
-                        <h4 className="font-bagerich font-medium text-sm sm:text-base uppercase tracking-tight text-white group-hover:text-amber-300 transition-colors line-clamp-1 mt-0.5">
+                        <h4
+                          className={`font-bagerich font-medium text-sm sm:text-base uppercase tracking-tight transition-colors line-clamp-1 mt-0.5 ${
+                            isDark
+                              ? 'text-white group-hover:text-amber-300'
+                              : 'text-[#141414] group-hover:text-amber-900'
+                          }`}
+                        >
                           {flower.name}
                         </h4>
 
-                        <p className="text-xs text-white/70 font-sans line-clamp-1 mt-0.5">
+                        <p className={`text-xs font-sans line-clamp-1 mt-0.5 ${isDark ? 'text-white/70' : 'text-[#141414]/70'}`}>
                           {flower.vietnameseName}
                         </p>
                       </div>
 
-                      <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs font-mono">
-                        <span className="text-white/50 text-[11px] truncate mr-2">
+                      <div
+                        className={`pt-2 border-t flex items-center justify-between text-xs font-mono ${
+                          isDark ? 'border-white/10' : 'border-[#141414]/10'
+                        }`}
+                      >
+                        <span className={`text-[11px] truncate mr-2 ${isDark ? 'text-white/50' : 'text-[#141414]/60'}`}>
                           {flower.scent?.mood || 'Hương thơm tự nhiên'}
                         </span>
-                        <span className="text-amber-300 font-bold flex-shrink-0">
+                        <span className={`font-bold flex-shrink-0 ${isDark ? 'text-amber-300' : 'text-[#141414]'}`}>
                           {(flower.priceVnd / 1000000).toFixed(1)}M
                         </span>
                       </div>
@@ -340,11 +420,17 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
       </main>
 
       {/* Footer Info */}
-      <footer className="h-12 bg-[#141513] border-t border-white/10 px-4 sm:px-8 flex items-center justify-between text-xs font-mono text-white/50 flex-shrink-0">
+      <footer
+        className={`h-12 border-t px-4 sm:px-8 flex items-center justify-between text-xs font-mono flex-shrink-0 ${
+          isDark
+            ? 'bg-[#141513] border-white/10 text-white/50'
+            : 'bg-[#e6e2da] border-[#141414]/15 text-[#141414]/70'
+        }`}
+      >
         <span>
           JU ET SAIGON · Lầu 1, 31 Nguyễn Trãi, Q.1, TP.HCM
         </span>
-        <span className="text-amber-400">
+        <span className={isDark ? 'text-amber-400' : 'text-amber-900 font-bold'}>
           Hotline: 090 936 80 80
         </span>
       </footer>

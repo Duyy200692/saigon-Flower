@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Volume2, Sparkles, ChevronLeft, ChevronRight, Share2, Check, Maximize2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Sparkles, ChevronLeft, ChevronRight, Share2, Check, Maximize2 } from 'lucide-react';
 import { FlowerItem, FLOWERS } from '../data/flowers';
-import { soundEngine } from '../utils/audio';
 
 interface FlowerDetailModalProps {
   flower: FlowerItem | null;
   isOpen: boolean;
   onClose: () => void;
   lang: 'vi' | 'en';
+  theme?: 'light' | 'dark';
   onOrderFlower: (flower: FlowerItem) => void;
   onNext?: () => void;
   onPrev?: () => void;
@@ -18,6 +18,7 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
   isOpen,
   onClose,
   lang,
+  theme = 'light',
   onOrderFlower,
   onNext,
   onPrev
@@ -28,6 +29,8 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
   const [isCopied, setIsCopied] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
+
+  const isDark = theme === 'dark';
 
   // Reset selected image when flower changes
   useEffect(() => {
@@ -59,7 +62,6 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
 
   if (!isOpen || !flower) return null;
 
-  const currentIndex = FLOWERS.findIndex((f) => f.id === flower.id);
   const totalCount = FLOWERS.length;
   const gallery = flower.galleryImages && flower.galleryImages.length > 0 
     ? flower.galleryImages 
@@ -76,10 +78,6 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const { naturalWidth, naturalHeight } = e.currentTarget;
     setIsLandscape(naturalWidth > naturalHeight);
-  };
-
-  const handlePlayChime = () => {
-    soundEngine.playFlowerChime(flower.audioFrequency);
   };
 
   const handlePrevImage = (e: React.MouseEvent) => {
@@ -110,17 +108,31 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-2xl flex items-center justify-center p-2 sm:p-4 md:p-6 animate-fadeIn">
       
       {/* Modal Container with Continuous Curves & Layered Depth */}
-      <div className="relative w-full max-w-5xl bg-[#dcd8cf] text-[#141414] squircle-2xl rounded-[32px] sm:rounded-[40px] shadow-soft-3 border border-white/60 overflow-hidden my-auto max-h-[96vh] flex flex-col">
-        
-        {/* Top Floating Action Bar with Frosted Glass */}
-        <div className="px-4 sm:px-6 py-3.5 border-b border-[#141414]/15 bg-[#dcd8cf]/90 backdrop-blur-2xl flex items-center justify-between z-20">
-          
+      <div
+        className={`relative w-full max-w-5xl rounded-[32px] sm:rounded-[40px] shadow-2xl border overflow-hidden my-auto max-h-[96vh] flex flex-col transition-colors duration-300 ${
+          isDark
+            ? 'bg-[#151614] text-[#ede9df] border-white/15'
+            : 'bg-[#dcd8cf] text-[#141414] border-white/60'
+        }`}
+      >
+        {/* Top Floating Action Bar */}
+        <div
+          className={`px-4 sm:px-6 py-3.5 border-b backdrop-blur-2xl flex items-center justify-between z-20 ${
+            isDark
+              ? 'border-white/15 bg-[#151614]/90'
+              : 'border-[#141414]/15 bg-[#dcd8cf]/90'
+          }`}
+        >
           {/* Navigation Controls (< Prev | Next >) */}
           <div className="flex items-center gap-2 sm:gap-4">
             {onPrev && (
               <button
                 onClick={onPrev}
-                className="spring-press p-1.5 sm:px-3.5 sm:py-1 rounded-[18px] border border-[#141414]/20 hover:border-[#141414] hover:bg-[#141414] hover:text-[#dcd8cf] transition-all flex items-center gap-1 text-xs font-mono uppercase glass-frost-pill"
+                className={`p-1.5 sm:px-3.5 sm:py-1 rounded-[18px] border transition-all flex items-center gap-1 text-xs font-mono uppercase ${
+                  isDark
+                    ? 'border-white/20 hover:border-white hover:bg-white hover:text-[#141414]'
+                    : 'border-[#141414]/20 hover:border-[#141414] hover:bg-[#141414] hover:text-[#dcd8cf]'
+                }`}
                 title="Previous Flower (Arrow Left)"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -128,14 +140,24 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
               </button>
             )}
 
-            <div className="text-xs font-mono text-[#141414]/80 px-2.5 py-1 rounded-[14px] bg-black/5 border border-black/5">
-              SPECIMEN <span className="font-bold text-[#141414]">{flower.indexNumber}</span> / {totalCount}
+            <div
+              className={`text-xs font-mono px-2.5 py-1 rounded-[14px] border ${
+                isDark
+                  ? 'text-[#ede9df]/80 bg-white/5 border-white/10'
+                  : 'text-[#141414]/80 bg-black/5 border-black/5'
+              }`}
+            >
+              SPECIMEN <span className={`font-bold ${isDark ? 'text-white' : 'text-[#141414]'}`}>{flower.indexNumber}</span> / {totalCount}
             </div>
 
             {onNext && (
               <button
                 onClick={onNext}
-                className="spring-press p-1.5 sm:px-3.5 sm:py-1 rounded-[18px] border border-[#141414]/20 hover:border-[#141414] hover:bg-[#141414] hover:text-[#dcd8cf] transition-all flex items-center gap-1 text-xs font-mono uppercase glass-frost-pill"
+                className={`p-1.5 sm:px-3.5 sm:py-1 rounded-[18px] border transition-all flex items-center gap-1 text-xs font-mono uppercase ${
+                  isDark
+                    ? 'border-white/20 hover:border-white hover:bg-white hover:text-[#141414]'
+                    : 'border-[#141414]/20 hover:border-[#141414] hover:bg-[#141414] hover:text-[#dcd8cf]'
+                }`}
                 title="Next Flower (Arrow Right)"
               >
                 <span className="hidden sm:inline">{lang === 'vi' ? 'Tiếp' : 'Next'}</span>
@@ -144,27 +166,27 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
             )}
           </div>
 
-          {/* Right Action Icons: Sound, Share, Close */}
+          {/* Right Action Icons: Share & Close (Speaker button removed per user request) */}
           <div className="flex items-center gap-2">
             <button
-              onClick={handlePlayChime}
-              className="spring-press p-2 rounded-[18px] border border-[#141414]/20 hover:border-[#141414] text-[#141414] hover:bg-[#141414] hover:text-[#dcd8cf] transition-all glass-frost-pill"
-              title="Play harmonic chime"
-            >
-              <Volume2 className="w-4 h-4 text-amber-600" />
-            </button>
-
-            <button
               onClick={handleShare}
-              className="spring-press p-2 rounded-[18px] border border-[#141414]/20 hover:border-[#141414] text-[#141414] transition-all glass-frost-pill"
+              className={`p-2 rounded-[18px] border transition-all ${
+                isDark
+                  ? 'border-white/20 hover:border-white text-[#ede9df]'
+                  : 'border-[#141414]/20 hover:border-[#141414] text-[#141414]'
+              }`}
               title="Share"
             >
-              {isCopied ? <Check className="w-4 h-4 text-emerald-600" /> : <Share2 className="w-4 h-4" />}
+              {isCopied ? <Check className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4" />}
             </button>
 
             <button
               onClick={onClose}
-              className="spring-press p-2 rounded-[18px] bg-[#141414] text-[#dcd8cf] hover:bg-[#2e2d2a] transition-all ml-1 shadow-sm"
+              className={`p-2 rounded-[18px] transition-all ml-1 shadow-sm ${
+                isDark
+                  ? 'bg-[#ede9df] text-[#141414] hover:bg-white'
+                  : 'bg-[#141414] text-[#dcd8cf] hover:bg-[#2e2d2a]'
+              }`}
               aria-label="Close detail modal"
             >
               <X className="w-4 h-4" />
@@ -181,9 +203,11 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
             {/* Left Column: Auto-detected Aspect Ratio Multi-Image Gallery */}
             <div className="lg:col-span-6 space-y-3">
               
-              {/* Main Adaptive Image Frame (Smoothly switches between 3:4 portrait and 4:3 landscape) */}
+              {/* Main Adaptive Image Frame */}
               <div
-                className={`relative w-full mx-auto rounded-[26px] sm:rounded-[34px] overflow-hidden bg-[#181716] shadow-soft-3 border border-[#141414]/20 group transition-all duration-500 ${
+                className={`relative w-full mx-auto rounded-[26px] sm:rounded-[34px] overflow-hidden bg-[#181716] shadow-2xl border group transition-all duration-500 ${
+                  isDark ? 'border-white/15' : 'border-[#141414]/20'
+                } ${
                   isLandscape ? 'aspect-[4/3] max-w-lg' : 'aspect-[3/4] max-w-md'
                 }`}
               >
@@ -294,7 +318,9 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                       isLandscape ? 'aspect-[4/3]' : 'aspect-[3/4]'
                     } ${
                       selectedImageIndex === idx
-                        ? 'border-[#141414] shadow-md ring-2 ring-black/20 scale-102'
+                        ? isDark
+                          ? 'border-amber-400 shadow-md ring-2 ring-amber-400/20 scale-102'
+                          : 'border-[#141414] shadow-md ring-2 ring-black/20 scale-102'
                         : 'border-transparent opacity-60 hover:opacity-90'
                     }`}
                   >
@@ -317,24 +343,51 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
             <div className="lg:col-span-6 space-y-5">
               
               {/* Header Titles in Bagerich Font */}
-              <div className="border-b border-[#141414]/15 pb-4">
-                <span className="text-[11px] font-mono tracking-widest uppercase text-[#141414]/60 block mb-1">
+              <div className={`border-b pb-4 ${isDark ? 'border-white/15' : 'border-[#141414]/15'}`}>
+                <span
+                  className={`text-[11px] font-mono tracking-widest uppercase block mb-1 ${
+                    isDark ? 'text-amber-300/80' : 'text-[#141414]/60'
+                  }`}
+                >
                   {lang === 'vi' ? flower.categoryLabelVi : flower.categoryLabelEn}
                 </span>
-                <h2 className="text-2xl sm:text-4xl font-bagerich font-normal uppercase tracking-tight text-[#141414] leading-none">
+                <h2
+                  className={`text-2xl sm:text-4xl font-bagerich font-normal uppercase tracking-tight leading-none ${
+                    isDark ? 'text-white' : 'text-[#141414]'
+                  }`}
+                >
                   {flower.name}
                 </h2>
-                <p className="text-sm sm:text-base font-editorial-serif italic text-[#141414]/80 mt-1.5">
-                  {flower.latinName} — <span className="font-sans not-italic font-medium text-[#141414]">{flower.vietnameseName}</span>
+                <p
+                  className={`text-sm sm:text-base font-editorial-serif italic mt-1.5 ${
+                    isDark ? 'text-[#ede9df]/75' : 'text-[#141414]/80'
+                  }`}
+                >
+                  {flower.latinName} —{' '}
+                  <span className={`font-sans not-italic font-medium ${isDark ? 'text-white' : 'text-[#141414]'}`}>
+                    {flower.vietnameseName}
+                  </span>
                 </p>
               </div>
 
               {/* Information Tabs (Overview / Scent / Stems) */}
-              <div className="flex items-center gap-1 p-1 bg-white/50 rounded-lg border border-[#141414]/10">
+              <div
+                className={`flex items-center gap-1 p-1 rounded-lg border ${
+                  isDark
+                    ? 'bg-white/5 border-white/10'
+                    : 'bg-white/50 border-[#141414]/10'
+                }`}
+              >
                 <button
                   onClick={() => setActiveTab('story')}
                   className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                    activeTab === 'story' ? 'bg-[#141414] text-[#dcd8cf] shadow-sm' : 'text-[#141414]/70 hover:text-[#141414]'
+                    activeTab === 'story'
+                      ? isDark
+                        ? 'bg-[#ede9df] text-[#141414] shadow-sm'
+                        : 'bg-[#141414] text-[#dcd8cf] shadow-sm'
+                      : isDark
+                        ? 'text-[#ede9df]/70 hover:text-white'
+                        : 'text-[#141414]/70 hover:text-[#141414]'
                   }`}
                 >
                   {lang === 'vi' ? 'Câu Chuyện' : 'Monograph'}
@@ -342,7 +395,13 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                 <button
                   onClick={() => setActiveTab('scent')}
                   className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                    activeTab === 'scent' ? 'bg-[#141414] text-[#dcd8cf] shadow-sm' : 'text-[#141414]/70 hover:text-[#141414]'
+                    activeTab === 'scent'
+                      ? isDark
+                        ? 'bg-[#ede9df] text-[#141414] shadow-sm'
+                        : 'bg-[#141414] text-[#dcd8cf] shadow-sm'
+                      : isDark
+                        ? 'text-[#ede9df]/70 hover:text-white'
+                        : 'text-[#141414]/70 hover:text-[#141414]'
                   }`}
                 >
                   {lang === 'vi' ? 'Hương Thơm' : 'Scent'}
@@ -350,7 +409,13 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                 <button
                   onClick={() => setActiveTab('materials')}
                   className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                    activeTab === 'materials' ? 'bg-[#141414] text-[#dcd8cf] shadow-sm' : 'text-[#141414]/70 hover:text-[#141414]'
+                    activeTab === 'materials'
+                      ? isDark
+                        ? 'bg-[#ede9df] text-[#141414] shadow-sm'
+                        : 'bg-[#141414] text-[#dcd8cf] shadow-sm'
+                      : isDark
+                        ? 'text-[#ede9df]/70 hover:text-white'
+                        : 'text-[#141414]/70 hover:text-[#141414]'
                   }`}
                 >
                   {lang === 'vi' ? 'Chủng Loại' : 'Specs'}
@@ -360,34 +425,52 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
               {/* Tab Content Panels */}
               {activeTab === 'story' && (
                 <div className="space-y-3.5 animate-fadeIn text-xs sm:text-sm">
-                  <p className="font-sans text-[#141414]/90 leading-relaxed">
+                  <p className={`font-sans leading-relaxed ${isDark ? 'text-[#ede9df]/90' : 'text-[#141414]/90'}`}>
                     {lang === 'vi' ? flower.storyVi : flower.storyEn}
                   </p>
-                  <p className="font-sans text-[#141414]/70 italic border-l-2 border-[#141414]/30 pl-3 py-0.5">
+                  <p
+                    className={`font-sans italic border-l-2 pl-3 py-0.5 ${
+                      isDark
+                        ? 'text-[#ede9df]/70 border-white/30'
+                        : 'text-[#141414]/70 border-[#141414]/30'
+                    }`}
+                  >
                     {lang === 'vi' ? flower.shortDescriptionVi : flower.shortDescriptionEn}
                   </p>
                 </div>
               )}
 
               {activeTab === 'scent' && (
-                <div className="p-3.5 bg-white/70 rounded-xl border border-[#141414]/10 space-y-2.5 animate-fadeIn text-xs">
-                  <div className="flex items-center justify-between font-bold uppercase tracking-wider text-[#141414]">
+                <div
+                  className={`p-3.5 rounded-xl border space-y-2.5 animate-fadeIn text-xs ${
+                    isDark
+                      ? 'bg-white/5 border-white/10'
+                      : 'bg-white/70 border-[#141414]/10'
+                  }`}
+                >
+                  <div className={`flex items-center justify-between font-bold uppercase tracking-wider ${isDark ? 'text-white' : 'text-[#141414]'}`}>
                     <span>{lang === 'vi' ? 'Tháp Tầng Hương' : 'Olfactory Pyramid'}</span>
-                    <span className="font-mono text-amber-800 bg-amber-50 px-2 py-0.5 rounded text-[11px]">
+                    <span
+                      className={`font-mono px-2 py-0.5 rounded text-[11px] ${
+                        isDark
+                          ? 'text-amber-300 bg-amber-400/15'
+                          : 'text-amber-800 bg-amber-50'
+                      }`}
+                    >
                       {flower.scent.intensity}/5 {lang === 'vi' ? 'Độ Lan Tỏa' : 'Diffusion'}
                     </span>
                   </div>
-                  <div className="space-y-1.5 text-[#141414]/85">
-                    <div className="p-2 bg-white/60 rounded">
-                      <span className="font-bold block text-[#141414]">{lang === 'vi' ? 'Hương Đầu (Top):' : 'Top:'}</span>
+                  <div className={`space-y-1.5 ${isDark ? 'text-[#ede9df]/85' : 'text-[#141414]/85'}`}>
+                    <div className={`p-2 rounded ${isDark ? 'bg-white/5' : 'bg-white/60'}`}>
+                      <span className={`font-bold block ${isDark ? 'text-white' : 'text-[#141414]'}`}>{lang === 'vi' ? 'Hương Đầu (Top):' : 'Top:'}</span>
                       <span>{flower.scent.top}</span>
                     </div>
-                    <div className="p-2 bg-white/60 rounded">
-                      <span className="font-bold block text-[#141414]">{lang === 'vi' ? 'Hương Giữa (Heart):' : 'Heart:'}</span>
+                    <div className={`p-2 rounded ${isDark ? 'bg-white/5' : 'bg-white/60'}`}>
+                      <span className={`font-bold block ${isDark ? 'text-white' : 'text-[#141414]'}`}>{lang === 'vi' ? 'Hương Giữa (Heart):' : 'Heart:'}</span>
                       <span>{flower.scent.heart}</span>
                     </div>
-                    <div className="p-2 bg-white/60 rounded">
-                      <span className="font-bold block text-[#141414]">{lang === 'vi' ? 'Hương Cuối (Base):' : 'Base:'}</span>
+                    <div className={`p-2 rounded ${isDark ? 'bg-white/5' : 'bg-white/60'}`}>
+                      <span className={`font-bold block ${isDark ? 'text-white' : 'text-[#141414]'}`}>{lang === 'vi' ? 'Hương Cuối (Base):' : 'Base:'}</span>
                       <span>{flower.scent.base}</span>
                     </div>
                   </div>
@@ -397,14 +480,22 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
               {activeTab === 'materials' && (
                 <div className="space-y-3 animate-fadeIn text-xs">
                   <div>
-                    <h4 className="font-mono uppercase tracking-widest text-[#141414]/60 mb-1.5 text-[11px]">
+                    <h4
+                      className={`font-mono uppercase tracking-widest mb-1.5 text-[11px] ${
+                        isDark ? 'text-[#ede9df]/60' : 'text-[#141414]/60'
+                      }`}
+                    >
                       {lang === 'vi' ? 'HOA NHẬP KHẨU & PHỤ KIỆN CAO CẤP' : 'CURATED BOTANICAL STEMS'}
                     </h4>
                     <div className="flex flex-wrap gap-1.5">
                       {(lang === 'vi' ? flower.materialsVi : flower.materials).map((mat, i) => (
                         <span
                           key={i}
-                          className="px-2.5 py-1 bg-white/80 border border-[#141414]/15 rounded-md font-medium text-[#141414]"
+                          className={`px-2.5 py-1 border rounded-md font-medium ${
+                            isDark
+                              ? 'bg-white/10 border-white/15 text-[#ede9df]'
+                              : 'bg-white/80 border-[#141414]/15 text-[#141414]'
+                          }`}
                         >
                           {mat}
                         </span>
@@ -413,24 +504,30 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 pt-1">
-                    <div className="p-2.5 bg-white/50 rounded-lg">
-                      <span className="text-[#141414]/60 block font-mono text-[10px] uppercase">
+                    <div className={`p-2.5 rounded-lg ${isDark ? 'bg-white/5' : 'bg-white/50'}`}>
+                      <span className={`block font-mono text-[10px] uppercase ${isDark ? 'text-[#ede9df]/60' : 'text-[#141414]/60'}`}>
                         {lang === 'vi' ? 'Kích Thước' : 'Dimensions'}
                       </span>
-                      <span className="font-bold text-[#141414]">{flower.dimensions}</span>
+                      <span className={`font-bold ${isDark ? 'text-white' : 'text-[#141414]'}`}>{flower.dimensions}</span>
                     </div>
-                    <div className="p-2.5 bg-white/50 rounded-lg">
-                      <span className="text-[#141414]/60 block font-mono text-[10px] uppercase">
+                    <div className={`p-2.5 rounded-lg ${isDark ? 'bg-white/5' : 'bg-white/50'}`}>
+                      <span className={`block font-mono text-[10px] uppercase ${isDark ? 'text-[#ede9df]/60' : 'text-[#141414]/60'}`}>
                         {lang === 'vi' ? 'Thời Điểm Hoa Tươi' : 'Seasonality'}
                       </span>
-                      <span className="font-bold text-[#141414]">{flower.seasonality}</span>
+                      <span className={`font-bold ${isDark ? 'text-white' : 'text-[#141414]'}`}>{flower.seasonality}</span>
                     </div>
                   </div>
                 </div>
               )}
 
               {/* Order & Pricing Callout Card */}
-              <div className="p-4 bg-[#141414] text-[#dcd8cf] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl">
+              <div
+                className={`p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl border ${
+                  isDark
+                    ? 'bg-[#20221e] text-[#ede9df] border-white/15'
+                    : 'bg-[#141414] text-[#dcd8cf] border-transparent'
+                }`}
+              >
                 <div>
                   <span className="text-[10px] font-mono text-white/60 uppercase block">
                     {lang === 'vi' ? 'Giá Ước Tính Thiết Kế' : 'Estimated Investment'}

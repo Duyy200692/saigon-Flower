@@ -17,7 +17,9 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenCredits,
   onOpenAdmin
 }) => {
-  const { atelierData } = useAtelier();
+  const { atelierData, logoUrl, logoWhiteUrl } = useAtelier();
+  const footerLogoSrc = logoWhiteUrl || logoUrl;
+  const shouldInvertFooterLogo = !logoWhiteUrl && Boolean(logoUrl);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -30,9 +32,19 @@ export const Footer: React.FC<FooterProps> = ({
         {/* Top Tier */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-white/15 pb-12">
           <div>
-            <h3 className="text-3xl sm:text-5xl font-fleur-title uppercase tracking-wider text-white">
-              {atelierData.name || 'JU ET SAIGON'}
-            </h3>
+            {footerLogoSrc ? (
+              <img
+                src={footerLogoSrc}
+                alt={atelierData.name || 'JU ET SAIGON'}
+                className={`h-12 sm:h-14 w-auto max-w-[240px] object-contain object-left mb-3 ${
+                  shouldInvertFooterLogo ? 'brightness-0 invert' : ''
+                }`}
+              />
+            ) : (
+              <h3 className="text-3xl sm:text-5xl font-fleur-title uppercase tracking-wider text-white">
+                {atelierData.name || 'JU ET SAIGON'}
+              </h3>
+            )}
             <p className="text-base sm:text-lg font-editorial-serif italic text-white/80 mt-2">
               "{atelierData.tagline || 'Flower your heart, Flower your soul.'}"
             </p>

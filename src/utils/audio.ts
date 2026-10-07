@@ -19,46 +19,9 @@ class BotanicalSoundEngine {
     }
   }
 
-  // Play a gentle harmonic bell chime tuned to a specific flower frequency
-  public playFlowerChime(frequency: number = 528) {
-    try {
-      this.initContext();
-      if (!this.ctx || !this.masterGain) return;
-
-      const now = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const osc2 = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-
-      // Sine wave with slight shimmer
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(frequency, now);
-
-      osc2.type = 'triangle';
-      osc2.frequency.setValueAtTime(frequency * 1.5, now); // subtle harmonic 5th
-
-      // Attack & Exponential Decay (Bell envelope)
-      gain.gain.setValueAtTime(0.001, now);
-      gain.gain.linearRampToValueAtTime(0.2, now + 0.04);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.8);
-
-      const filter = this.ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(1600, now);
-      filter.frequency.exponentialRampToValueAtTime(400, now + 1.5);
-
-      osc.connect(gain);
-      osc2.connect(gain);
-      gain.connect(filter);
-      filter.connect(this.masterGain);
-
-      osc.start(now);
-      osc2.start(now);
-      osc.stop(now + 2.0);
-      osc2.stop(now + 2.0);
-    } catch {
-      // Audio autoplay policy fail-safe
-    }
+  // Product click chime disabled per user preference
+  public playFlowerChime(_frequency: number = 528) {
+    // Intentionally silent
   }
 
   // Toggle ambient peaceful Saigon rain & botanical meditation soundscape

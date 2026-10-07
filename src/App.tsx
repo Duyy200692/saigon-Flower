@@ -3,11 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AtelierProvider, useAtelier } from './context/AtelierContext';
 import { FlowerItem } from './data/flowers';
 import { WorkshopItem } from './data/workshop';
-import { soundEngine } from './utils/audio';
 
 import { TopBar } from './components/TopBar';
 import { HeroSection } from './components/HeroSection';
@@ -28,10 +27,35 @@ import { AdminLoginModal } from './components/AdminLoginModal';
 import { AdminPortalModal } from './components/AdminPortalModal';
 
 function AtelierApp() {
-  const { flowers, workshops, isAdmin } = useAtelier();
+  const { flowers, isAdmin } = useAtelier();
   const [lang, setLang] = useState<'vi' | 'en'>('vi');
-  const [isAudioPlaying, setIsAudioPlaying] = useState<boolean>(false);
-  
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem('ju_theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+    } catch {
+      // ignore storage errors
+    }
+    return 'light';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ju_theme', theme);
+    } catch {
+      // ignore storage errors
+    }
+    if (theme === 'dark') {
+      document.documentElement.classList.add('theme-dark');
+    } else {
+      document.documentElement.classList.remove('theme-dark');
+    }
+  }, [theme]);
+
+  const handleToggleTheme = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
+
   // Modal / Drawer States
   const [isIndexOpen, setIsIndexOpen] = useState(false);
   const [isOrderOpen, setIsOrderOpen] = useState(false);
@@ -45,15 +69,8 @@ function AtelierApp() {
   const [orderFlower, setOrderFlower] = useState<FlowerItem | null>(null);
   const [selectedWorkshop, setSelectedWorkshop] = useState<WorkshopItem | null>(null);
 
-  // Toggle ambient soundscape
-  const handleToggleAudio = () => {
-    const newState = soundEngine.toggleAmbient((playing) => setIsAudioPlaying(playing));
-    setIsAudioPlaying(newState);
-  };
-
-  // Open Flower Detail
+  // Open Flower Detail (silent — no audio on product click)
   const handleSelectFlower = (flower: FlowerItem) => {
-    soundEngine.playFlowerChime(flower.audioFrequency);
     setInspectedFlower(flower);
   };
 
@@ -62,18 +79,14 @@ function AtelierApp() {
     if (!inspectedFlower) return;
     const currentIndex = flowers.findIndex((f) => f.id === inspectedFlower.id);
     const nextIndex = (currentIndex + 1) % flowers.length;
-    const nextFlower = flowers[nextIndex];
-    soundEngine.playFlowerChime(nextFlower.audioFrequency);
-    setInspectedFlower(nextFlower);
+    setInspectedFlower(flowers[nextIndex]);
   };
 
   const handlePrevFlower = () => {
     if (!inspectedFlower) return;
     const currentIndex = flowers.findIndex((f) => f.id === inspectedFlower.id);
     const prevIndex = (currentIndex - 1 + flowers.length) % flowers.length;
-    const prevFlower = flowers[prevIndex];
-    soundEngine.playFlowerChime(prevFlower.audioFrequency);
-    setInspectedFlower(prevFlower);
+    setInspectedFlower(flowers[prevIndex]);
   };
 
   const handleOrderFlower = (flower: FlowerItem) => {
@@ -95,14 +108,19 @@ function AtelierApp() {
   };
 
   return (
-    <div className="min-h-screen editorial-canvas flex flex-col font-sans selection:bg-[#141414] selection:text-[#dcd8cf]">
-      
-      {/* Top Bar matching 3-zone contract */}
+    <div
+      className={`min-h-screen editorial-canvas flex flex-col font-sans transition-colors duration-300 ${
+        theme === 'dark'
+          ? 'theme-dark selection:bg-[#ede9df] selection:text-[#141414]'
+          : 'selection:bg-[#141414] selection:text-[#dcd8cf]'
+      }`}
+    >
+      {/* Top Bar with Light/Dark Toggle & Spacious Mobile Brand Logo */}
       <TopBar
         lang={lang}
         setLang={setLang}
-        isAudioPlaying={isAudioPlaying}
-        onToggleAudio={handleToggleAudio}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
         onOpenIndex={() => setIsIndexOpen(true)}
         onOpenOrder={handleOpenGeneralOrder}
         onOpenAtelier={() => setIsAtelierOpen(true)}
@@ -117,27 +135,31 @@ function AtelierApp() {
         {/* Monumental Hero Section */}
         <HeroSection
           lang={lang}
+          theme={theme}
           onOpenIndex={() => setIsIndexOpen(true)}
           onOpenCredits={() => setIsCreditsOpen(true)}
         />
 
-        {/* 3-Column Botanical Matrix Gallery (Hover pop-out & click opens modal) */}
+        {/* 3-Column Botanical Matrix Gallery */}
         <BotanicalMatrix
           flowers={flowers}
           lang={lang}
+          theme={theme}
           onSelectFlower={handleSelectFlower}
           onOpenCollection={() => setIsIndexOpen(true)}
         />
 
-        {/* Compact Workshop Teaser Section on Landing Page (Keeps page neat!) */}
+        {/* Compact Workshop Teaser Section on Landing Page */}
         <WorkshopTeaserSection
           lang={lang}
+          theme={theme}
           onOpenWorkshopGallery={() => setIsWorkshopGalleryOpen(true)}
         />
 
         {/* Action Capsule Links (Instagram / Consultation / Hotline) */}
         <ActionLinks
           lang={lang}
+          theme={theme}
           onOpenOrder={handleOpenGeneralOrder}
           onOpenAtelier={() => setIsAtelierOpen(true)}
         />
@@ -145,6 +167,7 @@ function AtelierApp() {
         {/* Longform Botanical Manifesto & Expandable Details */}
         <ManifestoSection
           lang={lang}
+          theme={theme}
           onOpenOrder={handleOpenGeneralOrder}
           onOpenAtelier={() => setIsAtelierOpen(true)}
         />
@@ -164,8 +187,8 @@ function AtelierApp() {
       <FloatingMobileBar
         lang={lang}
         setLang={setLang}
-        isAudioPlaying={isAudioPlaying}
-        onToggleAudio={handleToggleAudio}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
         onOpenIndex={() => setIsIndexOpen(true)}
         onOpenOrder={handleOpenGeneralOrder}
         onOpenWorkshop={() => setIsWorkshopGalleryOpen(true)}
@@ -178,6 +201,7 @@ function AtelierApp() {
         onClose={() => setIsIndexOpen(false)}
         flowers={flowers}
         lang={lang}
+        theme={theme}
         onSelectFlower={handleSelectFlower}
       />
 
@@ -187,12 +211,13 @@ function AtelierApp() {
         isOpen={!!inspectedFlower}
         onClose={() => setInspectedFlower(null)}
         lang={lang}
+        theme={theme}
         onOrderFlower={handleOrderFlower}
         onNext={handleNextFlower}
         onPrev={handlePrevFlower}
       />
 
-      {/* Dedicated Fullscreen Workshop Gallery Overlay (Alternating 3-row layout) */}
+      {/* Dedicated Fullscreen Workshop Gallery Overlay */}
       <WorkshopGalleryModal
         isOpen={isWorkshopGalleryOpen}
         onClose={() => setIsWorkshopGalleryOpen(false)}
@@ -245,7 +270,6 @@ function AtelierApp() {
         onClose={() => setIsAdminPortalOpen(false)}
         lang={lang}
       />
-
     </div>
   );
 }

@@ -83,7 +83,8 @@
         "hoursEn": { "type": "string", "description": "Operating hours in English" },
         "consultationNoticeVi": { "type": "string", "description": "Consultation booking notice in Vietnamese" },
         "consultationNoticeEn": { "type": "string", "description": "Consultation booking notice in English" },
-        "logoUrl": { "type": "string", "description": "Custom brand logo URL or WebP data URL" },
+        "logoUrl": { "type": "string", "description": "Custom dark/black brand logo URL or WebP data URL for Light Mode" },
+        "logoWhiteUrl": { "type": "string", "description": "Custom white/light brand logo URL or WebP data URL for Dark Mode" },
         "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp of last modification" }
       },
       "required": ["name", "phone", "addressVi"]

@@ -2,17 +2,27 @@
 
 @layer base {
   :root {
-    --bg-alabaster: #dcd8cf;
+    --bg-canvas: #dcd8cf;
+    --bg-surface: #e6e2da;
     --text-ink: #141414;
     --accent-dark: #1f1e1c;
     --stone-hairline: rgba(20, 20, 20, 0.15);
   }
 
+  .theme-dark {
+    --bg-canvas: #0f100e;
+    --bg-surface: #181916;
+    --text-ink: #ede9df;
+    --accent-dark: #ede9df;
+    --stone-hairline: rgba(237, 233, 223, 0.15);
+  }
+
   body {
-    background-color: #dcd8cf;
-    color: #141414;
+    background-color: var(--bg-canvas);
+    color: var(--text-ink);
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     overflow-x: hidden;
+    transition: background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1), color 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   }
 }
 
@@ -58,20 +68,29 @@
   height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #dcd8cf;
+  background: var(--bg-canvas);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(20, 20, 20, 0.3);
+  background: rgba(120, 118, 112, 0.4);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(20, 20, 20, 0.6);
+  background: rgba(120, 118, 112, 0.7);
 }
 
 /* Botanical grain & vignette subtle texture */
 .editorial-canvas {
   background-color: #dcd8cf;
+  color: #141414;
   background-image: radial-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 0);
+  background-size: 24px 24px;
+  transition: background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1), color 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.editorial-canvas.theme-dark {
+  background-color: #0f100e;
+  color: #ede9df;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 0);
   background-size: 24px 24px;
 }
 

@@ -1,11 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { FlowerItem } from '../data/flowers';
-import { soundEngine } from '../utils/audio';
 import { ArrowRight } from 'lucide-react';
 
 interface BotanicalMatrixProps {
   flowers: FlowerItem[];
   lang: 'vi' | 'en';
+  theme?: 'light' | 'dark';
   onSelectFlower: (flower: FlowerItem) => void;
   onOpenCollection?: () => void;
 }
@@ -13,18 +13,19 @@ interface BotanicalMatrixProps {
 export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
   flowers,
   lang,
+  theme = 'light',
   onSelectFlower,
   onOpenCollection
 }) => {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const isDark = theme === 'dark';
 
   // Filter pinned flowers for landing page (default 12 items)
   const pinnedFlowers = flowers.filter((f) => f.pinnedToLanding !== false);
   const displayFlowers = pinnedFlowers.length > 0 ? pinnedFlowers : flowers.slice(0, 12);
 
   const handleTileClick = (flower: FlowerItem) => {
-    soundEngine.playFlowerChime(flower.audioFrequency);
     onSelectFlower(flower);
   };
 
@@ -36,7 +37,7 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
     setHoveredId(null);
   };
 
-  // Touch slide gesture support for mobile
+  // Touch slide gesture support for mobile (silent)
   const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
     if (!e.touches || e.touches.length === 0) return;
     const touch = e.touches[0];
@@ -46,10 +47,6 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
       const flowerId = tile.getAttribute('data-flower-id');
       if (flowerId && flowerId !== hoveredId) {
         setHoveredId(flowerId);
-        const flower = flowers.find((f) => f.id === flowerId);
-        if (flower) {
-          soundEngine.playFlowerChime(flower.audioFrequency * 1.2);
-        }
       }
     }
   };
@@ -63,12 +60,18 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
   return (
     <section id="gallery-matrix" className="max-w-4xl mx-auto px-4 sm:px-6 my-10 relative">
       
-      <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-widest text-[#141414]/60 mb-3 px-1">
+      <div
+        className={`flex items-center justify-between text-[11px] font-mono uppercase tracking-widest mb-3 px-1 transition-colors ${
+          isDark ? 'text-[#ede9df]/65' : 'text-[#141414]/60'
+        }`}
+      >
         <span>COLLECTION ARCHIVE · NỔI BẬT ({displayFlowers.length} SPECIMENS)</span>
         {onOpenCollection && (
           <button
             onClick={onOpenCollection}
-            className="hover:text-[#141414] transition-colors underline underline-offset-4 flex items-center gap-1 font-semibold"
+            className={`transition-colors underline underline-offset-4 flex items-center gap-1 font-semibold ${
+              isDark ? 'hover:text-white' : 'hover:text-[#141414]'
+            }`}
           >
             <span>{lang === 'vi' ? `Xem Tất Cả (${flowers.length})` : `View All (${flowers.length})`}</span>
             <span>→</span>
@@ -81,7 +84,11 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
         ref={gridRef}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="grid grid-cols-3 gap-2 sm:gap-3 bg-[#151513] p-2.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-white/10 shadow-2xl relative overflow-visible"
+        className={`grid grid-cols-3 gap-2 sm:gap-3 p-2.5 sm:p-4 rounded-2xl sm:rounded-3xl border shadow-2xl relative overflow-visible transition-colors duration-300 ${
+          isDark
+            ? 'bg-[#171815] border-white/15'
+            : 'bg-[#151513] border-white/10'
+        }`}
       >
         {displayFlowers.map((flower, idx) => {
           const isHovered = hoveredId === flower.id;
@@ -131,7 +138,7 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
                   }`}
                 />
 
-                {/* Central Callout Overlay matching user's reference image */}
+                {/* Central Callout Overlay */}
                 <div
                   className={`absolute inset-0 flex flex-col items-center justify-center p-3 sm:p-4 text-center text-white transition-all duration-300 ${
                     isHovered
@@ -139,17 +146,14 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
                       : 'opacity-0 scale-95 pointer-events-none'
                   }`}
                 >
-                  {/* Specimen Index Number */}
                   <span className="text-[10px] font-mono tracking-widest text-amber-300 uppercase mb-1 drop-shadow">
                     #{flower.indexNumber}
                   </span>
 
-                  {/* Centered Main Title */}
                   <h3 className="text-base sm:text-xl font-bagerich font-medium text-white tracking-wide leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
                     {flower.name}
                   </h3>
 
-                  {/* Centered Subtitle */}
                   <p className="text-xs sm:text-sm font-sans text-white/95 mt-1.5 font-normal tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                     {lang === 'vi' ? 'Bấm để xem chi tiết' : 'Click to learn more'}
                   </p>
@@ -178,7 +182,11 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
         <div className="mt-8 flex justify-center">
           <button
             onClick={onOpenCollection}
-            className="px-6 py-3 rounded-full bg-[#141414] text-[#dcd8cf] hover:bg-[#282725] text-xs font-mono uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg"
+            className={`px-6 py-3 rounded-full text-xs font-mono uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg ${
+              isDark
+                ? 'bg-[#ede9df] text-[#141414] hover:bg-white'
+                : 'bg-[#141414] text-[#dcd8cf] hover:bg-[#282725]'
+            }`}
           >
             <span>{lang === 'vi' ? `Xem Toàn Bộ Bộ Sưu Tập (${flowers.length} Mẫu)` : `View Complete Archive (${flowers.length} Specimens)`}</span>
             <ArrowRight className="w-3.5 h-3.5" />

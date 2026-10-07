@@ -1,13 +1,12 @@
 import React from 'react';
-import { Volume2, VolumeX, Menu, Sparkles, Shield } from 'lucide-react';
+import { Menu, Sparkles, Shield, Sun, Moon } from 'lucide-react';
 import { useAtelier } from '../context/AtelierContext';
-import { soundEngine } from '../utils/audio';
 
 interface TopBarProps {
   lang: 'vi' | 'en';
   setLang: (lang: 'vi' | 'en') => void;
-  isAudioPlaying: boolean;
-  onToggleAudio: () => void;
+  theme: 'light' | 'dark';
+  onToggleTheme: () => void;
   onOpenIndex: () => void;
   onOpenOrder: () => void;
   onOpenAtelier: () => void;
@@ -19,84 +18,223 @@ interface TopBarProps {
 export const TopBar: React.FC<TopBarProps> = ({
   lang,
   setLang,
-  isAudioPlaying,
-  onToggleAudio,
+  theme,
+  onToggleTheme,
   onOpenIndex,
   onOpenOrder,
-  onOpenAtelier,
   onOpenWorkshop,
   onOpenAdmin,
   flowerCount
 }) => {
-  const { atelierData, logoUrl, isAdmin } = useAtelier();
+  const { atelierData, logoUrl, logoWhiteUrl, isAdmin } = useAtelier();
+  const isDark = theme === 'dark';
+
+  // Automatic theme-aware logo resolution:
+  // - Dark mode prefers logoWhiteUrl; if only logoUrl (black logo) is uploaded, auto-invert it to white so it's always visible.
+  // - Light mode prefers logoUrl (black logo); if only logoWhiteUrl is uploaded, auto-darken it.
+  const activeLogoSrc = isDark ? (logoWhiteUrl || logoUrl) : (logoUrl || logoWhiteUrl);
+  const shouldInvertToWhite = isDark && !logoWhiteUrl && Boolean(logoUrl);
+  const shouldDarkenToBlack = !isDark && !logoUrl && Boolean(logoWhiteUrl);
 
   return (
-    <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-[#dcd8cf]/90 border-b border-[#141414]/15 transition-all">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <header
+      className={`sticky top-0 z-40 w-full backdrop-blur-md border-b transition-colors duration-300 ${
+        isDark
+          ? 'bg-[#0f100e]/90 border-white/15 text-[#ede9df]'
+          : 'bg-[#dcd8cf]/90 border-[#141414]/15 text-[#141414]'
+      }`}
+    >
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
         
-        {/* Zone 1: Custom Logo or Brand Wordmark in display face */}
-        <div className="flex items-center gap-4">
+        {/* Zone 1: Custom Logo or Brand Wordmark in display face (Auto switches between Black Logo & White Logo by theme) */}
+        <div className="flex items-center gap-3 min-w-0 flex-1 sm:flex-initial pr-2">
           <a
             href="#"
-            className="flex items-center gap-2 hover:opacity-85 transition-opacity"
+            className="flex items-center gap-2 hover:opacity-85 transition-opacity min-w-0"
           >
-            {logoUrl ? (
+            {activeLogoSrc ? (
               <img
-                src={logoUrl}
+                src={activeLogoSrc}
                 alt={atelierData.name}
-                className="h-8 sm:h-9 max-w-[180px] object-contain"
+                className={`h-8 sm:h-9 w-auto max-w-[135px] xs:max-w-[155px] sm:max-w-[190px] object-contain object-left shrink-0 transition-all duration-300 ${
+                  shouldInvertToWhite
+                    ? 'brightness-0 invert'
+                    : shouldDarkenToBlack
+                      ? 'brightness-0'
+                      : ''
+                }`}
               />
             ) : (
-              <span className="text-lg md:text-xl font-bold tracking-wider font-fleur-title text-[#141414] uppercase">
+              <span
+                className={`text-base sm:text-xl font-bold tracking-wider font-fleur-title uppercase truncate ${
+                  isDark ? 'text-[#ede9df]' : 'text-[#141414]'
+                }`}
+              >
                 {atelierData.name}
               </span>
             )}
           </a>
-          <span className="hidden sm:inline-block text-[11px] tracking-widest text-[#141414]/60 uppercase font-mono">
+          <span
+            className={`hidden lg:inline-block text-[11px] tracking-widest uppercase font-mono shrink-0 ${
+              isDark ? 'text-[#ede9df]/55' : 'text-[#141414]/60'
+            }`}
+          >
             {lang === 'vi' ? 'Sài Gòn' : 'Saigon'}
           </span>
         </div>
 
         {/* Zone 2: Clean Text Navigation Links */}
-        <nav className="hidden md:flex items-center gap-7 text-xs font-semibold tracking-widest uppercase text-[#141414]/75">
+        <nav
+          className={`hidden md:flex items-center gap-7 text-xs font-semibold tracking-widest uppercase ${
+            isDark ? 'text-[#ede9df]/75' : 'text-[#141414]/75'
+          }`}
+        >
           <button
-            onClick={() => {
-              soundEngine.playFlowerChime(432);
-              onOpenIndex();
-            }}
-            className="hover:text-[#141414] transition-colors text-left"
+            onClick={onOpenIndex}
+            className={`transition-colors text-left ${
+              isDark ? 'hover:text-white' : 'hover:text-[#141414]'
+            }`}
           >
             {lang === 'vi' ? 'Bộ Sưu Tập' : 'Collection Archive'}
           </button>
           {onOpenWorkshop ? (
             <button
-              onClick={() => {
-                soundEngine.playFlowerChime(528);
-                onOpenWorkshop();
-              }}
-              className="hover:text-[#141414] transition-colors text-amber-900 font-bold"
+              onClick={onOpenWorkshop}
+              className={`transition-colors font-bold ${
+                isDark ? 'text-amber-300 hover:text-amber-200' : 'text-amber-900 hover:text-[#141414]'
+              }`}
             >
               {lang === 'vi' ? 'Workshop Cắm Hoa' : 'Workshop'}
             </button>
           ) : (
-            <a href="#workshop" className="hover:text-[#141414] transition-colors text-amber-900 font-bold">
+            <a
+              href="#workshop"
+              className={`transition-colors font-bold ${
+                isDark ? 'text-amber-300 hover:text-amber-200' : 'text-amber-900 hover:text-[#141414]'
+              }`}
+            >
               {lang === 'vi' ? 'Workshop Cắm Hoa' : 'Workshop'}
             </a>
           )}
-          <a href="#philosophy" className="hover:text-[#141414] transition-colors">
+          <a
+            href="#philosophy"
+            className={`transition-colors ${
+              isDark ? 'hover:text-white' : 'hover:text-[#141414]'
+            }`}
+          >
             {lang === 'vi' ? 'Triết Lý Hoa' : 'Philosophy'}
           </a>
         </nav>
 
-        {/* Zone 3: Primary Actions & Utility Controls */}
-        <div className="flex items-center gap-2 sm:gap-2.5">
-          {/* Admin Portal Button */}
+        {/* Zone 3: Primary Actions & Utility Controls (Compact & never crowding logo on mobile) */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          
+          {/* Index Trigger (Desktop/Tablet - Mobile uses FloatingMobileBar) */}
+          <button
+            onClick={onOpenIndex}
+            className={`hidden sm:flex px-3.5 py-1.5 text-xs font-mono font-medium tracking-wider uppercase rounded-full border transition-all items-center gap-1.5 shadow-sm ${
+              isDark
+                ? 'border-white/15 bg-white/10 hover:bg-white/20 text-[#ede9df]'
+                : 'border-[#141414]/15 bg-white/60 hover:bg-white text-[#141414] hover:border-[#141414]/30'
+            }`}
+            title="Open Botanical Index"
+          >
+            <Menu className="w-3.5 h-3.5" />
+            <span>INDEX ({flowerCount})</span>
+          </button>
+
+          {/* Light / Dark Mode Switcher */}
+          <button
+            onClick={onToggleTheme}
+            className={`px-2.5 sm:px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5 text-[11px] font-mono font-semibold uppercase shadow-sm ${
+              isDark
+                ? 'bg-amber-400/15 hover:bg-amber-400/25 border-amber-400/40 text-amber-300'
+                : 'bg-white/70 hover:bg-white border-[#141414]/15 text-[#141414]'
+            }`}
+            title={
+              isDark
+                ? lang === 'vi'
+                  ? 'Chuyển sang Giao diện Sáng (Light Mode)'
+                  : 'Switch to Light Mode'
+                : lang === 'vi'
+                  ? 'Chuyển sang Giao diện Tối (Dark Mode)'
+                  : 'Switch to Dark Mode'
+            }
+            aria-label="Toggle color theme"
+          >
+            {isDark ? (
+              <>
+                <Sun className="w-3.5 h-3.5 text-amber-300" />
+                <span>{lang === 'vi' ? 'Sáng' : 'Light'}</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-3.5 h-3.5 text-[#141414]" />
+                <span>{lang === 'vi' ? 'Tối' : 'Dark'}</span>
+              </>
+            )}
+          </button>
+
+          {/* Language Switcher */}
+          <div
+            className={`flex items-center text-[10px] sm:text-[11px] font-bold border rounded-full p-0.5 shadow-sm ${
+              isDark
+                ? 'border-white/15 bg-white/10'
+                : 'border-[#141414]/15 bg-white/60'
+            }`}
+          >
+            <button
+              onClick={() => setLang('vi')}
+              className={`px-1.5 sm:px-2 py-0.5 rounded-full transition-all ${
+                lang === 'vi'
+                  ? isDark
+                    ? 'bg-[#ede9df] text-[#141414] shadow-sm'
+                    : 'bg-[#141414] text-[#dcd8cf] shadow-sm'
+                  : isDark
+                    ? 'text-[#ede9df]/70 hover:text-white'
+                    : 'text-[#141414]/70 hover:text-[#141414]'
+              }`}
+            >
+              VI
+            </button>
+            <button
+              onClick={() => setLang('en')}
+              className={`px-1.5 sm:px-2 py-0.5 rounded-full transition-all ${
+                lang === 'en'
+                  ? isDark
+                    ? 'bg-[#ede9df] text-[#141414] shadow-sm'
+                    : 'bg-[#141414] text-[#dcd8cf] shadow-sm'
+                  : isDark
+                    ? 'text-[#ede9df]/70 hover:text-white'
+                    : 'text-[#141414]/70 hover:text-[#141414]'
+              }`}
+            >
+              EN
+            </button>
+          </div>
+
+          {/* Bespoke Order CTA (Desktop/Tablet) */}
+          <button
+            onClick={onOpenOrder}
+            className={`hidden sm:flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold tracking-wider rounded-full shadow-md transition-all whitespace-nowrap ${
+              isDark
+                ? 'bg-[#ede9df] text-[#141414] hover:bg-white'
+                : 'bg-[#141414] text-[#dcd8cf] hover:bg-[#2c2b28]'
+            }`}
+          >
+            <Sparkles className={`w-3.5 h-3.5 ${isDark ? 'text-amber-600' : 'text-amber-300'}`} />
+            <span>{lang === 'vi' ? 'Đặt Hoa' : 'Bespoke Order'}</span>
+          </button>
+
+          {/* Admin Portal Button (Far right, discreet & clean so it never overlaps the brand logo) */}
           <button
             onClick={onOpenAdmin}
-            className={`p-2 rounded-full border transition-all flex items-center gap-1.5 text-[10px] font-mono uppercase shadow-sm ${
+            className={`p-1.5 sm:p-2 rounded-full border transition-all flex items-center gap-1.5 text-[10px] font-mono uppercase shadow-sm ${
               isAdmin
                 ? 'bg-amber-400 text-[#141414] border-amber-500 font-bold'
-                : 'bg-white/60 hover:bg-white border-[#141414]/15 text-[#141414]/70 hover:text-[#141414]'
+                : isDark
+                  ? 'bg-white/10 hover:bg-white/20 border-white/15 text-[#ede9df]/70 hover:text-white'
+                  : 'bg-white/60 hover:bg-white border-[#141414]/15 text-[#141414]/70 hover:text-[#141414]'
             }`}
             title="Quản Trị Admin"
           >
@@ -104,77 +242,6 @@ export const TopBar: React.FC<TopBarProps> = ({
             <span className="hidden xl:inline">{isAdmin ? 'ADMIN ACTIVE' : 'ADMIN'}</span>
           </button>
 
-          {/* Index Trigger */}
-          <button
-            onClick={() => {
-              soundEngine.playFlowerChime(432);
-              onOpenIndex();
-            }}
-            className="px-3.5 py-1.5 text-xs font-mono font-medium tracking-wider uppercase rounded-full border border-[#141414]/15 bg-white/60 hover:bg-white text-[#141414] transition-all flex items-center gap-1.5 shadow-sm hover:border-[#141414]/30"
-            title="Open Botanical Index"
-          >
-            <Menu className="w-3.5 h-3.5" />
-            <span>INDEX ({flowerCount})</span>
-          </button>
-
-          {/* Sound Toggle */}
-          <button
-            onClick={() => {
-              soundEngine.playFlowerChime(528);
-              onToggleAudio();
-            }}
-            className={`p-2 rounded-full border transition-all ${
-              isAudioPlaying
-                ? 'bg-[#141414] text-[#dcd8cf] border-[#141414] shadow-sm'
-                : 'bg-white/60 hover:bg-white border-[#141414]/15 text-[#141414]'
-            }`}
-            title={isAudioPlaying ? 'Mute Ambient Soundscape' : 'Play Ambient Soundscape'}
-            aria-label="Toggle ambient sound"
-          >
-            {isAudioPlaying ? (
-              <Volume2 className="w-4 h-4 animate-pulse" />
-            ) : (
-              <VolumeX className="w-4 h-4 opacity-70" />
-            )}
-          </button>
-
-          {/* Language Switcher */}
-          <div className="flex items-center text-[11px] font-bold border border-[#141414]/15 bg-white/60 rounded-full p-0.5 shadow-sm">
-            <button
-              onClick={() => {
-                soundEngine.playFlowerChime(640);
-                setLang('vi');
-              }}
-              className={`px-2 py-0.5 rounded-full transition-all ${
-                lang === 'vi' ? 'bg-[#141414] text-[#dcd8cf] shadow-sm' : 'text-[#141414]/70 hover:text-[#141414]'
-              }`}
-            >
-              VI
-            </button>
-            <button
-              onClick={() => {
-                soundEngine.playFlowerChime(640);
-                setLang('en');
-              }}
-              className={`px-2 py-0.5 rounded-full transition-all ${
-                lang === 'en' ? 'bg-[#141414] text-[#dcd8cf] shadow-sm' : 'text-[#141414]/70 hover:text-[#141414]'
-              }`}
-            >
-              EN
-            </button>
-          </div>
-
-          {/* Bespoke Order CTA */}
-          <button
-            onClick={() => {
-              soundEngine.playFlowerChime(580);
-              onOpenOrder();
-            }}
-            className="hidden sm:flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold tracking-wider text-[#dcd8cf] bg-[#141414] rounded-full hover:bg-[#2c2b28] shadow-md transition-all whitespace-nowrap"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            <span>{lang === 'vi' ? 'Đặt Hoa' : 'Bespoke Order'}</span>
-          </button>
         </div>
       </div>
     </header>
