@@ -87,7 +87,11 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
   const pinnedCount = flowers.filter((f) => f.pinnedToLanding !== false).length;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col justify-between overflow-hidden animate-fadeIn font-sans">
+    <div
+      className={`fixed inset-0 z-50 backdrop-blur-md flex flex-col justify-between overflow-hidden animate-fadeIn font-sans transition-colors duration-300 ${
+        isDark ? 'bg-black/85' : 'bg-[#dcd8cf]/95'
+      }`}
+    >
       
       {/* Top Header Bar */}
       <header
@@ -159,7 +163,7 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
         className={`backdrop-blur-2xl border-b px-4 sm:px-8 py-3.5 flex-shrink-0 space-y-3 z-10 transition-colors ${
           isDark
             ? 'bg-[#141513]/95 border-white/10 text-white'
-            : 'bg-[#e6e2da]/95 border-[#141414]/10 text-[#141414]'
+            : 'bg-[#dcd8cf]/95 border-[#141414]/10 text-[#141414]'
         }`}
       >
         {/* Row 1: Categories */}
@@ -378,12 +382,16 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
                     className={`group rounded-[28px] sm:rounded-[34px] p-2.5 sm:p-3 border transition-all duration-300 cursor-pointer flex flex-col shadow-lg hover:shadow-2xl hover:-translate-y-1 active:scale-[0.98] ${
                       isDark
                         ? 'bg-[#181916] border-white/15 hover:border-amber-400/60 text-white'
-                        : 'bg-[#e8e4dc] border-[#141414]/15 hover:border-[#141414]/50 text-[#141414]'
+                        : 'bg-[#dcd8cf] border-[#141414]/15 hover:border-[#141414]/50 text-[#141414]'
                     }`}
                   >
                     {/* Image Stage */}
-                    <div className="relative aspect-[3/4] bg-black rounded-[22px] sm:rounded-[26px] overflow-hidden">
-                      {gridFitMode === 'contain' && (
+                    <div
+                      className={`relative aspect-[3/4] rounded-[22px] sm:rounded-[26px] overflow-hidden ${
+                        isDark ? 'bg-black' : 'bg-[#dcd8cf]'
+                      }`}
+                    >
+                      {isDark && gridFitMode === 'contain' && (
                         <img
                           src={flower.image}
                           alt=""
@@ -500,7 +508,7 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
         className={`h-12 border-t px-4 sm:px-8 flex items-center justify-between text-xs font-mono flex-shrink-0 ${
           isDark
             ? 'bg-[#141513] border-white/10 text-white/50'
-            : 'bg-[#e6e2da] border-[#141414]/15 text-[#141414]/70'
+            : 'bg-[#dcd8cf] border-[#141414]/15 text-[#141414]/70'
         }`}
       >
         <span className="truncate mr-2">

@@ -101,7 +101,7 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
         className={`grid grid-cols-3 gap-2 sm:gap-3 p-2.5 sm:p-4 rounded-2xl sm:rounded-3xl border shadow-2xl relative overflow-visible transition-colors duration-300 ${
           isDark
             ? 'bg-[#171815] border-white/15'
-            : 'bg-[#151513] border-white/10'
+            : 'bg-[#dcd8cf] border-[#141414]/15'
         }`}
       >
         {displayFlowers.map((flower, idx) => {
@@ -116,7 +116,9 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
               onMouseLeave={handleMouseLeave}
               className={`group relative aspect-[3/4] cursor-pointer transition-all duration-300 ease-out select-none active:scale-95 will-change-transform ${
                 isHovered
-                  ? 'z-30 scale-110 sm:scale-120 rounded-xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.95)] ring-1 ring-white/50'
+                  ? isDark
+                    ? 'z-30 scale-110 sm:scale-120 rounded-xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.95)] ring-1 ring-white/50'
+                    : 'z-30 scale-110 sm:scale-120 rounded-xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.35)] ring-1 ring-[#141414]/30'
                   : 'z-10 scale-100 rounded-lg hover:z-20'
               }`}
               style={{
@@ -126,12 +128,14 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
             >
               {/* Inner card container for clipping image */}
               <div
-                className={`relative w-full h-full overflow-hidden bg-[#1f1e1c] transition-all duration-300 ${
+                className={`relative w-full h-full overflow-hidden transition-all duration-300 ${
+                  isDark ? 'bg-[#1f1e1c]' : 'bg-[#dcd8cf]'
+                } ${
                   isHovered ? 'rounded-xl' : 'rounded-lg'
                 }`}
               >
-                {/* Ambient Blur Backdrop when viewing uncropped external aspect ratios */}
-                {gridFitMode === 'contain' && (
+                {/* Ambient Blur Backdrop when viewing uncropped external aspect ratios in Dark Mode */}
+                {isDark && gridFitMode === 'contain' && (
                   <img
                     src={flower.image}
                     alt=""
@@ -181,11 +185,7 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
                     {flower.name}
                   </h3>
 
-                  <p className="text-xs sm:text-sm font-sans text-white/95 mt-1.5 font-normal tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                    {lang === 'vi' ? 'Bấm để xem chi tiết' : 'Click to learn more'}
-                  </p>
-
-                  <span className="text-[10px] font-serif-editorial italic text-white/80 mt-1 drop-shadow">
+                  <span className="text-[10px] font-serif-editorial italic text-white/85 mt-1.5 drop-shadow">
                     {lang === 'vi' ? flower.vietnameseName : flower.latinName}
                   </span>
                 </div>

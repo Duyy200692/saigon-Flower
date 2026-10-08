@@ -9,8 +9,7 @@ import {
   CheckCircle2,
   Sparkles,
   Maximize2,
-  Minimize2,
-  MoveHorizontal
+  Minimize2
 } from 'lucide-react';
 import { WorkshopItem } from '../data/workshop';
 import { useAtelier, WorkshopBooking } from '../context/AtelierContext';
@@ -53,11 +52,26 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 
-  const gallery = workshop?.galleryImages || [
-    { url: workshop?.image || '', captionVi: 'Bó hoa nghệ thuật', captionEn: 'Artistic bouquet' }
-  ];
-  const totalSlides = gallery.length;
-  const activeImage = gallery[currentSlide] || gallery[0];
+  const validGallery = Array.isArray(workshop?.galleryImages)
+    ? workshop.galleryImages.filter((g) => g && typeof g.url === 'string' && g.url.trim().length > 0)
+    : [];
+  const gallery =
+    validGallery.length > 0
+      ? validGallery
+      : [
+          {
+            url: workshop?.image || '',
+            captionVi: workshop?.titleVi || 'Bó hoa nghệ thuật',
+            captionEn: workshop?.titleEn || 'Artistic bouquet'
+          }
+        ];
+  const totalSlides = Math.max(1, gallery.length);
+  const safeSlide = currentSlide < gallery.length ? currentSlide : 0;
+  const activeImage = gallery[safeSlide] || gallery[0] || {
+    url: workshop?.image || '',
+    captionVi: 'Bó hoa nghệ thuật',
+    captionEn: 'Artistic bouquet'
+  };
 
   const handleNext = useCallback(() => {
     setCurrentSlide((prev) => (prev + 1) % totalSlides);
@@ -73,7 +87,7 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
     dragOffset
   } = useTrackpadGallery<HTMLDivElement>({
     totalItems: totalSlides,
-    currentIndex: currentSlide,
+    currentIndex: safeSlide,
     onNext: handleNext,
     onPrev: handlePrev,
     threshold: 36,
@@ -103,7 +117,7 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, workshop, showBookingForm, showBookingForm, handleNext, handlePrev, onClose]);
+  }, [isOpen, workshop, showBookingForm, handleNext, handlePrev, onClose]);
 
   if (!isOpen || !workshop) return null;
 
@@ -225,7 +239,7 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
             className={`w-full rounded-[28px] p-5 sm:p-8 border shadow-2xl animate-fadeIn select-text ${
               isDark
                 ? 'bg-[#161715] border-white/15 text-[#ede9df]'
-                : 'bg-[#e8e4dc] border-[#141414]/15 text-[#141414]'
+                : 'bg-[#dcd8cf] border-[#141414]/15 text-[#141414]'
             }`}
           >
             {createdBooking ? (
@@ -416,8 +430,8 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
         ) : (
           <div
             ref={wsTrackpadRef}
-            className={`relative w-full mx-auto rounded-[28px] sm:rounded-[36px] overflow-hidden bg-black shadow-soft-3 border transition-all duration-300 flex items-center justify-center will-change-transform ${
-              isDark ? 'border-white/20' : 'border-[#141414]/20'
+            className={`relative w-full mx-auto rounded-[28px] sm:rounded-[36px] overflow-hidden shadow-soft-3 border transition-all duration-300 flex items-center justify-center will-change-transform ${
+              isDark ? 'bg-black border-white/20' : 'bg-[#dcd8cf] border-[#141414]/20'
             } ${
               isLandscape ? 'max-w-3xl aspect-[4/3]' : 'max-w-md sm:max-w-lg aspect-[3/4]'
             }`}
@@ -429,25 +443,27 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
-            {/* Ambient Blurred Backdrop for Uncropped Mode */}
-            <img
-              src={activeImage.url}
-              alt=""
-              aria-hidden="true"
-              referrerPolicy="no-referrer"
-              className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-45 pointer-events-none"
-            />
+            {/* Ambient Blurred Backdrop for Uncropped Mode in Dark Theme */}
+            {isDark && fitMode === 'contain' && (
+              <img
+                src={activeImage.url}
+                alt=""
+                aria-hidden="true"
+                referrerPolicy="no-referrer"
+                className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-45 pointer-events-none"
+              />
+            )}
 
             {/* Main High-Res Photo */}
             <img
-              key={activeImage.url + currentSlide}
+              key={activeImage.url + safeSlide}
               src={activeImage.url}
               alt={activeImage.captionVi}
               onLoad={handleImageLoad}
               referrerPolicy="no-referrer"
               className={`relative z-10 w-full h-full transition-all duration-300 animate-fadeIn ${
                 fitMode === 'contain'
-                  ? 'object-contain drop-shadow-[0_16px_40px_rgba(0,0,0,0.45)]'
+                  ? 'object-contain p-2'
                   : 'object-cover object-center'
               }`}
             />
@@ -495,7 +511,7 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
 
             {/* Slide Index Badge Top Right */}
             <div className="absolute top-4 right-4 px-3 py-1 rounded-full backdrop-blur-2xl bg-black/65 border border-white/20 text-xs font-mono text-white/90 tracking-widest shadow-md">
-              {currentSlide + 1}/{totalSlides}
+              {safeSlide + 1}/{totalSlides}
             </div>
 
             {/* Caption Bar Overlay */}
@@ -516,38 +532,28 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
         )}
       </div>
 
-      {/* Bottom Navigation Dots & Trackpad Guidance */}
+      {/* Bottom Navigation Dots */}
       {!showBookingForm && (
         <div className="w-full max-w-xl mx-auto space-y-1.5 text-center pt-1 shrink-0">
           {totalSlides > 1 && (
-            <>
-              <div className="flex items-center justify-center gap-2.5 py-1">
-                {gallery.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentSlide(idx)}
-                    className={`rounded-full transition-all ${
-                      currentSlide === idx
-                        ? isDark
-                          ? 'w-3 h-3 bg-amber-300 scale-110 shadow-sm'
-                          : 'w-3 h-3 bg-[#141414] scale-110 shadow-sm'
-                        : isDark
-                          ? 'w-2 h-2 bg-white/30 hover:bg-white/60'
-                          : 'w-2 h-2 bg-[#141414]/30 hover:bg-[#141414]/60'
-                    }`}
-                    aria-label={`Go to slide ${idx + 1}`}
-                  />
-                ))}
-              </div>
-              <p className="text-[10px] font-mono opacity-50 flex items-center justify-center gap-1.5">
-                <MoveHorizontal className="w-3 h-3 text-amber-300" />
-                <span>
-                  {lang === 'vi'
-                    ? 'Trượt 2 ngón trên Trackpad / Lướt màn hình để chuyển ảnh'
-                    : 'Swipe with 2 fingers or flick to navigate'}
-                </span>
-              </p>
-            </>
+            <div className="flex items-center justify-center gap-2.5 py-1">
+              {gallery.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentSlide(idx)}
+                  className={`rounded-full transition-all ${
+                    safeSlide === idx
+                      ? isDark
+                        ? 'w-3 h-3 bg-amber-300 scale-110 shadow-sm'
+                        : 'w-3 h-3 bg-[#141414] scale-110 shadow-sm'
+                      : isDark
+                        ? 'w-2 h-2 bg-white/30 hover:bg-white/60'
+                        : 'w-2 h-2 bg-[#141414]/30 hover:bg-[#141414]/60'
+                  }`}
+                  aria-label={`Go to slide ${idx + 1}`}
+                />
+              ))}
+            </div>
           )}
         </div>
       )}

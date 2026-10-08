@@ -164,15 +164,40 @@ function safeRemoveStorage(key: string): void {
   }
 }
 
+// Safely strip undefined values recursively before writing to Firestore (Firestore rejects undefined values)
+function stripUndefined<T>(val: T): T {
+  if (Array.isArray(val)) {
+    return val
+      .filter((item) => item !== undefined)
+      .map((item) => stripUndefined(item)) as unknown as T;
+  }
+  if (val !== null && typeof val === 'object') {
+    const cleaned: Record<string, unknown> = {};
+    Object.entries(val as Record<string, unknown>).forEach(([k, v]) => {
+      if (v !== undefined) {
+        cleaned[k] = stripUndefined(v);
+      }
+    });
+    return cleaned as T;
+  }
+  return val;
+}
+
 // Normalize a flower item so missing fields never cause runtime crashes and all titles are synchronized
 function normalizeFlower(item: Partial<FlowerItem>, idx: number): FlowerItem {
   const fallback = FLOWERS[idx % FLOWERS.length] || FLOWERS[0];
-  const rawMaterials = Array.isArray(item.materials) ? item.materials : fallback.materials;
-  const rawMaterialsVi = Array.isArray(item.materialsVi) ? item.materialsVi : fallback.materialsVi;
+  const primaryImage = (item.image && item.image.trim()) || fallback.image;
+  const rawMaterials = Array.isArray(item.materials) ? item.materials.filter(Boolean) : fallback.materials;
+  const rawMaterialsVi = Array.isArray(item.materialsVi) ? item.materialsVi.filter(Boolean) : fallback.materialsVi;
+  const validGallery = Array.isArray(item.galleryImages)
+    ? item.galleryImages.filter((g) => g && typeof g.url === 'string' && g.url.trim().length > 0)
+    : [];
   const rawGallery =
-    Array.isArray(item.galleryImages) && item.galleryImages.length > 0
-      ? item.galleryImages
-      : fallback.galleryImages;
+    validGallery.length > 0
+      ? validGallery
+      : fallback.galleryImages && fallback.galleryImages.length > 0
+        ? fallback.galleryImages
+        : [{ url: primaryImage, captionVi: 'Góc nhìn toàn cảnh', captionEn: 'Full architectural view' }];
 
   return {
     ...fallback,
@@ -191,8 +216,8 @@ function normalizeFlower(item: Partial<FlowerItem>, idx: number): FlowerItem {
     storyVi: formatProseNFC(item.storyVi || fallback.storyVi),
     botanicalNotesEn: formatProseNFC(item.botanicalNotesEn || fallback.botanicalNotesEn),
     botanicalNotesVi: formatProseNFC(item.botanicalNotesVi || fallback.botanicalNotesVi),
-    materials: rawMaterials.map((m) => formatTitleCase(m)),
-    materialsVi: rawMaterialsVi.map((m) => formatTitleCase(m)),
+    materials: rawMaterials.map((m) => formatTitleCase(String(m))),
+    materialsVi: rawMaterialsVi.map((m) => formatTitleCase(String(m))),
     scent:
       item.scent && typeof item.scent === 'object'
         ? {
@@ -204,16 +229,16 @@ function normalizeFlower(item: Partial<FlowerItem>, idx: number): FlowerItem {
             mood: formatTitleCase(item.scent.mood || fallback.scent.mood)
           }
         : fallback.scent,
-    anatomy: Array.isArray(item.anatomy) ? item.anatomy : fallback.anatomy,
+    anatomy: Array.isArray(item.anatomy) ? item.anatomy.filter(Boolean) : fallback.anatomy,
     dimensions: normalizeUnicodeNFC(item.dimensions || fallback.dimensions),
     seasonality: normalizeUnicodeNFC(item.seasonality || fallback.seasonality),
     priceVnd: typeof item.priceVnd === 'number' && !Number.isNaN(item.priceVnd) ? item.priceVnd : fallback.priceVnd,
     priceUsd: typeof item.priceUsd === 'number' && !Number.isNaN(item.priceUsd) ? item.priceUsd : fallback.priceUsd,
-    image: item.image || fallback.image,
+    image: primaryImage,
     galleryImages: rawGallery.map((g) => ({
-      ...g,
-      captionVi: formatProseNFC(g.captionVi),
-      captionEn: formatProseNFC(g.captionEn)
+      url: g.url || primaryImage,
+      captionVi: formatProseNFC(g.captionVi || 'Góc nhìn nghệ thuật'),
+      captionEn: formatProseNFC(g.captionEn || 'Artistic perspective')
     })),
     audioFrequency: typeof item.audioFrequency === 'number' ? item.audioFrequency : fallback.audioFrequency,
     pinnedToLanding: item.pinnedToLanding !== undefined ? item.pinnedToLanding : idx < 12
@@ -223,10 +248,16 @@ function normalizeFlower(item: Partial<FlowerItem>, idx: number): FlowerItem {
 // Normalize a workshop item so missing fields never cause runtime crashes and all titles are synchronized
 function normalizeWorkshop(item: Partial<WorkshopItem>, idx: number): WorkshopItem {
   const fallback = WORKSHOPS[idx % WORKSHOPS.length] || WORKSHOPS[0];
+  const primaryImage = (item.image && item.image.trim()) || fallback.image;
+  const validGallery = Array.isArray(item.galleryImages)
+    ? item.galleryImages.filter((g) => g && typeof g.url === 'string' && g.url.trim().length > 0)
+    : [];
   const rawGallery =
-    Array.isArray(item.galleryImages) && item.galleryImages.length > 0
-      ? item.galleryImages
-      : fallback.galleryImages;
+    validGallery.length > 0
+      ? validGallery
+      : fallback.galleryImages && fallback.galleryImages.length > 0
+        ? fallback.galleryImages
+        : [{ url: primaryImage, captionVi: 'Không gian Workshop nghệ thuật', captionEn: 'Artistic workshop atmosphere' }];
 
   return {
     ...fallback,
@@ -243,17 +274,17 @@ function normalizeWorkshop(item: Partial<WorkshopItem>, idx: number): WorkshopIt
     editorialQuoteEn: formatProseNFC(item.editorialQuoteEn || fallback.editorialQuoteEn),
     descriptionVi: formatProseNFC(item.descriptionVi || fallback.descriptionVi),
     descriptionEn: formatProseNFC(item.descriptionEn || fallback.descriptionEn),
-    fullContentVi: (Array.isArray(item.fullContentVi) ? item.fullContentVi : fallback.fullContentVi).map((p) =>
-      formatProseNFC(p)
+    fullContentVi: (Array.isArray(item.fullContentVi) ? item.fullContentVi.filter(Boolean) : fallback.fullContentVi).map((p) =>
+      formatProseNFC(String(p))
     ),
-    fullContentEn: (Array.isArray(item.fullContentEn) ? item.fullContentEn : fallback.fullContentEn).map((p) =>
-      formatProseNFC(p)
+    fullContentEn: (Array.isArray(item.fullContentEn) ? item.fullContentEn.filter(Boolean) : fallback.fullContentEn).map((p) =>
+      formatProseNFC(String(p))
     ),
-    highlightsVi: (Array.isArray(item.highlightsVi) ? item.highlightsVi : fallback.highlightsVi).map((h) =>
-      formatProseNFC(h)
+    highlightsVi: (Array.isArray(item.highlightsVi) ? item.highlightsVi.filter(Boolean) : fallback.highlightsVi).map((h) =>
+      formatProseNFC(String(h))
     ),
-    highlightsEn: (Array.isArray(item.highlightsEn) ? item.highlightsEn : fallback.highlightsEn).map((h) =>
-      formatProseNFC(h)
+    highlightsEn: (Array.isArray(item.highlightsEn) ? item.highlightsEn.filter(Boolean) : fallback.highlightsEn).map((h) =>
+      formatProseNFC(String(h))
     ),
     duration: normalizeUnicodeNFC(item.duration || fallback.duration),
     groupSize: normalizeUnicodeNFC(item.groupSize || fallback.groupSize),
@@ -269,11 +300,11 @@ function normalizeWorkshop(item: Partial<WorkshopItem>, idx: number): WorkshopIt
         : fallback.pricePerPaxUsd,
     zaloCommunityUrl: item.zaloCommunityUrl || fallback.zaloCommunityUrl,
     hotline: item.hotline || fallback.hotline,
-    image: item.image || fallback.image,
+    image: primaryImage,
     galleryImages: rawGallery.map((g) => ({
-      ...g,
-      captionVi: formatProseNFC(g.captionVi),
-      captionEn: formatProseNFC(g.captionEn)
+      url: g.url || primaryImage,
+      captionVi: formatProseNFC(g.captionVi || 'Không gian Workshop'),
+      captionEn: formatProseNFC(g.captionEn || 'Workshop moment')
     }))
   };
 }
@@ -337,7 +368,7 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
   });
 
   const [adminPassword, setAdminPassword] = useState<string>(() => {
-    return safeGetStorage(STORAGE_KEYS.PASS) || '';
+    return safeGetStorage(STORAGE_KEYS.PASS) || 'juetsaigon2026';
   });
 
   // Personal Botanical Moodboard (Wishlist)
@@ -537,6 +568,17 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
               if (data.adminPassword) {
                 setAdminPassword(data.adminPassword);
               }
+            } else {
+              // Initialize default security document in Firestore if not yet created
+              setDoc(
+                securityDocRef,
+                {
+                  adminPassword: safeGetStorage(STORAGE_KEYS.PASS) || 'juetsaigon2026',
+                  updatedAt: new Date().toISOString(),
+                  updatedBy: 'system'
+                },
+                { merge: true }
+              ).catch(() => {});
             }
           },
           (error) => {
@@ -619,30 +661,39 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Seed flowers
       FLOWERS.forEach((flower, idx) => {
         const flowerRef = doc(db, 'flowers', flower.id);
-        batch.set(flowerRef, {
-          ...flower,
-          pinnedToLanding: idx < 12,
-          updatedAt: new Date().toISOString()
-        });
+        batch.set(
+          flowerRef,
+          stripUndefined({
+            ...flower,
+            pinnedToLanding: idx < 12,
+            updatedAt: new Date().toISOString()
+          })
+        );
       });
 
       // Seed workshops
       WORKSHOPS.forEach((workshop) => {
         const workshopRef = doc(db, 'workshops', workshop.id);
-        batch.set(workshopRef, {
-          ...workshop,
-          updatedAt: new Date().toISOString()
-        });
+        batch.set(
+          workshopRef,
+          stripUndefined({
+            ...workshop,
+            updatedAt: new Date().toISOString()
+          })
+        );
       });
 
       // Seed atelier settings
       const settingsRef = doc(db, 'settings', 'atelier');
-      batch.set(settingsRef, {
-        ...ATELIER_DATA,
-        logoUrl: null,
-        logoWhiteUrl: null,
-        updatedAt: new Date().toISOString()
-      });
+      batch.set(
+        settingsRef,
+        stripUndefined({
+          ...ATELIER_DATA,
+          logoUrl: null,
+          logoWhiteUrl: null,
+          updatedAt: new Date().toISOString()
+        })
+      );
 
       await batch.commit();
       console.log('Successfully seeded initial atelier catalog to Firebase Firestore.');
@@ -661,41 +712,57 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       flowers.forEach((flower) => {
         const flowerRef = doc(db, 'flowers', flower.id);
-        batch.set(flowerRef, {
-          ...flower,
-          updatedAt: new Date().toISOString()
-        });
+        batch.set(
+          flowerRef,
+          stripUndefined({
+            ...flower,
+            updatedAt: new Date().toISOString()
+          })
+        );
       });
 
       workshops.forEach((workshop) => {
         const workshopRef = doc(db, 'workshops', workshop.id);
-        batch.set(workshopRef, {
-          ...workshop,
-          updatedAt: new Date().toISOString()
-        });
+        batch.set(
+          workshopRef,
+          stripUndefined({
+            ...workshop,
+            updatedAt: new Date().toISOString()
+          })
+        );
       });
 
       const settingsRef = doc(db, 'settings', 'atelier');
-      batch.set(settingsRef, {
-        ...atelierData,
-        logoUrl,
-        logoWhiteUrl,
-        updatedAt: new Date().toISOString()
-      });
+      batch.set(
+        settingsRef,
+        stripUndefined({
+          ...atelierData,
+          logoUrl,
+          logoWhiteUrl,
+          updatedAt: new Date().toISOString()
+        })
+      );
 
       if (adminPassword) {
         const securityRef = doc(db, 'settings', 'security');
-        batch.set(securityRef, {
-          adminPassword,
-          updatedAt: new Date().toISOString(),
-          updatedBy: 'admin'
-        });
+        batch.set(
+          securityRef,
+          stripUndefined({
+            adminPassword,
+            updatedAt: new Date().toISOString(),
+            updatedBy: 'admin'
+          })
+        );
       }
 
       await batch.commit();
       setIsCloudConnected(true);
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, 'syncAllToCloud');
+      try {
+        handleFirestoreError(error, OperationType.WRITE, 'syncAllToCloud');
+      } catch {
+        // Keep local state intact
+      }
     } finally {
       setIsSyncing(false);
     }
@@ -778,12 +845,19 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setFlowers((prev) => [newFlower, ...prev]);
 
     try {
-      await setDoc(doc(db, 'flowers', newId), {
-        ...newFlower,
-        updatedAt: new Date().toISOString()
-      });
+      await setDoc(
+        doc(db, 'flowers', newId),
+        stripUndefined({
+          ...newFlower,
+          updatedAt: new Date().toISOString()
+        })
+      );
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, `flowers/${newId}`);
+      try {
+        handleFirestoreError(error, OperationType.CREATE, `flowers/${newId}`);
+      } catch {
+        // Keep local optimistic state
+      }
     }
   };
 
@@ -802,11 +876,15 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       await setDoc(
         doc(db, 'flowers', id),
-        { ...normalizedUpdated, updatedAt: new Date().toISOString() },
+        stripUndefined({ ...normalizedUpdated, updatedAt: new Date().toISOString() }),
         { merge: true }
       );
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `flowers/${id}`);
+      try {
+        handleFirestoreError(error, OperationType.UPDATE, `flowers/${id}`);
+      } catch {
+        // Keep local optimistic state
+      }
     }
   };
 
@@ -822,7 +900,11 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       await deleteDoc(doc(db, 'flowers', id));
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `flowers/${id}`);
+      try {
+        handleFirestoreError(error, OperationType.DELETE, `flowers/${id}`);
+      } catch {
+        // Keep local optimistic state
+      }
     }
   };
 
@@ -841,7 +923,11 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
         { merge: true }
       );
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `flowers/${id}`);
+      try {
+        handleFirestoreError(error, OperationType.UPDATE, `flowers/${id}`);
+      } catch {
+        // Keep local optimistic state
+      }
     }
   };
 
@@ -861,12 +947,19 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setWorkshops((prev) => [...prev, newWorkshop]);
 
     try {
-      await setDoc(doc(db, 'workshops', newId), {
-        ...newWorkshop,
-        updatedAt: new Date().toISOString()
-      });
+      await setDoc(
+        doc(db, 'workshops', newId),
+        stripUndefined({
+          ...newWorkshop,
+          updatedAt: new Date().toISOString()
+        })
+      );
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, `workshops/${newId}`);
+      try {
+        handleFirestoreError(error, OperationType.CREATE, `workshops/${newId}`);
+      } catch {
+        // Keep local optimistic state
+      }
     }
   };
 
@@ -885,11 +978,15 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       await setDoc(
         doc(db, 'workshops', id),
-        { ...normalizedUpdated, updatedAt: new Date().toISOString() },
+        stripUndefined({ ...normalizedUpdated, updatedAt: new Date().toISOString() }),
         { merge: true }
       );
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `workshops/${id}`);
+      try {
+        handleFirestoreError(error, OperationType.UPDATE, `workshops/${id}`);
+      } catch {
+        // Keep local optimistic state
+      }
     }
   };
 
@@ -905,7 +1002,11 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       await deleteDoc(doc(db, 'workshops', id));
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `workshops/${id}`);
+      try {
+        handleFirestoreError(error, OperationType.DELETE, `workshops/${id}`);
+      } catch {
+        // Keep local optimistic state
+      }
     }
   };
 
@@ -916,11 +1017,15 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       await setDoc(
         doc(db, 'settings', 'atelier'),
-        { ...data, updatedAt: new Date().toISOString() },
+        stripUndefined({ ...data, updatedAt: new Date().toISOString() }),
         { merge: true }
       );
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, 'settings/atelier');
+      try {
+        handleFirestoreError(error, OperationType.UPDATE, 'settings/atelier');
+      } catch {
+        // Keep local optimistic state
+      }
     }
   };
 
@@ -934,7 +1039,11 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
         { merge: true }
       );
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, 'settings/atelier');
+      try {
+        handleFirestoreError(error, OperationType.UPDATE, 'settings/atelier');
+      } catch {
+        // Keep local optimistic state
+      }
     }
   };
 
@@ -948,7 +1057,11 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
         { merge: true }
       );
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, 'settings/atelier');
+      try {
+        handleFirestoreError(error, OperationType.UPDATE, 'settings/atelier');
+      } catch {
+        // Keep local optimistic state
+      }
     }
   };
 
@@ -978,14 +1091,14 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const newId = `order-${Date.now()}`;
     const isoNow = now.toISOString();
 
-    const newOrder: BespokeOrder = {
+    const newOrder: BespokeOrder = stripUndefined({
       ...orderData,
       id: newId,
       orderCode,
       status: 'pending',
       createdAt: isoNow,
       updatedAt: isoNow
-    };
+    });
 
     setOrders((prev) => [newOrder, ...prev]);
 
@@ -1020,15 +1133,19 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       await setDoc(
         doc(db, 'orders', orderId),
-        {
+        stripUndefined({
           status,
           ...(adminNote !== undefined ? { adminNote } : {}),
           updatedAt: isoNow
-        },
+        }),
         { merge: true }
       );
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `orders/${orderId}`);
+      try {
+        handleFirestoreError(error, OperationType.UPDATE, `orders/${orderId}`);
+      } catch {
+        // Keep local optimistic state
+      }
     }
   };
 
@@ -1038,7 +1155,11 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       await deleteDoc(doc(db, 'orders', orderId));
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `orders/${orderId}`);
+      try {
+        handleFirestoreError(error, OperationType.DELETE, `orders/${orderId}`);
+      } catch {
+        // Keep local optimistic state
+      }
     }
   };
 
@@ -1053,14 +1174,14 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const newId = `wsbooking-${Date.now()}`;
     const isoNow = now.toISOString();
 
-    const newBooking: WorkshopBooking = {
+    const newBooking: WorkshopBooking = stripUndefined({
       ...bookingData,
       id: newId,
       bookingCode,
       status: 'pending',
       createdAt: isoNow,
       updatedAt: isoNow
-    };
+    });
 
     setWorkshopBookings((prev) => [newBooking, ...prev]);
 
@@ -1090,7 +1211,11 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
         { merge: true }
       );
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `workshop_bookings/${bookingId}`);
+      try {
+        handleFirestoreError(error, OperationType.UPDATE, `workshop_bookings/${bookingId}`);
+      } catch {
+        // Keep local optimistic state
+      }
     }
   };
 
@@ -1100,7 +1225,11 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       await deleteDoc(doc(db, 'workshop_bookings', bookingId));
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `workshop_bookings/${bookingId}`);
+      try {
+        handleFirestoreError(error, OperationType.DELETE, `workshop_bookings/${bookingId}`);
+      } catch {
+        // Keep local optimistic state
+      }
     }
   };
 

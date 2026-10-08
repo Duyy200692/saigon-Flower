@@ -517,7 +517,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       setLastCompression(result);
     } catch (err) {
       console.error(err);
-      alert('Không thể nén ảnh Logo Đen. Vui lòng thử lại.');
+      setImageUrlWarning('Không thể nén ảnh Logo Đen. Vui lòng thử lại.');
     } finally {
       setCompressing(false);
     }
@@ -535,7 +535,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       setLastCompression(result);
     } catch (err) {
       console.error(err);
-      alert('Không thể nén ảnh Logo Trắng. Vui lòng thử lại.');
+      setImageUrlWarning('Không thể nén ảnh Logo Trắng. Vui lòng thử lại.');
     } finally {
       setCompressing(false);
     }
@@ -585,7 +585,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       }
       setLastCompression(result);
     } catch (err: any) {
-      alert(err?.message || 'Không thể tải logo từ đường dẫn này.');
+      setImageUrlWarning(err?.message || 'Không thể tải logo từ đường dẫn này.');
     } finally {
       setCompressing(false);
     }
@@ -603,7 +603,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       applyFlowerMainImageResult(result);
     } catch (err) {
       console.error(err);
-      alert('Lỗi khi nén ảnh. Vui lòng thử lại.');
+      setImageUrlWarning('Lỗi khi nén ảnh. Vui lòng thử lại.');
     } finally {
       setCompressing(false);
     }
@@ -621,7 +621,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       applyFlowerGalleryImageResult(index, result);
     } catch (err) {
       console.error(err);
-      alert('Lỗi khi nén ảnh góc chụp.');
+      setImageUrlWarning('Lỗi khi nén ảnh góc chụp.');
     } finally {
       setCompressing(false);
     }
@@ -639,7 +639,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       applyWorkshopMainImageResult(result);
     } catch (err) {
       console.error(err);
-      alert('Lỗi khi nén ảnh workshop.');
+      setImageUrlWarning('Lỗi khi nén ảnh workshop.');
     } finally {
       setCompressing(false);
     }
@@ -657,7 +657,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       applyWorkshopGalleryImageResult(idx, result);
     } catch (err) {
       console.error(err);
-      alert('Lỗi khi nén ảnh góc chụp workshop.');
+      setImageUrlWarning('Lỗi khi nén ảnh góc chụp workshop.');
     } finally {
       setCompressing(false);
     }
@@ -794,10 +794,8 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     e.preventDefault();
     if (isAddingWorkshop) {
       addWorkshop(workshopForm as Omit<WorkshopItem, 'id' | 'indexNumber'>);
-      alert('Đã thêm workshop mới thành công!');
     } else if (editingWorkshop) {
       updateWorkshop(editingWorkshop.id, workshopForm);
-      alert('Đã cập nhật workshop thành công!');
     }
     setEditingWorkshop(null);
     setIsAddingWorkshop(false);
@@ -807,7 +805,6 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   const handleSaveBranding = (e: React.FormEvent) => {
     e.preventDefault();
     updateAtelierData(brandingForm);
-    alert('Đã cập nhật thông tin thương hiệu thành công!');
   };
 
   const filteredFlowers = flowers.filter(
@@ -831,7 +828,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
         className={`border-b px-3 sm:px-8 py-2.5 sm:py-3 flex flex-col gap-2.5 flex-shrink-0 transition-colors duration-300 ${
           isDark
             ? 'bg-[#181917] border-white/15 text-white'
-            : 'bg-[#e8e4dc] border-[#141414]/15 text-[#141414]'
+            : 'bg-[#dcd8cf] border-[#141414]/15 text-[#141414]'
         }`}
       >
         {/* Top Row: Brand Badge + Desktop Tabs + Action Controls */}

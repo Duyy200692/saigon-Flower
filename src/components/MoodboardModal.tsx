@@ -32,18 +32,22 @@ export const MoodboardModal: React.FC<MoodboardModalProps> = ({
   const savedFlowers = flowers.filter((f) => wishlistIds.includes(f.id));
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-2xl flex items-center justify-center p-2.5 sm:p-6 animate-fadeIn">
+    <div
+      className={`fixed inset-0 z-50 overflow-y-auto backdrop-blur-2xl flex items-center justify-center p-2.5 sm:p-6 animate-fadeIn transition-colors duration-300 ${
+        isDark ? 'bg-black/85' : 'bg-[#dcd8cf]/90'
+      }`}
+    >
       <div
         className={`relative w-full max-w-4xl rounded-[28px] sm:rounded-[38px] shadow-2xl border overflow-hidden my-auto max-h-[94vh] flex flex-col transition-colors duration-300 ${
           isDark
             ? 'bg-[#141513] text-[#ede9df] border-white/15'
-            : 'bg-[#dcd8cf] text-[#141414] border-white/60'
+            : 'bg-[#dcd8cf] text-[#141414] border-[#141414]/15'
         }`}
       >
         {/* Header */}
         <div
           className={`px-5 sm:px-8 py-4 border-b flex items-center justify-between flex-shrink-0 ${
-            isDark ? 'border-white/15 bg-[#181917]' : 'border-[#141414]/15 bg-[#e6e2da]'
+            isDark ? 'border-white/15 bg-[#181917]' : 'border-[#141414]/15 bg-[#dcd8cf]'
           }`}
         >
           <div className="flex items-center gap-2.5 min-w-0">
@@ -143,7 +147,11 @@ export const MoodboardModal: React.FC<MoodboardModalProps> = ({
                     }`}
                   >
                     <div className="space-y-2.5">
-                      <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-black">
+                      <div
+                        className={`relative aspect-[3/4] rounded-xl overflow-hidden ${
+                          isDark ? 'bg-black' : 'bg-[#dcd8cf]'
+                        }`}
+                      >
                         <img
                           src={flower.image}
                           alt={flower.name}
@@ -246,7 +254,7 @@ export const MoodboardModal: React.FC<MoodboardModalProps> = ({
         {savedFlowers.length > 0 && (
           <div
             className={`px-5 sm:px-8 py-4 border-t flex flex-col sm:flex-row items-center justify-between gap-3 flex-shrink-0 ${
-              isDark ? 'bg-[#181917] border-white/15' : 'bg-[#e6e2da] border-[#141414]/15'
+              isDark ? 'bg-[#181917] border-white/15' : 'bg-[#dcd8cf] border-[#141414]/15'
             }`}
           >
             <div className="text-xs">

@@ -139,8 +139,8 @@ export const WorkshopGalleryModal: React.FC<WorkshopGalleryModalProps> = ({
                   {/* Right Image Column */}
                   <div
                     onClick={() => handleTileClick(ws)}
-                    className={`lg:col-span-7 relative group cursor-pointer overflow-hidden rounded-2xl bg-black shadow-2xl order-1 lg:order-2 border ${
-                      isDark ? 'border-white/15' : 'border-[#141414]/15'
+                    className={`lg:col-span-7 relative group cursor-pointer overflow-hidden rounded-2xl shadow-2xl order-1 lg:order-2 border ${
+                      isDark ? 'bg-black border-white/15' : 'bg-[#dcd8cf] border-[#141414]/15'
                     }`}
                   >
                     <div className="aspect-[3/4] w-full overflow-hidden relative">
@@ -152,9 +152,7 @@ export const WorkshopGalleryModal: React.FC<WorkshopGalleryModalProps> = ({
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 sm:p-6">
                         <span className="text-[10px] sm:text-xs font-mono tracking-widest text-amber-300 uppercase">
-                          {lang === 'vi'
-                            ? 'CHẠM ĐỂ XEM GALLERY HÌNH ẢNH'
-                            : 'TAP TO VIEW PHOTO GALLERY'}
+                          #{ws.indexNumber} · {ws.latinMonographName}
                         </span>
                         <p className="text-base sm:text-lg font-bagerich font-bold text-white uppercase mt-1">
                           {lang === 'vi' ? ws.titleVi : ws.titleEn}
@@ -168,8 +166,8 @@ export const WorkshopGalleryModal: React.FC<WorkshopGalleryModalProps> = ({
                   {/* Left Image Column */}
                   <div
                     onClick={() => handleTileClick(ws)}
-                    className={`lg:col-span-7 relative group cursor-pointer overflow-hidden rounded-2xl bg-black shadow-2xl order-1 border ${
-                      isDark ? 'border-white/15' : 'border-[#141414]/15'
+                    className={`lg:col-span-7 relative group cursor-pointer overflow-hidden rounded-2xl shadow-2xl order-1 border ${
+                      isDark ? 'bg-black border-white/15' : 'bg-[#dcd8cf] border-[#141414]/15'
                     }`}
                   >
                     <div className="aspect-[3/4] w-full overflow-hidden relative">
@@ -181,9 +179,7 @@ export const WorkshopGalleryModal: React.FC<WorkshopGalleryModalProps> = ({
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 sm:p-6">
                         <span className="text-[10px] sm:text-xs font-mono tracking-widest text-amber-300 uppercase">
-                          {lang === 'vi'
-                            ? 'CHẠM ĐỂ XEM GALLERY HÌNH ẢNH'
-                            : 'TAP TO VIEW PHOTO GALLERY'}
+                          #{ws.indexNumber} · {ws.latinMonographName}
                         </span>
                         <p className="text-base sm:text-lg font-bagerich font-bold text-white uppercase mt-1">
                           {lang === 'vi' ? ws.titleVi : ws.titleEn}

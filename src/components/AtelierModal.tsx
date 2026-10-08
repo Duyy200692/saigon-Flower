@@ -27,7 +27,11 @@ export const AtelierModal: React.FC<AtelierModalProps> = ({
     : 'p-4 bg-white/60 rounded-2xl border border-[#141414]/10 space-y-1.5';
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
+    <div
+      className={`fixed inset-0 z-50 overflow-y-auto backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fadeIn transition-colors duration-300 ${
+        isDark ? 'bg-black/80' : 'bg-[#dcd8cf]/90'
+      }`}
+    >
       <div
         className={`relative w-full max-w-3xl rounded-3xl shadow-2xl border overflow-hidden my-auto max-h-[90vh] flex flex-col transition-colors duration-300 ${
           isDark

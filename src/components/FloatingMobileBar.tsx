@@ -32,16 +32,20 @@ export const FloatingMobileBar: React.FC<FloatingMobileBarProps> = ({
   return (
     <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] inset-x-2.5 z-40 md:hidden pointer-events-auto">
       <div
-        className={`rounded-full px-2 py-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl border flex items-center justify-between gap-1 transition-colors duration-300 ${
+        className={`rounded-full px-2 py-1.5 backdrop-blur-xl border flex items-center justify-between gap-1 transition-colors duration-300 ${
           isDark
-            ? 'bg-[#181916]/95 text-[#ede9df] border-white/20'
-            : 'bg-[#141414]/95 text-[#dcd8cf] border-white/20'
+            ? 'bg-[#181916]/95 text-[#ede9df] border-white/20 shadow-[0_12px_40px_rgba(0,0,0,0.45)]'
+            : 'bg-[#dcd8cf]/95 text-[#141414] border-[#141414]/20 shadow-[0_12px_32px_rgba(20,20,20,0.18)]'
         }`}
       >
         {/* Index Trigger */}
         <button
           onClick={onOpenIndex}
-          className="min-h-[40px] flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-[10px] font-mono tracking-wider transition-all whitespace-nowrap cursor-pointer"
+          className={`min-h-[40px] flex items-center gap-1 px-2.5 py-1.5 rounded-full active:scale-95 text-[10px] font-mono tracking-wider transition-all whitespace-nowrap cursor-pointer ${
+            isDark
+              ? 'bg-white/10 hover:bg-white/20 text-white'
+              : 'bg-[#141414]/10 hover:bg-[#141414]/20 text-[#141414]'
+          }`}
         >
           <Menu className="w-3.5 h-3.5" />
           <span>INDEX ({flowerCount})</span>
@@ -51,7 +55,11 @@ export const FloatingMobileBar: React.FC<FloatingMobileBarProps> = ({
         {onOpenSommelier && (
           <button
             onClick={onOpenSommelier}
-            className="min-h-[40px] px-2.5 py-1.5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/30 hover:bg-amber-400/25 active:scale-95 text-[10px] font-mono font-semibold uppercase tracking-wider flex items-center gap-1 transition-all whitespace-nowrap cursor-pointer"
+            className={`min-h-[40px] px-2.5 py-1.5 rounded-full border active:scale-95 text-[10px] font-mono font-semibold uppercase tracking-wider flex items-center gap-1 transition-all whitespace-nowrap cursor-pointer ${
+              isDark
+                ? 'bg-amber-400/15 text-amber-300 border-amber-400/30 hover:bg-amber-400/25'
+                : 'bg-amber-500/15 text-amber-950 border-amber-800/30 hover:bg-amber-500/25'
+            }`}
             title={lang === 'vi' ? 'Trợ lý chọn hoa Sommelier' : 'Flower Sommelier'}
           >
             <Compass className="w-3.5 h-3.5" />
@@ -63,7 +71,11 @@ export const FloatingMobileBar: React.FC<FloatingMobileBarProps> = ({
         {onOpenWorkshop && (
           <button
             onClick={onOpenWorkshop}
-            className="min-h-[40px] px-2 py-1.5 rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-95 text-[10px] font-mono uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer"
+            className={`min-h-[40px] px-2 py-1.5 rounded-full active:scale-95 text-[10px] font-mono uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
+              isDark
+                ? 'bg-white/10 text-white hover:bg-white/20'
+                : 'bg-[#141414]/10 text-[#141414] hover:bg-[#141414]/20'
+            }`}
           >
             Workshop
           </button>
@@ -76,7 +88,9 @@ export const FloatingMobileBar: React.FC<FloatingMobileBarProps> = ({
             className={`min-h-[40px] min-w-[40px] px-2 rounded-full flex items-center justify-center gap-1 text-[10px] font-mono active:scale-95 transition-all cursor-pointer ${
               wishlistIds.length > 0
                 ? 'bg-rose-500 text-white font-bold'
-                : 'bg-white/10 text-white/90 hover:bg-white/20'
+                : isDark
+                  ? 'bg-white/10 text-white/90 hover:bg-white/20'
+                  : 'bg-[#141414]/10 text-[#141414] hover:bg-[#141414]/20'
             }`}
             title="Moodboard"
           >
@@ -91,7 +105,7 @@ export const FloatingMobileBar: React.FC<FloatingMobileBarProps> = ({
           className={`min-h-[40px] min-w-[40px] px-2 rounded-full transition-all active:scale-95 flex items-center justify-center cursor-pointer ${
             isDark
               ? 'bg-amber-400 text-[#141414]'
-              : 'bg-white/10 text-white hover:bg-white/20'
+              : 'bg-[#141414]/10 text-[#141414] hover:bg-[#141414]/20'
           }`}
           title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
           aria-label="Toggle theme"
@@ -102,7 +116,11 @@ export const FloatingMobileBar: React.FC<FloatingMobileBarProps> = ({
         {/* Order Consultation CTA */}
         <button
           onClick={onOpenOrder}
-          className="min-h-[40px] flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#dcd8cf] text-[#141414] font-bold text-[10px] uppercase tracking-wider shadow-md hover:bg-white active:scale-95 transition-all whitespace-nowrap cursor-pointer"
+          className={`min-h-[40px] flex items-center gap-1 px-3 py-1.5 rounded-full font-bold text-[10px] uppercase tracking-wider shadow-md active:scale-95 transition-all whitespace-nowrap cursor-pointer ${
+            isDark
+              ? 'bg-[#dcd8cf] text-[#141414] hover:bg-white'
+              : 'bg-[#141414] text-[#dcd8cf] hover:bg-black'
+          }`}
         >
           <Sparkles className="w-3.5 h-3.5" />
           <span>{lang === 'vi' ? 'Đặt Hoa' : 'Order'}</span>

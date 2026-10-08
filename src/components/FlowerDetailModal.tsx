@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Sparkles, ChevronLeft, ChevronRight, Share2, Check, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw, Heart, MoveHorizontal } from 'lucide-react';
+import { X, Sparkles, ChevronLeft, ChevronRight, Share2, Check, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw, Heart } from 'lucide-react';
 import { FlowerItem, FLOWERS } from '../data/flowers';
 import { useAtelier } from '../context/AtelierContext';
 import { formatTitleCase, formatDisplayUppercase } from '../utils/textFormatter';
@@ -46,16 +46,21 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
   const isDark = theme === 'dark';
 
   const totalCount = flowers.length || FLOWERS.length;
-  const gallery = flower?.galleryImages && flower.galleryImages.length > 0 
-    ? flower.galleryImages 
-    : [
-        { url: flower?.image || '', captionVi: "Góc nhìn toàn cảnh", captionEn: "Full architectural view" },
-        { url: flower?.image || '', captionVi: "Cận cảnh chi tiết", captionEn: "Macro texture detail" },
-        { url: flower?.image || '', captionVi: "Bối cảnh không gian", captionEn: "Ambient interior styling" },
-        { url: flower?.image || '', captionVi: "Dáng cành độc bản", captionEn: "Sculptural profile angle" }
-      ];
+  const validGallery = Array.isArray(flower?.galleryImages)
+    ? flower.galleryImages.filter((g) => g && typeof g.url === 'string' && g.url.trim().length > 0)
+    : [];
+  const gallery =
+    validGallery.length > 0
+      ? validGallery
+      : [
+          { url: flower?.image || '', captionVi: 'Góc nhìn toàn cảnh', captionEn: 'Full architectural view' },
+          { url: flower?.image || '', captionVi: 'Cận cảnh chi tiết', captionEn: 'Macro texture detail' },
+          { url: flower?.image || '', captionVi: 'Bối cảnh không gian', captionEn: 'Ambient interior styling' },
+          { url: flower?.image || '', captionVi: 'Dáng cành độc bản', captionEn: 'Sculptural profile angle' }
+        ];
 
-  const currentImage = gallery[selectedImageIndex] || gallery[0];
+  const safeImageIndex = selectedImageIndex < gallery.length ? selectedImageIndex : 0;
+  const currentImage = gallery[safeImageIndex] || gallery[0];
 
   const handlePrevImage = useCallback((e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -70,17 +75,19 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
   // MacBook Trackpad 2-finger horizontal swipe navigation
   const {
     containerRef: imageTrackpadRef,
-    dragOffset,
-    isMacOs
+    dragOffset
   } = useTrackpadGallery<HTMLDivElement>({
     totalItems: gallery.length,
-    currentIndex: selectedImageIndex,
+    currentIndex: safeImageIndex,
     onNext: handleNextImage,
     onPrev: handlePrevImage,
     threshold: 36,
     cooldownMs: 320,
     enabled: isOpen && !isLightboxOpen
   });
+
+  // Lightbox container ref for MacBook Trackpad pinch-to-zoom & two-finger pan (MUST be declared before any early return)
+  const lightboxContainerRef = useRef<HTMLDivElement>(null);
 
   // Reset selected image when flower changes
   useEffect(() => {
@@ -113,20 +120,10 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onNext, onPrev, onClose, isLightboxOpen]);
 
-  // Auto-detect image natural aspect ratio (Landscape 4:3 vs Portrait 3:4)
-  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const { naturalWidth, naturalHeight } = e.currentTarget;
-    setIsLandscape(naturalWidth > naturalHeight);
-  };
-
-  if (!isOpen || !flower) return null;
-
-  // Lightbox container ref for MacBook Trackpad pinch-to-zoom & two-finger pan
-  const lightboxContainerRef = useRef<HTMLDivElement>(null);
-
+  // Lightbox wheel / trackpad zoom & pan listener (MUST be declared before any early return)
   useEffect(() => {
     const el = lightboxContainerRef.current;
-    if (!el || !isLightboxOpen) return;
+    if (!el || !isOpen || !isLightboxOpen) return;
 
     let panCooldown = 0;
 
@@ -176,7 +173,15 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
 
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
-  }, [isLightboxOpen, lightboxZoom, handleNextImage, handlePrevImage]);
+  }, [isOpen, isLightboxOpen, lightboxZoom, handleNextImage, handlePrevImage]);
+
+  // Auto-detect image natural aspect ratio (Landscape 4:3 vs Portrait 3:4)
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { naturalWidth, naturalHeight } = e.currentTarget;
+    setIsLandscape(naturalWidth > naturalHeight);
+  };
+
+  if (!isOpen || !flower) return null;
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.targetTouches[0].clientX;
@@ -213,14 +218,18 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-2xl flex items-center justify-center p-2 sm:p-4 md:p-6 animate-fadeIn">
+    <div
+      className={`fixed inset-0 z-50 overflow-y-auto backdrop-blur-2xl flex items-center justify-center p-2 sm:p-4 md:p-6 animate-fadeIn ${
+        isDark ? 'bg-black/85' : 'bg-[#dcd8cf]/90'
+      }`}
+    >
       
       {/* Modal Container with Continuous Curves & Layered Depth */}
       <div
         className={`relative w-full max-w-5xl rounded-[32px] sm:rounded-[40px] shadow-2xl border overflow-hidden my-auto max-h-[96vh] flex flex-col transition-colors duration-300 ${
           isDark
             ? 'bg-[#151614] text-[#ede9df] border-white/15'
-            : 'bg-[#dcd8cf] text-[#141414] border-white/60'
+            : 'bg-[#dcd8cf] text-[#141414] border-[#141414]/15'
         }`}
       >
         {/* Top Floating Action Bar */}
@@ -338,8 +347,8 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
-                className={`relative w-full mx-auto rounded-[26px] sm:rounded-[34px] overflow-hidden bg-[#181716] shadow-2xl border group transition-all duration-500 will-change-transform ${
-                  isDark ? 'border-white/15' : 'border-[#141414]/20'
+                className={`relative w-full mx-auto rounded-[26px] sm:rounded-[34px] overflow-hidden shadow-2xl border group transition-all duration-500 will-change-transform ${
+                  isDark ? 'bg-[#181716] border-white/15' : 'bg-[#dcd8cf] border-[#141414]/20'
                 } ${
                   isLandscape ? 'aspect-[4/3] max-w-lg' : 'aspect-[3/4] max-w-md'
                 }`}
@@ -360,7 +369,7 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                 )}
 
                 <img
-                  key={currentImage.url + selectedImageIndex}
+                  key={currentImage.url + safeImageIndex}
                   src={currentImage.url}
                   alt={`${flower.name} - ${currentImage.captionEn}`}
                   onLoad={handleImageLoad}
@@ -421,7 +430,7 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                 </div>
 
                 {/* Anatomy Hotspots (shown on primary image) */}
-                {selectedImageIndex === 0 && flower.anatomy.map((pin) => (
+                {safeImageIndex === 0 && (flower.anatomy || []).map((pin) => (
                   <button
                     key={pin.id}
                     onClick={() => setSelectedAnatomy(selectedAnatomy === pin.id ? null : pin.id)}
@@ -442,7 +451,7 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                 {selectedAnatomy && (
                   <div className="absolute bottom-12 inset-x-4 p-3.5 bg-black/90 text-white text-xs rounded-xl backdrop-blur-md shadow-2xl border border-white/20 animate-fadeIn z-20">
                     {(() => {
-                      const pin = flower.anatomy.find((p) => p.id === selectedAnatomy);
+                      const pin = (flower.anatomy || []).find((p) => p.id === selectedAnatomy);
                       if (!pin) return null;
                       return (
                         <div>
@@ -470,22 +479,9 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                     {lang === 'vi' ? currentImage.captionVi : currentImage.captionEn}
                   </span>
                   <span className="flex-shrink-0 font-mono text-[10px] bg-black/50 px-2 py-0.5 rounded text-white/80">
-                    {selectedImageIndex + 1} / {gallery.length}
+                    {safeImageIndex + 1} / {gallery.length}
                   </span>
                 </div>
-              </div>
-
-              {/* Discreet Trackpad & Touch Gesture Hint */}
-              <div className="flex items-center justify-between px-2 text-[10px] font-mono opacity-60">
-                <span className="flex items-center gap-1.5 text-amber-400/90">
-                  <MoveHorizontal className="w-3 h-3 shrink-0" />
-                  <span>
-                    {lang === 'vi'
-                      ? 'Trượt 2 ngón trên Trackpad hoặc lướt chạm để đổi ảnh'
-                      : 'Swipe with 2 fingers or touch-drag to change angle'}
-                  </span>
-                </span>
-                <span className="hidden sm:inline-block">← → Phím mũi tên</span>
               </div>
 
               {/* Adaptive Thumbnail Strip */}
@@ -501,10 +497,12 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                       setSelectedImageIndex(idx);
                       setSelectedAnatomy(null);
                     }}
-                    className={`relative rounded-lg overflow-hidden border-2 transition-all bg-[#141414] ${
+                    className={`relative rounded-lg overflow-hidden border-2 transition-all ${
+                      isDark ? 'bg-[#141414]' : 'bg-[#dcd8cf]'
+                    } ${
                       isLandscape ? 'aspect-[4/3]' : 'aspect-[3/4]'
                     } ${
-                      selectedImageIndex === idx
+                      safeImageIndex === idx
                         ? isDark
                           ? 'border-amber-400 shadow-md ring-2 ring-amber-400/20 scale-102'
                           : 'border-[#141414] shadow-md ring-2 ring-black/20 scale-102'
@@ -712,16 +710,18 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                 className={`sticky bottom-0 z-20 p-3.5 sm:p-4 rounded-2xl flex items-center justify-between gap-3 shadow-2xl border backdrop-blur-xl ${
                   isDark
                     ? 'bg-[#20221e]/95 text-[#ede9df] border-white/15'
-                    : 'bg-[#141414]/95 text-[#dcd8cf] border-transparent'
+                    : 'bg-[#dcd8cf]/95 text-[#141414] border-[#141414]/15'
                 }`}
               >
                 <div>
-                  <span className="text-[10px] font-mono text-white/60 uppercase block">
+                  <span className={`text-[10px] font-mono uppercase block ${isDark ? 'text-white/60' : 'text-[#141414]/65'}`}>
                     {lang === 'vi' ? 'Giá Ước Tính Thiết Kế' : 'Estimated Investment'}
                   </span>
-                  <div className="text-lg sm:text-xl font-bold font-mono tabular-nums text-white">
-                    {flower.priceVnd.toLocaleString('vi-VN')} VND
-                    <span className="text-xs font-normal text-white/60 ml-1.5 hidden sm:inline">(~${flower.priceUsd} USD)</span>
+                  <div className={`text-lg sm:text-xl font-bold font-mono tabular-nums ${isDark ? 'text-white' : 'text-[#141414]'}`}>
+                    {(flower.priceVnd || 0).toLocaleString('vi-VN')} VND
+                    <span className={`text-xs font-normal ml-1.5 hidden sm:inline ${isDark ? 'text-white/60' : 'text-[#141414]/65'}`}>
+                      (~${flower.priceUsd || 0} USD)
+                    </span>
                   </div>
                 </div>
 
@@ -730,9 +730,13 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                     onClose();
                     onOrderFlower(flower);
                   }}
-                  className="min-h-[44px] px-5 py-2.5 rounded-full bg-[#dcd8cf] text-[#141414] font-bold text-xs uppercase tracking-wider hover:bg-white transition-all flex items-center justify-center gap-1.5 shadow-lg whitespace-nowrap"
+                  className={`min-h-[44px] px-5 py-2.5 rounded-full font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-lg whitespace-nowrap ${
+                    isDark
+                      ? 'bg-[#dcd8cf] text-[#141414] hover:bg-white'
+                      : 'bg-[#141414] text-[#dcd8cf] hover:bg-black'
+                  }`}
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-[#141414]" />
+                  <Sparkles className="w-3.5 h-3.5" />
                   <span>{lang === 'vi' ? 'Đặt Mẫu Này' : 'Order Specimen'}</span>
                 </button>
               </div>
@@ -746,10 +750,20 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
 
       {/* Fullscreen Lightbox with Interactive Zoom & Pan */}
       {isLightboxOpen && (
-        <div className="fixed inset-0 z-60 bg-black/95 flex flex-col items-center justify-center p-4 animate-fadeIn select-none">
+        <div
+          className={`fixed inset-0 z-60 flex flex-col items-center justify-center p-4 animate-fadeIn select-none ${
+            isDark ? 'bg-black/95 text-white' : 'bg-[#dcd8cf]/98 text-[#141414]'
+          }`}
+        >
           {/* Top Zoom & Close Controls */}
           <div className="absolute top-4 right-4 left-4 flex items-center justify-between z-20 max-w-4xl mx-auto">
-            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15 text-white text-xs font-mono">
+            <div
+              className={`flex items-center gap-2 backdrop-blur-md px-3 py-1.5 rounded-full border text-xs font-mono ${
+                isDark
+                  ? 'bg-white/10 border-white/15 text-white'
+                  : 'bg-[#141414] border-[#141414] text-[#dcd8cf]'
+              }`}
+            >
               <button
                 type="button"
                 onClick={() => {
@@ -789,7 +803,11 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
 
             <button
               onClick={() => setIsLightboxOpen(false)}
-              className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/15"
+              className={`p-2.5 rounded-full transition-colors border ${
+                isDark
+                  ? 'bg-white/10 hover:bg-white/20 text-white border-white/15'
+                  : 'bg-[#141414] hover:bg-black text-[#dcd8cf] border-[#141414]'
+              }`}
             >
               <X className="w-5 h-5" />
             </button>
@@ -832,7 +850,9 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
               }
             }}
             ref={lightboxContainerRef}
-            className={`relative w-full max-w-4xl h-[75vh] rounded-2xl overflow-hidden shadow-2xl bg-black/60 border border-white/10 flex items-center justify-center touch-none ${
+            className={`relative w-full max-w-4xl h-[75vh] rounded-2xl overflow-hidden shadow-2xl border flex items-center justify-center touch-none ${
+              isDark ? 'bg-black/60 border-white/10' : 'bg-[#dcd8cf] border-[#141414]/15'
+            } ${
               lightboxZoom > 1 ? (isPanningLightbox ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-zoom-in'
             }`}
           >
@@ -868,10 +888,10 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
             </button>
           </div>
 
-          <div className="mt-4 text-center text-white/90 text-sm font-sans space-y-1">
+          <div className="mt-4 text-center text-sm font-sans space-y-0.5">
             <p className="font-semibold">{lang === 'vi' ? currentImage.captionVi : currentImage.captionEn}</p>
-            <p className="text-xs font-mono text-white/60">
-              {selectedImageIndex + 1} / {gallery.length} · {lang === 'vi' ? 'Pinch hoặc trượt 2 ngón trên Trackpad để zoom & lia ảnh · Nhấp đúp để phóng to' : 'Pinch or 2-finger scroll on Trackpad to zoom & pan · Double-click to zoom'}
+            <p className="text-xs font-mono opacity-60">
+              {safeImageIndex + 1} / {gallery.length}
             </p>
           </div>
         </div>

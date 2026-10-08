@@ -170,7 +170,13 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
     const message = encodeURIComponent(
       `Chào ${atelierData.name || 'JU et Saigon'}! Tôi muốn xác nhận tư vấn đặt hoa:${codeText}\n- Khách hàng: ${name || targetOrder?.customerName || 'Quý khách'}\n- Số điện thoại: ${phone || targetOrder?.customerPhone}\n- ${flowerText}\n- Dịp: ${occasion}\n- Ngày giao: ${date || 'Sớm nhất'}\n- Khu vực: ${district}, TP.HCM\n- Ngân sách: ${budget.toLocaleString('vi-VN')} VND${cardSummary}\n- Ghi chú: ${notes}`
     );
-    window.open(`https://zalo.me/${cleanPhone}?text=${message}`, '_blank');
+    const link = document.createElement('a');
+    link.href = `https://zalo.me/${cleanPhone}?text=${message}`;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleSendEmail = () => {
@@ -254,18 +260,22 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-2xl flex items-center justify-center p-2.5 sm:p-6 animate-fadeIn">
+    <div
+      className={`fixed inset-0 z-50 overflow-y-auto backdrop-blur-2xl flex items-center justify-center p-2.5 sm:p-6 animate-fadeIn transition-colors duration-300 ${
+        isDark ? 'bg-black/80' : 'bg-[#dcd8cf]/90'
+      }`}
+    >
       <div
         className={`relative w-full max-w-3xl squircle-2xl rounded-[28px] sm:rounded-[38px] shadow-soft-3 border overflow-hidden my-auto max-h-[95vh] flex flex-col transition-colors duration-300 ${
           isDark
             ? 'bg-[#151614] text-[#ede9df] border-white/15'
-            : 'bg-[#dcd8cf] text-[#141414] border-white/60'
+            : 'bg-[#dcd8cf] text-[#141414] border-[#141414]/15'
         }`}
       >
         {/* Top Header & Mode Switcher */}
         <div
           className={`px-5 sm:px-8 py-4 border-b flex items-center justify-between gap-2 flex-shrink-0 ${
-            isDark ? 'border-white/15 bg-[#181917]' : 'border-[#141414]/15 bg-[#e6e2da]'
+            isDark ? 'border-white/15 bg-[#181917]' : 'border-[#141414]/15 bg-[#dcd8cf]'
           }`}
         >
           <div className="flex items-center gap-2">

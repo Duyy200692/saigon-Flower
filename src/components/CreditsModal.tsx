@@ -25,12 +25,16 @@ export const CreditsModal: React.FC<CreditsModalProps> = ({
     : 'p-3.5 glass-frost-pill rounded-[20px] border border-white/80 shadow-soft-1';
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-2xl flex items-center justify-center p-4 animate-fadeIn">
+    <div
+      className={`fixed inset-0 z-50 overflow-y-auto backdrop-blur-2xl flex items-center justify-center p-4 animate-fadeIn transition-colors duration-300 ${
+        isDark ? 'bg-black/80' : 'bg-[#dcd8cf]/90'
+      }`}
+    >
       <div
         className={`relative w-full max-w-lg squircle-2xl rounded-[32px] sm:rounded-[36px] shadow-soft-3 border overflow-hidden p-6 sm:p-8 space-y-6 transition-colors duration-300 ${
           isDark
             ? 'bg-[#151614] text-[#ede9df] border-white/15'
-            : 'bg-[#dcd8cf] text-[#141414] border-white/60'
+            : 'bg-[#dcd8cf] text-[#141414] border-[#141414]/20'
         }`}
       >
         {/* Close */}
