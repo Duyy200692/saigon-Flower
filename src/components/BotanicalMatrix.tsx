@@ -40,26 +40,6 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
     setHoveredId(null);
   };
 
-  // Touch slide gesture support for mobile (silent)
-  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!e.touches || e.touches.length === 0) return;
-    const touch = e.touches[0];
-    const target = document.elementFromPoint(touch.clientX, touch.clientY);
-    const tile = target?.closest('[data-flower-id]');
-    if (tile) {
-      const flowerId = tile.getAttribute('data-flower-id');
-      if (flowerId && flowerId !== hoveredId) {
-        setHoveredId(flowerId);
-      }
-    }
-  };
-
-  const handleTouchEnd = () => {
-    setTimeout(() => {
-      setHoveredId(null);
-    }, 1200);
-  };
-
   return (
     <section id="gallery-matrix" className="max-w-4xl mx-auto px-4 sm:px-6 my-10 relative overflow-x-clip">
       
@@ -118,8 +98,6 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
       {/* 3-column mosaic grid matching classic editorial atelier */}
       <div
         ref={gridRef}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
         className={`grid grid-cols-3 gap-2 sm:gap-3 p-2.5 sm:p-4 rounded-2xl sm:rounded-3xl border shadow-2xl relative overflow-visible transition-colors duration-300 ${
           isDark
             ? 'bg-[#171815] border-white/15'
@@ -136,14 +114,14 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
               onClick={() => handleTileClick(flower)}
               onMouseEnter={() => handleMouseEnter(flower)}
               onMouseLeave={handleMouseLeave}
-              className={`group relative aspect-[3/4] cursor-pointer transition-all duration-300 ease-out select-none ${
+              className={`group relative aspect-[3/4] cursor-pointer transition-all duration-300 ease-out select-none active:scale-95 will-change-transform ${
                 isHovered
                   ? 'z-30 scale-110 sm:scale-120 rounded-xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.95)] ring-1 ring-white/50'
                   : 'z-10 scale-100 rounded-lg hover:z-20'
               }`}
               style={{
                 transformOrigin: 'center center',
-                willChange: 'transform, box-shadow',
+                transform: 'translate3d(0,0,0)'
               }}
             >
               {/* Inner card container for clipping image */}

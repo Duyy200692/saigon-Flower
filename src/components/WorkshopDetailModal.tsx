@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   X,
   ChevronLeft,
@@ -9,10 +9,12 @@ import {
   CheckCircle2,
   Sparkles,
   Maximize2,
-  Minimize2
+  Minimize2,
+  MoveHorizontal
 } from 'lucide-react';
 import { WorkshopItem } from '../data/workshop';
 import { useAtelier, WorkshopBooking } from '../context/AtelierContext';
+import { useTrackpadGallery } from '../hooks/useTrackpadGallery';
 
 interface WorkshopDetailModalProps {
   workshop: WorkshopItem | null;
@@ -83,13 +85,27 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
   const totalSlides = gallery.length;
   const activeImage = gallery[currentSlide] || gallery[0];
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     setCurrentSlide((prev) => (prev + 1) % totalSlides);
-  };
+  }, [totalSlides]);
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     setCurrentSlide((prev) => (prev - 1 + totalSlides) % totalSlides);
-  };
+  }, [totalSlides]);
+
+  // MacBook Trackpad 2-finger swipe navigation
+  const {
+    containerRef: wsTrackpadRef,
+    dragOffset
+  } = useTrackpadGallery<HTMLDivElement>({
+    totalItems: totalSlides,
+    currentIndex: currentSlide,
+    onNext: handleNext,
+    onPrev: handlePrev,
+    threshold: 36,
+    cooldownMs: 320,
+    enabled: isOpen && !showBookingForm
+  });
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.targetTouches[0].clientX;
@@ -399,11 +415,16 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
           </div>
         ) : (
           <div
-            className={`relative w-full mx-auto rounded-[28px] sm:rounded-[36px] overflow-hidden bg-black shadow-soft-3 border transition-all duration-300 flex items-center justify-center ${
+            ref={wsTrackpadRef}
+            className={`relative w-full mx-auto rounded-[28px] sm:rounded-[36px] overflow-hidden bg-black shadow-soft-3 border transition-all duration-300 flex items-center justify-center will-change-transform ${
               isDark ? 'border-white/20' : 'border-[#141414]/20'
             } ${
               isLandscape ? 'max-w-3xl aspect-[4/3]' : 'max-w-md sm:max-w-lg aspect-[3/4]'
             }`}
+            style={{
+              transform: dragOffset ? `translateX(${dragOffset}px)` : undefined,
+              transition: dragOffset ? 'none' : 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -495,28 +516,38 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
         )}
       </div>
 
-      {/* Bottom Navigation Dots */}
+      {/* Bottom Navigation Dots & Trackpad Guidance */}
       {!showBookingForm && (
-        <div className="w-full max-w-xl mx-auto space-y-2 text-center pt-1 shrink-0">
+        <div className="w-full max-w-xl mx-auto space-y-1.5 text-center pt-1 shrink-0">
           {totalSlides > 1 && (
-            <div className="flex items-center justify-center gap-2.5 py-1">
-              {gallery.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentSlide(idx)}
-                  className={`rounded-full transition-all ${
-                    currentSlide === idx
-                      ? isDark
-                        ? 'w-3 h-3 bg-amber-300 scale-110 shadow-sm'
-                        : 'w-3 h-3 bg-[#141414] scale-110 shadow-sm'
-                      : isDark
-                        ? 'w-2 h-2 bg-white/30 hover:bg-white/60'
-                        : 'w-2 h-2 bg-[#141414]/30 hover:bg-[#141414]/60'
-                  }`}
-                  aria-label={`Go to slide ${idx + 1}`}
-                />
-              ))}
-            </div>
+            <>
+              <div className="flex items-center justify-center gap-2.5 py-1">
+                {gallery.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentSlide(idx)}
+                    className={`rounded-full transition-all ${
+                      currentSlide === idx
+                        ? isDark
+                          ? 'w-3 h-3 bg-amber-300 scale-110 shadow-sm'
+                          : 'w-3 h-3 bg-[#141414] scale-110 shadow-sm'
+                        : isDark
+                          ? 'w-2 h-2 bg-white/30 hover:bg-white/60'
+                          : 'w-2 h-2 bg-[#141414]/30 hover:bg-[#141414]/60'
+                    }`}
+                    aria-label={`Go to slide ${idx + 1}`}
+                  />
+                ))}
+              </div>
+              <p className="text-[10px] font-mono opacity-50 flex items-center justify-center gap-1.5">
+                <MoveHorizontal className="w-3 h-3 text-amber-300" />
+                <span>
+                  {lang === 'vi'
+                    ? 'Trượt 2 ngón trên Trackpad / Lướt màn hình để chuyển ảnh'
+                    : 'Swipe with 2 fingers or flick to navigate'}
+                </span>
+              </p>
+            </>
           )}
         </div>
       )}

@@ -1051,9 +1051,9 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           </div>
         </div>
 
-        {/* Mobile & Tablet Tab Navigation Bar (Visible on screens < lg so mobile users see all 5 tabs clearly) */}
+        {/* Mobile & Tablet Tab Navigation Bar (Visible on screens < lg so mobile & tablet users see all 5 tabs cleanly) */}
         <div
-          className={`lg:hidden grid grid-cols-2 sm:grid-cols-5 gap-1.5 p-1.5 rounded-xl border text-[11px] sm:text-xs font-medium ${
+          className={`lg:hidden flex items-center gap-1.5 p-1.5 rounded-xl border overflow-x-auto no-scrollbar whitespace-nowrap text-xs font-medium ${
             isDark
               ? 'bg-black/50 border-white/15'
               : 'bg-[#dcd8cf] border-[#141414]/15'
@@ -1066,7 +1066,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
               setEditingFlower(null);
               setIsAddingFlower(false);
             }}
-            className={`px-2.5 py-2 rounded-lg transition-all text-center truncate ${
+            className={`px-3 py-2 rounded-lg transition-all text-center shrink-0 ${
               activeTab === 'flowers'
                 ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
                 : isDark
@@ -1083,7 +1083,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
               setEditingWorkshop(null);
               setIsAddingWorkshop(false);
             }}
-            className={`px-2.5 py-2 rounded-lg transition-all text-center truncate ${
+            className={`px-3 py-2 rounded-lg transition-all text-center shrink-0 ${
               activeTab === 'workshops'
                 ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
                 : isDark
@@ -1096,7 +1096,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('orders')}
-            className={`px-2.5 py-2 rounded-lg transition-all text-center truncate ${
+            className={`px-3 py-2 rounded-lg transition-all text-center shrink-0 ${
               activeTab === 'orders'
                 ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
                 : isDark
@@ -1109,7 +1109,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('branding')}
-            className={`px-2.5 py-2 rounded-lg transition-all text-center truncate ${
+            className={`px-3 py-2 rounded-lg transition-all text-center shrink-0 ${
               activeTab === 'branding'
                 ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
                 : isDark
@@ -1117,12 +1117,12 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                   : 'text-[#141414]/80 hover:text-[#141414] bg-white/60'
             }`}
           >
-            Logo, Thông Tin & Social
+            Logo & Thương Hiệu
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('security')}
-            className={`px-2.5 py-2 rounded-lg transition-all flex items-center justify-center gap-1 truncate ${
+            className={`px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-1 shrink-0 ${
               activeTab === 'security'
                 ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
                 : isDark
@@ -1131,7 +1131,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
             }`}
           >
             <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">Bảo Mật & Mật Khẩu</span>
+            <span>Bảo Mật & Mật Khẩu</span>
           </button>
         </div>
       </header>

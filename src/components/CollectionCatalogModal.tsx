@@ -163,7 +163,7 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
         }`}
       >
         {/* Row 1: Categories */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar overscroll-x-contain touch-pan-x py-1">
           <span
             className={`text-[11px] font-mono uppercase tracking-wider flex-shrink-0 flex items-center gap-1 font-bold ${
               isDark ? 'text-amber-300' : 'text-amber-900'
@@ -220,7 +220,7 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
 
         {/* Row 2: Seasonality + Pinned Landing Quick Filter */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar overscroll-x-contain touch-pan-x py-0.5">
             <span className={`text-[11px] font-mono uppercase tracking-wider flex-shrink-0 ${isDark ? 'text-white/50' : 'text-[#141414]/60'}`}>
               {lang === 'vi' ? 'LỌC THEO MÙA:' : 'BY SEASON:'}
             </span>

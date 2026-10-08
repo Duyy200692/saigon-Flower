@@ -17,12 +17,26 @@
     --stone-hairline: rgba(237, 233, 223, 0.15);
   }
 
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
     background-color: var(--bg-canvas);
     color: var(--text-ink);
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
     transition: background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1), color 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Prevent body scroll chaining when interacting with modals & lightboxes */
+  .fixed.inset-0 {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -244,4 +258,42 @@
 .admin-theme-light .text-purple-400 {
   color: #7e22ce !important;
 }
+
+/* Kinetic hardware-accelerated animations for luxury responsive ateliers */
+.will-change-transform {
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
+@keyframes slideImageRight {
+  from {
+    opacity: 0.8;
+    transform: translate3d(-18px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes slideImageLeft {
+  from {
+    opacity: 0.8;
+    transform: translate3d(18px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-slide-right {
+  animation: slideImageRight 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-left {
+  animation: slideImageLeft 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 

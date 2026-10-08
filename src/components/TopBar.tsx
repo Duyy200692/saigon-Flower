@@ -92,7 +92,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Zone 2: Clean Text Navigation Links */}
         <nav
-          className={`hidden md:flex items-center gap-7 text-xs font-semibold tracking-widest uppercase ${
+          className={`hidden md:flex items-center gap-3.5 lg:gap-7 text-xs font-semibold tracking-widest uppercase ${
             isDark ? 'text-[#ede9df]/75' : 'text-[#141414]/75'
           }`}
         >

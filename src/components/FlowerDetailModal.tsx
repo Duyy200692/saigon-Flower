@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Sparkles, ChevronLeft, ChevronRight, Share2, Check, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw, Heart } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { X, Sparkles, ChevronLeft, ChevronRight, Share2, Check, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw, Heart, MoveHorizontal } from 'lucide-react';
 import { FlowerItem, FLOWERS } from '../data/flowers';
 import { useAtelier } from '../context/AtelierContext';
 import { formatTitleCase, formatDisplayUppercase } from '../utils/textFormatter';
+import { useTrackpadGallery } from '../hooks/useTrackpadGallery';
 
 interface FlowerDetailModalProps {
   flower: FlowerItem | null;
@@ -95,15 +96,87 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
     setIsLandscape(naturalWidth > naturalHeight);
   };
 
-  const handlePrevImage = (e?: React.MouseEvent) => {
+  const handlePrevImage = useCallback((e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     setSelectedImageIndex((prev) => (prev - 1 + gallery.length) % gallery.length);
-  };
+  }, [gallery.length]);
 
-  const handleNextImage = (e?: React.MouseEvent) => {
+  const handleNextImage = useCallback((e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     setSelectedImageIndex((prev) => (prev + 1) % gallery.length);
-  };
+  }, [gallery.length]);
+
+  // MacBook Trackpad 2-finger horizontal swipe navigation
+  const {
+    containerRef: imageTrackpadRef,
+    dragOffset,
+    isMacOs
+  } = useTrackpadGallery<HTMLDivElement>({
+    totalItems: gallery.length,
+    currentIndex: selectedImageIndex,
+    onNext: handleNextImage,
+    onPrev: handlePrevImage,
+    threshold: 36,
+    cooldownMs: 320,
+    enabled: isOpen && !isLightboxOpen
+  });
+
+  // Lightbox container ref for MacBook Trackpad pinch-to-zoom & two-finger pan
+  const lightboxContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = lightboxContainerRef.current;
+    if (!el || !isLightboxOpen) return;
+
+    let panCooldown = 0;
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      // Trackpad pinch-to-zoom (ctrlKey is true when pinching on Mac trackpad)
+      if (e.ctrlKey) {
+        setLightboxZoom((prev) => {
+          const delta = -e.deltaY * 0.012;
+          const next = Math.max(1, Math.min(3.5, +(prev + delta).toFixed(2)));
+          if (next <= 1.05) {
+            setLightboxPan({ x: 0, y: 0 });
+            return 1;
+          }
+          return next;
+        });
+        return;
+      }
+
+      // If zoomed in: 2 fingers pan the image smoothly
+      if (lightboxZoom > 1.05) {
+        setLightboxPan((prev) => {
+          const maxPan = 350 * (lightboxZoom - 1);
+          const nextX = Math.max(-maxPan, Math.min(maxPan, prev.x - e.deltaX * 0.85));
+          const nextY = Math.max(-maxPan, Math.min(maxPan, prev.y - e.deltaY * 0.85));
+          return { x: nextX, y: nextY };
+        });
+        return;
+      }
+
+      // If at 1x zoom and swiping horizontally: switch image
+      const absX = Math.abs(e.deltaX);
+      const absY = Math.abs(e.deltaY);
+      if (absX > absY && absX > 25) {
+        const now = Date.now();
+        if (now - panCooldown < 320) return;
+        panCooldown = now;
+        if (e.deltaX > 0) {
+          handleNextImage();
+        } else {
+          handlePrevImage();
+        }
+      }
+    };
+
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [isLightboxOpen, lightboxZoom, handleNextImage, handlePrevImage]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.targetTouches[0].clientX;
@@ -259,16 +332,21 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
             {/* Left Column: Auto-detected Aspect Ratio Multi-Image Gallery */}
             <div className="lg:col-span-6 space-y-3">
               
-              {/* Main Adaptive Image Frame */}
+              {/* Main Adaptive Image Frame with Trackpad & Swipe Gestures */}
               <div
+                ref={imageTrackpadRef}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
-                className={`relative w-full mx-auto rounded-[26px] sm:rounded-[34px] overflow-hidden bg-[#181716] shadow-2xl border group transition-all duration-500 ${
+                className={`relative w-full mx-auto rounded-[26px] sm:rounded-[34px] overflow-hidden bg-[#181716] shadow-2xl border group transition-all duration-500 will-change-transform ${
                   isDark ? 'border-white/15' : 'border-[#141414]/20'
                 } ${
                   isLandscape ? 'aspect-[4/3] max-w-lg' : 'aspect-[3/4] max-w-md'
                 }`}
+                style={{
+                  transform: dragOffset ? `translateX(${dragOffset}px)` : undefined,
+                  transition: dragOffset ? 'none' : 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
               >
                 {/* Blurred ambient backdrop when in 'contain' (Vừa Khung) mode */}
                 {imageFitMode === 'contain' && (
@@ -395,6 +473,19 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                     {selectedImageIndex + 1} / {gallery.length}
                   </span>
                 </div>
+              </div>
+
+              {/* Discreet Trackpad & Touch Gesture Hint */}
+              <div className="flex items-center justify-between px-2 text-[10px] font-mono opacity-60">
+                <span className="flex items-center gap-1.5 text-amber-400/90">
+                  <MoveHorizontal className="w-3 h-3 shrink-0" />
+                  <span>
+                    {lang === 'vi'
+                      ? 'Trượt 2 ngón trên Trackpad hoặc lướt chạm để đổi ảnh'
+                      : 'Swipe with 2 fingers or touch-drag to change angle'}
+                  </span>
+                </span>
+                <span className="hidden sm:inline-block">← → Phím mũi tên</span>
               </div>
 
               {/* Adaptive Thumbnail Strip */}
@@ -740,6 +831,7 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                 setLightboxZoom(2);
               }
             }}
+            ref={lightboxContainerRef}
             className={`relative w-full max-w-4xl h-[75vh] rounded-2xl overflow-hidden shadow-2xl bg-black/60 border border-white/10 flex items-center justify-center touch-none ${
               lightboxZoom > 1 ? (isPanningLightbox ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-zoom-in'
             }`}
@@ -752,7 +844,7 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                 transform: `translate(${lightboxPan.x}px, ${lightboxPan.y}px) scale(${lightboxZoom})`,
                 transition: isPanningLightbox ? 'none' : 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
-              className="max-w-full max-h-full object-contain pointer-events-none"
+              className="max-w-full max-h-full object-contain pointer-events-none select-none"
             />
             <button
               onClick={(e) => {
@@ -776,10 +868,10 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
             </button>
           </div>
 
-          <div className="mt-4 text-center text-white/90 text-sm font-sans">
+          <div className="mt-4 text-center text-white/90 text-sm font-sans space-y-1">
             <p className="font-semibold">{lang === 'vi' ? currentImage.captionVi : currentImage.captionEn}</p>
-            <p className="text-xs font-mono text-white/60 mt-0.5">
-              {selectedImageIndex + 1} / {gallery.length} · {lang === 'vi' ? 'Nhấp đúp hoặc dùng thanh công cụ để phóng to chi tiết hoa' : 'Double-click or use controls to zoom'}
+            <p className="text-xs font-mono text-white/60">
+              {selectedImageIndex + 1} / {gallery.length} · {lang === 'vi' ? 'Pinch hoặc trượt 2 ngón trên Trackpad để zoom & lia ảnh · Nhấp đúp để phóng to' : 'Pinch or 2-finger scroll on Trackpad to zoom & pan · Double-click to zoom'}
             </p>
           </div>
         </div>
