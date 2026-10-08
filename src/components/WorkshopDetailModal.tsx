@@ -53,34 +53,8 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 
-  useEffect(() => {
-    setCurrentSlide(0);
-    setShowBookingForm(false);
-    setCreatedBooking(null);
-  }, [workshop?.id, isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (showBookingForm) return;
-      if (e.key === 'ArrowRight') {
-        handleNext();
-      } else if (e.key === 'ArrowLeft') {
-        handlePrev();
-      } else if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, workshop, showBookingForm]);
-
-  if (!isOpen || !workshop) return null;
-
-  const gallery = workshop.galleryImages || [
-    { url: workshop.image, captionVi: 'Bó hoa nghệ thuật', captionEn: 'Artistic bouquet' }
+  const gallery = workshop?.galleryImages || [
+    { url: workshop?.image || '', captionVi: 'Bó hoa nghệ thuật', captionEn: 'Artistic bouquet' }
   ];
   const totalSlides = gallery.length;
   const activeImage = gallery[currentSlide] || gallery[0];
@@ -106,6 +80,32 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
     cooldownMs: 320,
     enabled: isOpen && !showBookingForm
   });
+
+  useEffect(() => {
+    setCurrentSlide(0);
+    setShowBookingForm(false);
+    setCreatedBooking(null);
+  }, [workshop?.id, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (showBookingForm) return;
+      if (e.key === 'ArrowRight') {
+        handleNext();
+      } else if (e.key === 'ArrowLeft') {
+        handlePrev();
+      } else if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, workshop, showBookingForm, showBookingForm, handleNext, handlePrev, onClose]);
+
+  if (!isOpen || !workshop) return null;
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.targetTouches[0].clientX;

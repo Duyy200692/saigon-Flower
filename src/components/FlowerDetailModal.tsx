@@ -45,6 +45,43 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
 
   const isDark = theme === 'dark';
 
+  const totalCount = flowers.length || FLOWERS.length;
+  const gallery = flower?.galleryImages && flower.galleryImages.length > 0 
+    ? flower.galleryImages 
+    : [
+        { url: flower?.image || '', captionVi: "Góc nhìn toàn cảnh", captionEn: "Full architectural view" },
+        { url: flower?.image || '', captionVi: "Cận cảnh chi tiết", captionEn: "Macro texture detail" },
+        { url: flower?.image || '', captionVi: "Bối cảnh không gian", captionEn: "Ambient interior styling" },
+        { url: flower?.image || '', captionVi: "Dáng cành độc bản", captionEn: "Sculptural profile angle" }
+      ];
+
+  const currentImage = gallery[selectedImageIndex] || gallery[0];
+
+  const handlePrevImage = useCallback((e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedImageIndex((prev) => (prev - 1 + gallery.length) % gallery.length);
+  }, [gallery.length]);
+
+  const handleNextImage = useCallback((e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedImageIndex((prev) => (prev + 1) % gallery.length);
+  }, [gallery.length]);
+
+  // MacBook Trackpad 2-finger horizontal swipe navigation
+  const {
+    containerRef: imageTrackpadRef,
+    dragOffset,
+    isMacOs
+  } = useTrackpadGallery<HTMLDivElement>({
+    totalItems: gallery.length,
+    currentIndex: selectedImageIndex,
+    onNext: handleNextImage,
+    onPrev: handlePrevImage,
+    threshold: 36,
+    cooldownMs: 320,
+    enabled: isOpen && !isLightboxOpen
+  });
+
   // Reset selected image when flower changes
   useEffect(() => {
     setSelectedImageIndex(0);
@@ -76,50 +113,13 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onNext, onPrev, onClose, isLightboxOpen]);
 
-  if (!isOpen || !flower) return null;
-
-  const totalCount = flowers.length || FLOWERS.length;
-  const gallery = flower.galleryImages && flower.galleryImages.length > 0 
-    ? flower.galleryImages 
-    : [
-        { url: flower.image, captionVi: "Góc nhìn toàn cảnh", captionEn: "Full architectural view" },
-        { url: flower.image, captionVi: "Cận cảnh chi tiết", captionEn: "Macro texture detail" },
-        { url: flower.image, captionVi: "Bối cảnh không gian", captionEn: "Ambient interior styling" },
-        { url: flower.image, captionVi: "Dáng cành độc bản", captionEn: "Sculptural profile angle" }
-      ];
-
-  const currentImage = gallery[selectedImageIndex] || gallery[0];
-
   // Auto-detect image natural aspect ratio (Landscape 4:3 vs Portrait 3:4)
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const { naturalWidth, naturalHeight } = e.currentTarget;
     setIsLandscape(naturalWidth > naturalHeight);
   };
 
-  const handlePrevImage = useCallback((e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setSelectedImageIndex((prev) => (prev - 1 + gallery.length) % gallery.length);
-  }, [gallery.length]);
-
-  const handleNextImage = useCallback((e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setSelectedImageIndex((prev) => (prev + 1) % gallery.length);
-  }, [gallery.length]);
-
-  // MacBook Trackpad 2-finger horizontal swipe navigation
-  const {
-    containerRef: imageTrackpadRef,
-    dragOffset,
-    isMacOs
-  } = useTrackpadGallery<HTMLDivElement>({
-    totalItems: gallery.length,
-    currentIndex: selectedImageIndex,
-    onNext: handleNextImage,
-    onPrev: handlePrevImage,
-    threshold: 36,
-    cooldownMs: 320,
-    enabled: isOpen && !isLightboxOpen
-  });
+  if (!isOpen || !flower) return null;
 
   // Lightbox container ref for MacBook Trackpad pinch-to-zoom & two-finger pan
   const lightboxContainerRef = useRef<HTMLDivElement>(null);
