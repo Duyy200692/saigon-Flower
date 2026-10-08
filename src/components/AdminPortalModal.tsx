@@ -36,7 +36,9 @@ import {
   Eye,
   EyeOff,
   Sun,
-  Moon
+  Moon,
+  Crop,
+  Type
 } from 'lucide-react';
 import { useAtelier } from '../context/AtelierContext';
 import { FlowerItem } from '../data/flowers';
@@ -49,6 +51,13 @@ import {
   formatFileSize,
   CompressionResult
 } from '../utils/imageOptimizer';
+import {
+  formatDisplayUppercase,
+  formatTitleCase,
+  formatBotanicalLatin,
+  formatProseNFC
+} from '../utils/textFormatter';
+import { ImageStudioModal, AspectRatioPreset } from './ImageStudioModal';
 
 interface AdminPortalModalProps {
   isOpen: boolean;
@@ -134,7 +143,193 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   const [lastCompression, setLastCompression] = useState<CompressionResult | null>(null);
   const [imageUrlWarning, setImageUrlWarning] = useState<string | null>(null);
 
+  // Interactive Image Framing Studio state
+  const [autoOpenStudioOnUpload, setAutoOpenStudioOnUpload] = useState<boolean>(true);
+  const [studioState, setStudioState] = useState<{
+    isOpen: boolean;
+    imageSource: string | null;
+    title: string;
+    defaultAspectRatio: AspectRatioPreset;
+    onApply: (result: CompressionResult) => void;
+  }>({
+    isOpen: false,
+    imageSource: null,
+    title: '',
+    defaultAspectRatio: '3:4',
+    onApply: () => {}
+  });
+
+  const openImageStudio = (
+    imageSource: string | undefined | null,
+    title: string,
+    onApply: (result: CompressionResult) => void,
+    defaultAspectRatio: AspectRatioPreset = '3:4'
+  ) => {
+    if (!imageSource) return;
+    setStudioState({
+      isOpen: true,
+      imageSource,
+      title,
+      defaultAspectRatio,
+      onApply
+    });
+  };
+
   if (!isOpen) return null;
+
+  // Helper to apply main flower image and optionally open ImageStudioModal
+  const applyFlowerMainImageResult = (result: CompressionResult, shouldOpenStudio = autoOpenStudioOnUpload) => {
+    setFlowerForm((prev) => ({
+      ...prev,
+      image: result.webpDataUrl,
+      galleryImages: [
+        {
+          url: result.webpDataUrl,
+          captionVi: prev.galleryImages?.[0]?.captionVi || 'Góc nhìn toàn cảnh',
+          captionEn: prev.galleryImages?.[0]?.captionEn || 'Full architectural view'
+        },
+        ...(prev.galleryImages?.slice(1) || [])
+      ]
+    }));
+    setLastCompression(result);
+
+    if (shouldOpenStudio) {
+      openImageStudio(
+        result.webpDataUrl,
+        'Căn Chỉnh Khung Hình: Ảnh Đại Diện Chính',
+        (framedRes) => {
+          setFlowerForm((prev) => ({
+            ...prev,
+            image: framedRes.webpDataUrl,
+            galleryImages: [
+              {
+                url: framedRes.webpDataUrl,
+                captionVi: prev.galleryImages?.[0]?.captionVi || 'Góc nhìn toàn cảnh',
+                captionEn: prev.galleryImages?.[0]?.captionEn || 'Full architectural view'
+              },
+              ...(prev.galleryImages?.slice(1) || [])
+            ]
+          }));
+          setLastCompression(framedRes);
+        },
+        '3:4'
+      );
+    }
+  };
+
+  // Helper to apply flower gallery angle image and optionally open ImageStudioModal
+  const applyFlowerGalleryImageResult = (
+    index: number,
+    result: CompressionResult,
+    shouldOpenStudio = autoOpenStudioOnUpload
+  ) => {
+    const updateAtSlot = (res: CompressionResult) => {
+      setFlowerForm((prev) => {
+        const currentGallery = [...(prev.galleryImages || [])];
+        while (currentGallery.length <= index) {
+          currentGallery.push({
+            url: '',
+            captionVi: `Góc chụp chi tiết 0${currentGallery.length + 1}`,
+            captionEn: `Detailed angle 0${currentGallery.length + 1}`
+          });
+        }
+        currentGallery[index] = {
+          ...currentGallery[index],
+          url: res.webpDataUrl
+        };
+        return {
+          ...prev,
+          ...(index === 0 ? { image: res.webpDataUrl } : {}),
+          galleryImages: currentGallery
+        };
+      });
+      setLastCompression(res);
+    };
+
+    updateAtSlot(result);
+
+    if (shouldOpenStudio) {
+      openImageStudio(
+        result.webpDataUrl,
+        `Căn Chỉnh Khung Hình: Góc Chụp 0${index + 1}`,
+        (framedRes) => updateAtSlot(framedRes),
+        '3:4'
+      );
+    }
+  };
+
+  // Helper to apply main workshop image and optionally open ImageStudioModal
+  const applyWorkshopMainImageResult = (result: CompressionResult, shouldOpenStudio = autoOpenStudioOnUpload) => {
+    const updateMainWs = (res: CompressionResult) => {
+      setWorkshopForm((prev) => ({
+        ...prev,
+        image: res.webpDataUrl,
+        galleryImages: [
+          {
+            url: res.webpDataUrl,
+            captionVi: prev.galleryImages?.[0]?.captionVi || 'Poster chính thức',
+            captionEn: prev.galleryImages?.[0]?.captionEn || 'Official visual'
+          },
+          ...(prev.galleryImages?.slice(1) || [])
+        ]
+      }));
+      setLastCompression(res);
+    };
+
+    updateMainWs(result);
+
+    if (shouldOpenStudio) {
+      openImageStudio(
+        result.webpDataUrl,
+        'Căn Chỉnh Khung Hình: Poster Workshop',
+        (framedRes) => updateMainWs(framedRes),
+        '3:4'
+      );
+    }
+  };
+
+  // Helper to apply workshop gallery angle image and optionally open ImageStudioModal
+  const applyWorkshopGalleryImageResult = (
+    idx: number,
+    result: CompressionResult,
+    shouldOpenStudio = autoOpenStudioOnUpload
+  ) => {
+    const updateWsSlot = (res: CompressionResult) => {
+      setWorkshopForm((prev) => {
+        const currentGallery = [...(prev.galleryImages || [])];
+        while (currentGallery.length <= idx) {
+          currentGallery.push({
+            url: '',
+            captionVi: `Góc ảnh #${currentGallery.length + 1}`,
+            captionEn: `Angle photo #${currentGallery.length + 1}`
+          });
+        }
+        currentGallery[idx] = {
+          ...currentGallery[idx],
+          url: res.webpDataUrl,
+          captionVi: currentGallery[idx]?.captionVi || `Góc ảnh #${idx + 1}`,
+          captionEn: currentGallery[idx]?.captionEn || `Angle photo #${idx + 1}`
+        };
+        return {
+          ...prev,
+          ...(idx === 0 ? { image: res.webpDataUrl } : {}),
+          galleryImages: currentGallery
+        };
+      });
+      setLastCompression(res);
+    };
+
+    updateWsSlot(result);
+
+    if (shouldOpenStudio) {
+      openImageStudio(
+        result.webpDataUrl,
+        `Căn Chỉnh Khung Hình: Góc Ảnh Workshop #${idx + 1}`,
+        (framedRes) => updateWsSlot(framedRes),
+        '3:4'
+      );
+    }
+  };
 
   // Handle Clipboard Paste (Ctrl+V) for Flower Image
   const handleFlowerPaste = async (e: React.ClipboardEvent) => {
@@ -150,15 +345,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           setCompressing(true);
           setImageUrlWarning(null);
           const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
-          setFlowerForm((prev) => ({
-            ...prev,
-            image: result.webpDataUrl,
-            galleryImages: [
-              { url: result.webpDataUrl, captionVi: "Góc nhìn toàn cảnh", captionEn: "Full architectural view" },
-              ...(prev.galleryImages?.slice(1) || [])
-            ]
-          }));
-          setLastCompression(result);
+          applyFlowerMainImageResult(result);
         } catch (err) {
           console.error(err);
           setImageUrlWarning('Không thể xử lý ảnh từ bộ nhớ tạm.');
@@ -179,15 +366,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       setCompressing(true);
       setImageUrlWarning(null);
       const result = await convertUrlToWebP(targetUrl, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
-      setFlowerForm((prev) => ({
-        ...prev,
-        image: result.webpDataUrl,
-        galleryImages: [
-          { url: result.webpDataUrl, captionVi: prev.galleryImages?.[0]?.captionVi || "Góc nhìn toàn cảnh", captionEn: prev.galleryImages?.[0]?.captionEn || "Full architectural view" },
-          ...(prev.galleryImages?.slice(1) || [])
-        ]
-      }));
-      setLastCompression(result);
+      applyFlowerMainImageResult(result);
     } catch (err: any) {
       setImageUrlWarning(err?.message || 'Không thể tải ảnh từ đường dẫn này.');
     } finally {
@@ -209,15 +388,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           setCompressing(true);
           setImageUrlWarning(null);
           const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
-          setWorkshopForm((prev) => ({
-            ...prev,
-            image: result.webpDataUrl,
-            galleryImages: [
-              { url: result.webpDataUrl, captionVi: "Poster chính thức", captionEn: "Official visual" },
-              ...(prev.galleryImages?.slice(1) || [])
-            ]
-          }));
-          setLastCompression(result);
+          applyWorkshopMainImageResult(result);
         } catch (err) {
           console.error(err);
           setImageUrlWarning('Không thể xử lý ảnh từ bộ nhớ tạm.');
@@ -238,15 +409,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       setCompressing(true);
       setImageUrlWarning(null);
       const result = await convertUrlToWebP(targetUrl, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
-      setWorkshopForm((prev) => ({
-        ...prev,
-        image: result.webpDataUrl,
-        galleryImages: [
-          { url: result.webpDataUrl, captionVi: prev.galleryImages?.[0]?.captionVi || "Poster chính thức", captionEn: prev.galleryImages?.[0]?.captionEn || "Official visual" },
-          ...(prev.galleryImages?.slice(1) || [])
-        ]
-      }));
-      setLastCompression(result);
+      applyWorkshopMainImageResult(result);
     } catch (err: any) {
       setImageUrlWarning(err?.message || 'Không thể tải ảnh từ đường dẫn này.');
     } finally {
@@ -263,26 +426,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       setCompressing(true);
       setImageUrlWarning(null);
       const result = await convertUrlToWebP(targetUrl, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
-      setFlowerForm((prev) => {
-        const currentGallery = [...(prev.galleryImages || [])];
-        while (currentGallery.length <= index) {
-          currentGallery.push({
-            url: '',
-            captionVi: `Góc chụp chi tiết 0${currentGallery.length + 1}`,
-            captionEn: `Detailed angle 0${currentGallery.length + 1}`
-          });
-        }
-        currentGallery[index] = {
-          ...currentGallery[index],
-          url: result.webpDataUrl
-        };
-        return {
-          ...prev,
-          ...(index === 0 ? { image: result.webpDataUrl } : {}),
-          galleryImages: currentGallery
-        };
-      });
-      setLastCompression(result);
+      applyFlowerGalleryImageResult(index, result);
     } catch (err: any) {
       setImageUrlWarning(err?.message || 'Không thể tải ảnh góc chụp từ đường dẫn này.');
     } finally {
@@ -305,26 +449,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           setCompressing(true);
           setImageUrlWarning(null);
           const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
-          setFlowerForm((prev) => {
-            const currentGallery = [...(prev.galleryImages || [])];
-            while (currentGallery.length <= index) {
-              currentGallery.push({
-                url: '',
-                captionVi: `Góc chụp chi tiết 0${currentGallery.length + 1}`,
-                captionEn: `Detailed angle 0${currentGallery.length + 1}`
-              });
-            }
-            currentGallery[index] = {
-              ...currentGallery[index],
-              url: result.webpDataUrl
-            };
-            return {
-              ...prev,
-              ...(index === 0 ? { image: result.webpDataUrl } : {}),
-              galleryImages: currentGallery
-            };
-          });
-          setLastCompression(result);
+          applyFlowerGalleryImageResult(index, result);
         } catch (err) {
           console.error(err);
           setImageUrlWarning('Không thể xử lý ảnh từ bộ nhớ tạm.');
@@ -345,22 +470,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       setCompressing(true);
       setImageUrlWarning(null);
       const result = await convertUrlToWebP(targetUrl, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
-      setWorkshopForm((prev) => {
-        const currentGallery = [...(prev.galleryImages || [])];
-        while (currentGallery.length <= idx) {
-          currentGallery.push({ url: '', captionVi: `Góc ảnh #${currentGallery.length + 1}`, captionEn: `Angle photo #${currentGallery.length + 1}` });
-        }
-        currentGallery[idx] = {
-          ...currentGallery[idx],
-          url: result.webpDataUrl
-        };
-        return {
-          ...prev,
-          ...(idx === 0 ? { image: result.webpDataUrl } : {}),
-          galleryImages: currentGallery
-        };
-      });
-      setLastCompression(result);
+      applyWorkshopGalleryImageResult(idx, result);
     } catch (err: any) {
       setImageUrlWarning(err?.message || 'Không thể tải ảnh góc chụp workshop từ đường dẫn này.');
     } finally {
@@ -383,22 +493,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           setCompressing(true);
           setImageUrlWarning(null);
           const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
-          setWorkshopForm((prev) => {
-            const currentGallery = [...(prev.galleryImages || [])];
-            while (currentGallery.length <= idx) {
-              currentGallery.push({ url: '', captionVi: `Góc ảnh #${currentGallery.length + 1}`, captionEn: `Angle photo #${currentGallery.length + 1}` });
-            }
-            currentGallery[idx] = {
-              ...currentGallery[idx],
-              url: result.webpDataUrl
-            };
-            return {
-              ...prev,
-              ...(idx === 0 ? { image: result.webpDataUrl } : {}),
-              galleryImages: currentGallery
-            };
-          });
-          setLastCompression(result);
+          applyWorkshopGalleryImageResult(idx, result);
         } catch (err) {
           console.error(err);
           setImageUrlWarning('Không thể xử lý ảnh từ bộ nhớ tạm.');
@@ -505,15 +600,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       setCompressing(true);
       setImageUrlWarning(null);
       const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
-      setFlowerForm((prev) => ({
-        ...prev,
-        image: result.webpDataUrl,
-        galleryImages: [
-          { url: result.webpDataUrl, captionVi: "Góc nhìn toàn cảnh", captionEn: "Full architectural view" },
-          ...(prev.galleryImages?.slice(1) || [])
-        ]
-      }));
-      setLastCompression(result);
+      applyFlowerMainImageResult(result);
     } catch (err) {
       console.error(err);
       alert('Lỗi khi nén ảnh. Vui lòng thử lại.');
@@ -531,24 +618,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       setCompressing(true);
       setImageUrlWarning(null);
       const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
-      setFlowerForm((prev) => {
-        const currentGallery = [...(prev.galleryImages || [])];
-        if (currentGallery[index]) {
-          currentGallery[index] = { ...currentGallery[index], url: result.webpDataUrl };
-        } else {
-          currentGallery[index] = {
-            url: result.webpDataUrl,
-            captionVi: `Góc chụp chi tiết 0${index + 1}`,
-            captionEn: `Detailed angle 0${index + 1}`
-          };
-        }
-        return {
-          ...prev,
-          ...(index === 0 ? { image: result.webpDataUrl } : {}),
-          galleryImages: currentGallery
-        };
-      });
-      setLastCompression(result);
+      applyFlowerGalleryImageResult(index, result);
     } catch (err) {
       console.error(err);
       alert('Lỗi khi nén ảnh góc chụp.');
@@ -566,15 +636,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       setCompressing(true);
       setImageUrlWarning(null);
       const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
-      setWorkshopForm((prev) => ({
-        ...prev,
-        image: result.webpDataUrl,
-        galleryImages: [
-          { url: result.webpDataUrl, captionVi: "Poster chính thức", captionEn: "Official visual" },
-          ...(prev.galleryImages?.slice(1) || [])
-        ]
-      }));
-      setLastCompression(result);
+      applyWorkshopMainImageResult(result);
     } catch (err) {
       console.error(err);
       alert('Lỗi khi nén ảnh workshop.');
@@ -592,23 +654,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       setCompressing(true);
       setImageUrlWarning(null);
       const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
-      setWorkshopForm((prev) => {
-        const currentGallery = [...(prev.galleryImages || [])];
-        while (currentGallery.length <= idx) {
-          currentGallery.push({ url: '', captionVi: '', captionEn: '' });
-        }
-        currentGallery[idx] = {
-          url: result.webpDataUrl,
-          captionVi: currentGallery[idx]?.captionVi || `Góc ảnh #${idx + 1}`,
-          captionEn: currentGallery[idx]?.captionEn || `Angle photo #${idx + 1}`
-        };
-        return {
-          ...prev,
-          ...(idx === 0 ? { image: result.webpDataUrl } : {}),
-          galleryImages: currentGallery
-        };
-      });
-      setLastCompression(result);
+      applyWorkshopGalleryImageResult(idx, result);
     } catch (err) {
       console.error(err);
       alert('Lỗi khi nén ảnh góc chụp workshop.');
@@ -1136,15 +1182,26 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       onPaste={handleFlowerPaste}
                       className="p-4 bg-black/40 rounded-xl border border-white/10 space-y-4"
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
                         <label className="font-mono uppercase text-[11px] font-bold text-amber-300">
                           1. ẢNH ĐẠI DIỆN CHÍNH (HỖ TRỢ TẢI FILE, DÁN CTRL+V TỪ FACEBOOK, HOẶC LINK ẢNH)
                         </label>
-                        {compressing && (
-                          <span className="text-amber-400 font-mono text-[11px] animate-pulse">
-                            Đang xử lý & nén sang WebP...
-                          </span>
-                        )}
+                        <div className="flex items-center gap-3">
+                          <label className="flex items-center gap-1.5 text-[11px] font-mono text-white/80 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={autoOpenStudioOnUpload}
+                              onChange={(e) => setAutoOpenStudioOnUpload(e.target.checked)}
+                              className="accent-amber-400 rounded cursor-pointer"
+                            />
+                            <span>Tự mở khung căn chỉnh tỉ lệ khi tải ảnh</span>
+                          </label>
+                          {compressing && (
+                            <span className="text-amber-400 font-mono text-[11px] animate-pulse">
+                              Đang xử lý & nén sang WebP...
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       {imageUrlWarning && (
@@ -1160,22 +1217,55 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       )}
 
                       <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
-                        <div className="sm:col-span-4 aspect-[3/4] max-w-[160px] rounded-lg overflow-hidden border border-white/20 bg-black relative">
-                          <img
-                            src={flowerForm.image}
-                            alt="Preview"
-                            referrerPolicy="no-referrer"
-                            onError={() => {
-                              if (flowerForm.image && !flowerForm.image.startsWith('data:')) {
-                                setImageUrlWarning(
-                                  isFacebookWebpageUrl(flowerForm.image)
-                                    ? 'Bạn đang dán link trang bài viết Facebook (không phải link file ảnh).'
-                                    : 'Link ảnh bị chặn hiển thị hoặc đã hết hạn chữ ký bảo mật.'
-                                );
-                              }
-                            }}
-                            className="w-full h-full object-cover"
-                          />
+                        <div className="sm:col-span-4 space-y-2">
+                          <div className="aspect-[3/4] max-w-[160px] rounded-lg overflow-hidden border border-white/20 bg-black relative group">
+                            <img
+                              src={flowerForm.image}
+                              alt="Preview"
+                              referrerPolicy="no-referrer"
+                              onError={() => {
+                                if (flowerForm.image && !flowerForm.image.startsWith('data:')) {
+                                  setImageUrlWarning(
+                                    isFacebookWebpageUrl(flowerForm.image)
+                                      ? 'Bạn đang dán link trang bài viết Facebook (không phải link file ảnh).'
+                                      : 'Link ảnh bị chặn hiển thị hoặc đã hết hạn chữ ký bảo mật.'
+                                  );
+                                }
+                              }}
+                              className="w-full h-full object-cover"
+                            />
+                            {flowerForm.image && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openImageStudio(
+                                    flowerForm.image,
+                                    'Căn Chỉnh Khung Hình: Ảnh Đại Diện Chính',
+                                    (res) => {
+                                      setFlowerForm((prev) => ({
+                                        ...prev,
+                                        image: res.webpDataUrl,
+                                        galleryImages: [
+                                          {
+                                            url: res.webpDataUrl,
+                                            captionVi: prev.galleryImages?.[0]?.captionVi || 'Góc nhìn toàn cảnh',
+                                            captionEn: prev.galleryImages?.[0]?.captionEn || 'Full architectural view'
+                                          },
+                                          ...(prev.galleryImages?.slice(1) || [])
+                                        ]
+                                      }));
+                                      setLastCompression(res);
+                                    },
+                                    '3:4'
+                                  )
+                                }
+                                className="absolute inset-x-1.5 bottom-1.5 py-1.5 px-2 rounded-md bg-amber-400 text-[#141414] font-mono text-[10px] font-bold uppercase flex items-center justify-center gap-1 shadow-lg hover:bg-amber-300 transition-all"
+                              >
+                                <Crop className="w-3 h-3" />
+                                <span>Chỉnh Khung Hình</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
 
                         <div className="sm:col-span-8 space-y-3">
@@ -1309,6 +1399,42 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                                       className="hidden"
                                     />
                                   </label>
+                                  {img?.url && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openImageStudio(
+                                          img.url,
+                                          `Căn Chỉnh Khung Hình: Góc Chụp 0${idx + 1}`,
+                                          (res) => {
+                                            setFlowerForm((prev) => {
+                                              const current = [...(prev.galleryImages || [])];
+                                              while (current.length <= idx) {
+                                                current.push({
+                                                  url: '',
+                                                  captionVi: `Góc chụp 0${current.length + 1}`,
+                                                  captionEn: `Angle 0${current.length + 1}`
+                                                });
+                                              }
+                                              current[idx] = { ...current[idx], url: res.webpDataUrl };
+                                              return {
+                                                ...prev,
+                                                ...(idx === 0 ? { image: res.webpDataUrl } : {}),
+                                                galleryImages: current
+                                              };
+                                            });
+                                            setLastCompression(res);
+                                          },
+                                          '3:4'
+                                        );
+                                      }}
+                                      className="absolute bottom-1.5 inset-x-1.5 z-10 py-1 px-2 rounded bg-amber-400/95 hover:bg-amber-300 text-[#141414] font-mono text-[9px] font-bold uppercase flex items-center justify-center gap-1 shadow"
+                                    >
+                                      <Crop className="w-2.5 h-2.5" />
+                                      <span>Chỉnh Khung Góc 0{idx + 1}</span>
+                                    </button>
+                                  )}
                                 </div>
 
                                 <div className="space-y-1">
@@ -1386,39 +1512,86 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       </div>
                     </div>
 
-                    {/* Basic Info Fields */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div>
-                        <label className="font-bold text-white block mb-1">Tên Tác Phẩm (In hoa) *</label>
-                        <input
-                          type="text"
-                          required
-                          value={flowerForm.name || ''}
-                          onChange={(e) => setFlowerForm((prev) => ({ ...prev, name: e.target.value }))}
-                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
-                        />
+                    {/* Basic Info Fields with Automatic Title Case / Uppercase Synchronization */}
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[11px] font-mono uppercase text-amber-300 font-bold flex items-center gap-1.5">
+                          <Type className="w-3.5 h-3.5" />
+                          <span>Định Danh & Tự Động Chuẩn Hóa Chữ Hoa / Chữ Thường Theo Tiêu Đề</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFlowerForm((prev) => ({
+                              ...prev,
+                              name: formatDisplayUppercase(prev.name),
+                              vietnameseName: formatTitleCase(prev.vietnameseName),
+                              latinName: formatBotanicalLatin(prev.latinName),
+                              storyVi: formatProseNFC(prev.storyVi),
+                              storyEn: formatProseNFC(prev.storyEn)
+                            }))
+                          }
+                          className="px-3 py-1 rounded-lg bg-amber-400/20 hover:bg-amber-400 text-amber-300 hover:text-[#141414] border border-amber-400/40 font-mono text-[10px] font-bold transition-all flex items-center gap-1"
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          <span>✨ Chuẩn Hóa Tự Động Tên & Tiêu Đề</span>
+                        </button>
                       </div>
 
-                      <div>
-                        <label className="font-bold text-white block mb-1">Tên Tiếng Việt *</label>
-                        <input
-                          type="text"
-                          required
-                          value={flowerForm.vietnameseName || ''}
-                          onChange={(e) => setFlowerForm((prev) => ({ ...prev, vietnameseName: e.target.value }))}
-                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
-                        />
-                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                          <label className="font-bold text-white block mb-1">
+                            Tên Tác Phẩm (Tự động In Hoa) *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={flowerForm.name || ''}
+                            onChange={(e) => setFlowerForm((prev) => ({ ...prev, name: e.target.value }))}
+                            onBlur={(e) =>
+                              setFlowerForm((prev) => ({ ...prev, name: formatDisplayUppercase(e.target.value) }))
+                            }
+                            className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-bagerich focus:border-amber-400 focus:outline-none"
+                          />
+                        </div>
 
-                      <div>
-                        <label className="font-bold text-white block mb-1">Tên Danh Pháp La Tinh *</label>
-                        <input
-                          type="text"
-                          required
-                          value={flowerForm.latinName || ''}
-                          onChange={(e) => setFlowerForm((prev) => ({ ...prev, latinName: e.target.value }))}
-                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-editorial-serif italic focus:border-amber-400 focus:outline-none"
-                        />
+                        <div>
+                          <label className="font-bold text-white block mb-1">
+                            Tên Tiếng Việt (Tự động Hoa Đầu Từ) *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={flowerForm.vietnameseName || ''}
+                            onChange={(e) => setFlowerForm((prev) => ({ ...prev, vietnameseName: e.target.value }))}
+                            onBlur={(e) =>
+                              setFlowerForm((prev) => ({
+                                ...prev,
+                                vietnameseName: formatTitleCase(e.target.value)
+                              }))
+                            }
+                            className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="font-bold text-white block mb-1">
+                            Tên Danh Pháp La Tinh (Chuẩn Thực Vật) *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={flowerForm.latinName || ''}
+                            onChange={(e) => setFlowerForm((prev) => ({ ...prev, latinName: e.target.value }))}
+                            onBlur={(e) =>
+                              setFlowerForm((prev) => ({
+                                ...prev,
+                                latinName: formatBotanicalLatin(e.target.value)
+                              }))
+                            }
+                            className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-editorial-serif italic focus:border-amber-400 focus:outline-none"
+                          />
+                        </div>
                       </div>
                     </div>
 
@@ -1741,13 +1914,44 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       )}
 
                       <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
-                        <div className="sm:col-span-4 aspect-[3/4] max-w-[160px] rounded-lg overflow-hidden border border-white/20 bg-black">
+                        <div className="sm:col-span-4 aspect-[3/4] max-w-[160px] rounded-lg overflow-hidden border border-white/20 bg-black relative group">
                           <img
                             src={workshopForm.image}
                             alt="Workshop Poster"
                             referrerPolicy="no-referrer"
                             className="w-full h-full object-cover"
                           />
+                          {workshopForm.image && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openImageStudio(
+                                  workshopForm.image,
+                                  'Căn Chỉnh Khung Hình: Poster Workshop',
+                                  (res) => {
+                                    setWorkshopForm((prev) => ({
+                                      ...prev,
+                                      image: res.webpDataUrl,
+                                      galleryImages: [
+                                        {
+                                          url: res.webpDataUrl,
+                                          captionVi: prev.galleryImages?.[0]?.captionVi || 'Poster chính thức',
+                                          captionEn: prev.galleryImages?.[0]?.captionEn || 'Official visual'
+                                        },
+                                        ...(prev.galleryImages?.slice(1) || [])
+                                      ]
+                                    }));
+                                    setLastCompression(res);
+                                  },
+                                  '3:4'
+                                )
+                              }
+                              className="absolute inset-x-1.5 bottom-1.5 py-1.5 px-2 rounded-md bg-amber-400 text-[#141414] font-mono text-[10px] font-bold uppercase flex items-center justify-center gap-1 shadow-lg hover:bg-amber-300 transition-all"
+                            >
+                              <Crop className="w-3 h-3" />
+                              <span>Chỉnh Khung Hình</span>
+                            </button>
+                          )}
                         </div>
                         <div className="sm:col-span-8 space-y-3">
                           <label className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-white/20 rounded-xl hover:border-amber-400/60 bg-white/5 cursor-pointer transition-colors text-center">
@@ -1874,6 +2078,38 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                                       className="hidden"
                                     />
                                   </label>
+                                  {img?.url && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openImageStudio(
+                                          img.url,
+                                          `Căn Chỉnh Khung Hình: Góc Ảnh Workshop #${idx + 1}`,
+                                          (res) => {
+                                            setWorkshopForm((prev) => {
+                                              const current = [...(prev.galleryImages || [])];
+                                              while (current.length <= idx) {
+                                                current.push({ url: '', captionVi: '', captionEn: '' });
+                                              }
+                                              current[idx] = { ...current[idx], url: res.webpDataUrl };
+                                              return {
+                                                ...prev,
+                                                ...(idx === 0 ? { image: res.webpDataUrl } : {}),
+                                                galleryImages: current
+                                              };
+                                            });
+                                            setLastCompression(res);
+                                          },
+                                          '3:4'
+                                        );
+                                      }}
+                                      className="absolute bottom-1.5 inset-x-1.5 z-10 py-1 px-2 rounded bg-amber-400/95 hover:bg-amber-300 text-[#141414] font-mono text-[9px] font-bold uppercase flex items-center justify-center gap-1 shadow"
+                                    >
+                                      <Crop className="w-2.5 h-2.5" />
+                                      <span>Chỉnh Khung #{idx + 1}</span>
+                                    </button>
+                                  )}
                                 </div>
 
                                 <div className="space-y-1">
@@ -1939,38 +2175,84 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div>
-                        <label className="font-bold text-white block mb-1">Tên Tiêu Đề Bagerich (In hoa) *</label>
-                        <input
-                          type="text"
-                          required
-                          value={workshopForm.name || ''}
-                          onChange={(e) => setWorkshopForm((prev) => ({ ...prev, name: e.target.value }))}
-                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-bagerich text-sm focus:border-amber-400 focus:outline-none"
-                        />
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[11px] font-mono uppercase text-amber-300 font-bold flex items-center gap-1.5">
+                          <Type className="w-3.5 h-3.5" />
+                          <span>Tiêu Đề Workshop & Tự Động Chuẩn Hóa Chữ Hoa / Chữ Thường</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setWorkshopForm((prev) => ({
+                              ...prev,
+                              name: formatDisplayUppercase(prev.name),
+                              latinMonographName: formatTitleCase(prev.latinMonographName),
+                              titleVi: formatTitleCase(prev.titleVi),
+                              subtitleVi: formatProseNFC(prev.subtitleVi),
+                              editorialQuoteVi: formatProseNFC(prev.editorialQuoteVi)
+                            }))
+                          }
+                          className="px-3 py-1 rounded-lg bg-amber-400/20 hover:bg-amber-400 text-amber-300 hover:text-[#141414] border border-amber-400/40 font-mono text-[10px] font-bold transition-all flex items-center gap-1"
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          <span>✨ Chuẩn Hóa Tự Động Tên & Tiêu Đề</span>
+                        </button>
                       </div>
 
-                      <div>
-                        <label className="font-bold text-white block mb-1">Tên Phụ Latin / Monograph *</label>
-                        <input
-                          type="text"
-                          required
-                          value={workshopForm.latinMonographName || ''}
-                          onChange={(e) => setWorkshopForm((prev) => ({ ...prev, latinMonographName: e.target.value }))}
-                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
-                        />
-                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                          <label className="font-bold text-white block mb-1">
+                            Tên Tiêu Đề Chính (Tự động In Hoa) *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={workshopForm.name || ''}
+                            onChange={(e) => setWorkshopForm((prev) => ({ ...prev, name: e.target.value }))}
+                            onBlur={(e) =>
+                              setWorkshopForm((prev) => ({ ...prev, name: formatDisplayUppercase(e.target.value) }))
+                            }
+                            className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-bagerich text-sm focus:border-amber-400 focus:outline-none"
+                          />
+                        </div>
 
-                      <div>
-                        <label className="font-bold text-white block mb-1">Tiêu Đề Đầy Đủ (Tiếng Việt) *</label>
-                        <input
-                          type="text"
-                          required
-                          value={workshopForm.titleVi || ''}
-                          onChange={(e) => setWorkshopForm((prev) => ({ ...prev, titleVi: e.target.value }))}
-                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
-                        />
+                        <div>
+                          <label className="font-bold text-white block mb-1">
+                            Tên Phụ Monograph (Tự động Hoa Đầu Từ) *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={workshopForm.latinMonographName || ''}
+                            onChange={(e) =>
+                              setWorkshopForm((prev) => ({ ...prev, latinMonographName: e.target.value }))
+                            }
+                            onBlur={(e) =>
+                              setWorkshopForm((prev) => ({
+                                ...prev,
+                                latinMonographName: formatTitleCase(e.target.value)
+                              }))
+                            }
+                            className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="font-bold text-white block mb-1">
+                            Tiêu Đề Đầy Đủ Tiếng Việt (Hoa Đầu Từ) *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={workshopForm.titleVi || ''}
+                            onChange={(e) => setWorkshopForm((prev) => ({ ...prev, titleVi: e.target.value }))}
+                            onBlur={(e) =>
+                              setWorkshopForm((prev) => ({ ...prev, titleVi: formatTitleCase(e.target.value) }))
+                            }
+                            className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
+                          />
+                        </div>
                       </div>
                     </div>
 
@@ -3287,6 +3569,17 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
         </div>
       </main>
+
+      {/* Interactive Image Framing & WebP Studio Modal */}
+      <ImageStudioModal
+        isOpen={studioState.isOpen}
+        imageSource={studioState.imageSource}
+        title={studioState.title}
+        defaultAspectRatio={studioState.defaultAspectRatio}
+        theme={theme}
+        onClose={() => setStudioState((prev) => ({ ...prev, isOpen: false }))}
+        onApply={studioState.onApply}
+      />
 
     </div>
   );

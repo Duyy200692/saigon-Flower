@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Sparkles, ChevronLeft, ChevronRight, Share2, Check, Maximize2, Heart } from 'lucide-react';
+import { X, Sparkles, ChevronLeft, ChevronRight, Share2, Check, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw, Heart } from 'lucide-react';
 import { FlowerItem, FLOWERS } from '../data/flowers';
 import { useAtelier } from '../context/AtelierContext';
+import { formatTitleCase, formatDisplayUppercase } from '../utils/textFormatter';
 
 interface FlowerDetailModalProps {
   flower: FlowerItem | null;
@@ -31,6 +32,11 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
   const [isCopied, setIsCopied] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
+  const [imageFitMode, setImageFitMode] = useState<'cover' | 'contain'>('cover');
+  const [lightboxZoom, setLightboxZoom] = useState<number>(1);
+  const [lightboxPan, setLightboxPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isPanningLightbox, setIsPanningLightbox] = useState(false);
+  const panStartRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
 
   // Touch swipe state for mobile gallery navigation
   const touchStartX = useRef<number | null>(null);
@@ -42,6 +48,9 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
   useEffect(() => {
     setSelectedImageIndex(0);
     setSelectedAnatomy(null);
+    setImageFitMode('cover');
+    setLightboxZoom(1);
+    setLightboxPan({ x: 0, y: 0 });
   }, [flower?.id]);
 
   // Keyboard navigation for previous/next
@@ -261,19 +270,32 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                   isLandscape ? 'aspect-[4/3] max-w-lg' : 'aspect-[3/4] max-w-md'
                 }`}
               >
+                {/* Blurred ambient backdrop when in 'contain' (Vừa Khung) mode */}
+                {imageFitMode === 'contain' && (
+                  <img
+                    src={currentImage.url}
+                    alt=""
+                    aria-hidden="true"
+                    referrerPolicy="no-referrer"
+                    className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-55 pointer-events-none"
+                  />
+                )}
+
                 <img
                   key={currentImage.url + selectedImageIndex}
                   src={currentImage.url}
                   alt={`${flower.name} - ${currentImage.captionEn}`}
                   onLoad={handleImageLoad}
                   referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-103 animate-fadeIn"
+                  className={`relative z-0 w-full h-full transition-transform duration-500 group-hover:scale-103 animate-fadeIn ${
+                    imageFitMode === 'contain' ? 'object-contain p-2' : 'object-cover object-center'
+                  }`}
                 />
 
                 {/* Left / Right Gallery Navigation Arrows */}
                 <button
                   onClick={handlePrevImage}
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black text-white backdrop-blur-md opacity-80 group-hover:opacity-100 transition-all hover:scale-110"
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black text-white backdrop-blur-md opacity-80 group-hover:opacity-100 transition-all hover:scale-110 z-10"
                   aria-label="Previous image"
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -281,20 +303,44 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
 
                 <button
                   onClick={handleNextImage}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black text-white backdrop-blur-md opacity-80 group-hover:opacity-100 transition-all hover:scale-110"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black text-white backdrop-blur-md opacity-80 group-hover:opacity-100 transition-all hover:scale-110 z-10"
                   aria-label="Next image"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
 
-                {/* Lightbox / Zoom trigger */}
-                <button
-                  onClick={() => setIsLightboxOpen(true)}
-                  className="absolute top-3 right-3 p-2 rounded-full bg-black/60 hover:bg-black text-white backdrop-blur-md transition-all opacity-80 group-hover:opacity-100"
-                  title="Fullscreen zoom"
-                >
-                  <Maximize2 className="w-3.5 h-3.5" />
-                </button>
+                {/* Top Right Controls: Fit/Fill Toggle & Lightbox Zoom Trigger */}
+                <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setImageFitMode((m) => (m === 'cover' ? 'contain' : 'cover'));
+                    }}
+                    className="px-2.5 py-1.5 rounded-full bg-black/65 hover:bg-black text-white backdrop-blur-md transition-all text-[10px] font-mono uppercase flex items-center gap-1 border border-white/15"
+                    title={
+                      imageFitMode === 'cover'
+                        ? 'Chuyển sang Vừa Khung (Hiển thị 100% ảnh gốc không cắt)'
+                        : 'Chuyển sang Đầy Khung (Lấp kín khung chuẩn)'
+                    }
+                  >
+                    <Minimize2 className="w-3 h-3 text-amber-300" />
+                    <span>{imageFitMode === 'cover' ? (lang === 'vi' ? 'Vừa Khung' : 'Fit') : (lang === 'vi' ? 'Đầy Khung' : 'Fill')}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLightboxZoom(1);
+                      setLightboxPan({ x: 0, y: 0 });
+                      setIsLightboxOpen(true);
+                    }}
+                    className="p-2 rounded-full bg-black/65 hover:bg-black text-white backdrop-blur-md transition-all border border-white/15"
+                    title="Phóng to toàn màn hình"
+                  >
+                    <Maximize2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
 
                 {/* Anatomy Hotspots (shown on primary image) */}
                 {selectedImageIndex === 0 && flower.anatomy.map((pin) => (
@@ -402,11 +448,11 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                   {lang === 'vi' ? flower.categoryLabelVi : flower.categoryLabelEn}
                 </span>
                 <h2
-                  className={`text-2xl sm:text-4xl font-bagerich font-normal uppercase tracking-tight leading-none ${
+                  className={`text-2xl sm:text-4xl font-bagerich font-normal uppercase tracking-tight leading-[1.15] ${
                     isDark ? 'text-white' : 'text-[#141414]'
                   }`}
                 >
-                  {flower.name}
+                  {formatDisplayUppercase(flower.name)}
                 </h2>
                 <p
                   className={`text-sm sm:text-base font-editorial-serif italic mt-1.5 ${
@@ -414,8 +460,8 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                   }`}
                 >
                   {flower.latinName} —{' '}
-                  <span className={`font-sans not-italic font-medium ${isDark ? 'text-white' : 'text-[#141414]'}`}>
-                    {flower.vietnameseName}
+                  <span className={`font-sans not-italic font-semibold ${isDark ? 'text-white' : 'text-[#141414]'}`}>
+                    {formatTitleCase(flower.vietnameseName)}
                   </span>
                 </p>
               </div>
@@ -607,36 +653,124 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
 
       </div>
 
-      {/* Fullscreen Lightbox with auto-adaptive ratio */}
+      {/* Fullscreen Lightbox with Interactive Zoom & Pan */}
       {isLightboxOpen && (
-        <div className="fixed inset-0 z-60 bg-black/95 flex flex-col items-center justify-center p-4 animate-fadeIn">
-          <button
-            onClick={() => setIsLightboxOpen(false)}
-            className="absolute top-5 right-5 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
+        <div className="fixed inset-0 z-60 bg-black/95 flex flex-col items-center justify-center p-4 animate-fadeIn select-none">
+          {/* Top Zoom & Close Controls */}
+          <div className="absolute top-4 right-4 left-4 flex items-center justify-between z-20 max-w-4xl mx-auto">
+            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15 text-white text-xs font-mono">
+              <button
+                type="button"
+                onClick={() => {
+                  setLightboxZoom((z) => Math.max(1, +(z - 0.5).toFixed(1)));
+                  if (lightboxZoom <= 1.5) setLightboxPan({ x: 0, y: 0 });
+                }}
+                className="p-1 hover:text-amber-300 transition-colors"
+                title="Thu nhỏ"
+              >
+                <ZoomOut className="w-4 h-4" />
+              </button>
+              <span className="min-w-[44px] text-center font-bold text-amber-300">
+                {Math.round(lightboxZoom * 100)}%
+              </span>
+              <button
+                type="button"
+                onClick={() => setLightboxZoom((z) => Math.min(3, +(z + 0.5).toFixed(1)))}
+                className="p-1 hover:text-amber-300 transition-colors"
+                title="Phóng to"
+              >
+                <ZoomIn className="w-4 h-4" />
+              </button>
+              {lightboxZoom > 1 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLightboxZoom(1);
+                    setLightboxPan({ x: 0, y: 0 });
+                  }}
+                  className="p-1 hover:text-amber-300 transition-colors border-l border-white/20 pl-2"
+                  title="Đặt lại 100%"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <button
+              onClick={() => setIsLightboxOpen(false)}
+              className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/15"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
           <div
-            className={`relative w-full rounded-xl overflow-hidden shadow-2xl bg-black flex items-center justify-center ${
-              isLandscape ? 'max-w-3xl aspect-[4/3]' : 'max-w-lg aspect-[3/4]'
+            onPointerDown={(e) => {
+              if (lightboxZoom <= 1) return;
+              e.currentTarget.setPointerCapture(e.pointerId);
+              setIsPanningLightbox(true);
+              panStartRef.current = {
+                x: e.clientX,
+                y: e.clientY,
+                panX: lightboxPan.x,
+                panY: lightboxPan.y
+              };
+            }}
+            onPointerMove={(e) => {
+              if (!isPanningLightbox || !panStartRef.current) return;
+              const dx = e.clientX - panStartRef.current.x;
+              const dy = e.clientY - panStartRef.current.y;
+              setLightboxPan({
+                x: panStartRef.current.panX + dx,
+                y: panStartRef.current.panY + dy
+              });
+            }}
+            onPointerUp={(e) => {
+              if (isPanningLightbox) {
+                e.currentTarget.releasePointerCapture(e.pointerId);
+                setIsPanningLightbox(false);
+                panStartRef.current = null;
+              }
+            }}
+            onDoubleClick={() => {
+              if (lightboxZoom > 1) {
+                setLightboxZoom(1);
+                setLightboxPan({ x: 0, y: 0 });
+              } else {
+                setLightboxZoom(2);
+              }
+            }}
+            className={`relative w-full max-w-4xl h-[75vh] rounded-2xl overflow-hidden shadow-2xl bg-black/60 border border-white/10 flex items-center justify-center touch-none ${
+              lightboxZoom > 1 ? (isPanningLightbox ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-zoom-in'
             }`}
           >
             <img
               src={currentImage.url}
               alt={currentImage.captionEn}
               referrerPolicy="no-referrer"
-              className="w-full h-full object-contain"
+              style={{
+                transform: `translate(${lightboxPan.x}px, ${lightboxPan.y}px) scale(${lightboxZoom})`,
+                transition: isPanningLightbox ? 'none' : 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+              }}
+              className="max-w-full max-h-full object-contain pointer-events-none"
             />
             <button
-              onClick={handlePrevImage}
-              className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/70 hover:bg-black text-white"
+              onClick={(e) => {
+                setLightboxZoom(1);
+                setLightboxPan({ x: 0, y: 0 });
+                handlePrevImage(e);
+              }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/70 hover:bg-black text-white border border-white/15"
             >
               <ChevronLeft className="w-6 h-6" />
             </button>
             <button
-              onClick={handleNextImage}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/70 hover:bg-black text-white"
+              onClick={(e) => {
+                setLightboxZoom(1);
+                setLightboxPan({ x: 0, y: 0 });
+                handleNextImage(e);
+              }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/70 hover:bg-black text-white border border-white/15"
             >
               <ChevronRight className="w-6 h-6" />
             </button>
@@ -644,7 +778,9 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
 
           <div className="mt-4 text-center text-white/90 text-sm font-sans">
             <p className="font-semibold">{lang === 'vi' ? currentImage.captionVi : currentImage.captionEn}</p>
-            <p className="text-xs font-mono text-white/60 mt-0.5">{selectedImageIndex + 1} / {gallery.length}</p>
+            <p className="text-xs font-mono text-white/60 mt-0.5">
+              {selectedImageIndex + 1} / {gallery.length} · {lang === 'vi' ? 'Nhấp đúp hoặc dùng thanh công cụ để phóng to chi tiết hoa' : 'Double-click or use controls to zoom'}
+            </p>
           </div>
         </div>
       )}

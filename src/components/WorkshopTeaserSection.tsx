@@ -65,13 +65,15 @@ export const WorkshopTeaserSection: React.FC<WorkshopTeaserSectionProps> = ({
                 {lang === 'vi' ? 'KHÔNG GIAN NGHỆ THUẬT TẠI VĂN PHÒNG' : 'MINDFUL ARTISTIC WORKSPACE'}
               </span>
               <h3
-                className={`text-3xl sm:text-4xl lg:text-5xl font-bagerich font-normal uppercase tracking-tight leading-[0.95] transition-colors ${
+                className={`text-2xl sm:text-4xl lg:text-[42px] font-bagerich font-normal uppercase tracking-tight leading-[1.18] transition-colors ${
                   isDark
                     ? 'text-[#ede9df] group-hover:text-amber-300'
                     : 'text-[#141414] group-hover:text-amber-900'
                 }`}
               >
-                {lang === 'vi' ? 'WORKSHOP CẮM HOA: THẢNH THƠI CUỐI NĂM' : 'YEAR-END CORPORATE FLORAL WORKSHOP'}
+                {lang === 'vi'
+                  ? primaryWorkshop.titleVi || 'Workshop Cắm Hoa: Thảnh Thơi Cuối Năm'
+                  : primaryWorkshop.titleEn || 'Year-End Corporate Floral Workshop'}
               </h3>
             </div>
 

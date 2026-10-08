@@ -7,7 +7,9 @@ import {
   Calendar,
   Users,
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { WorkshopItem } from '../data/workshop';
 import { useAtelier, WorkshopBooking } from '../context/AtelierContext';
@@ -30,6 +32,7 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
   const { createWorkshopBooking, atelierData } = useAtelier();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isLandscape, setIsLandscape] = useState(false);
+  const [fitMode, setFitMode] = useState<'cover' | 'contain'>('cover');
   const [showBookingForm, setShowBookingForm] = useState(false);
   const isDark = theme === 'dark';
 
@@ -405,6 +408,15 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
+            {/* Ambient Blurred Backdrop for Uncropped Mode */}
+            <img
+              src={activeImage.url}
+              alt=""
+              aria-hidden="true"
+              referrerPolicy="no-referrer"
+              className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-45 pointer-events-none"
+            />
+
             {/* Main High-Res Photo */}
             <img
               key={activeImage.url + currentSlide}
@@ -412,8 +424,31 @@ export const WorkshopDetailModal: React.FC<WorkshopDetailModalProps> = ({
               alt={activeImage.captionVi}
               onLoad={handleImageLoad}
               referrerPolicy="no-referrer"
-              className="w-full h-full object-cover object-center transition-all duration-300 animate-fadeIn"
+              className={`relative z-10 w-full h-full transition-all duration-300 animate-fadeIn ${
+                fitMode === 'contain'
+                  ? 'object-contain drop-shadow-[0_16px_40px_rgba(0,0,0,0.45)]'
+                  : 'object-cover object-center'
+              }`}
             />
+
+            {/* Fit / Fill Frame Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setFitMode((prev) => (prev === 'cover' ? 'contain' : 'cover'))}
+              className="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-full backdrop-blur-2xl bg-black/65 hover:bg-black/85 border border-white/20 text-[10px] font-mono uppercase tracking-widest text-white/95 flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+            >
+              {fitMode === 'cover' ? (
+                <>
+                  <Minimize2 className="w-3.5 h-3.5 text-emerald-300" />
+                  <span>{lang === 'vi' ? 'Vừa Khung Gốc' : 'Fit Original'}</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-3.5 h-3.5 text-amber-300" />
+                  <span>{lang === 'vi' ? 'Lấp Đầy Khung' : 'Fill Frame'}</span>
+                </>
+              )}
+            </button>
 
             {/* Left Arrow Button */}
             {totalSlides > 1 && (

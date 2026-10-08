@@ -26,40 +26,38 @@
   }
 }
 
-/* @font-face definition for Bagerich Font */
-@font-face {
-  font-family: 'Bagerich';
-  src: local('Bagerich Regular'),
-       local('Bagerich'),
-       local('Bagerich-Regular'),
-       local('BagerichDisplay-Regular'),
-       url('https://fonts.cdnfonts.com/s/72886/Bagerich.woff') format('woff');
-  font-weight: 400 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* Primary Bagerich Font for Main Editorial & Botanical Titles */
+/* Primary Luxury Editorial Display Font with 100% Vietnamese Diacritic Support */
 .font-bagerich,
 .font-fleur-title {
-  font-family: 'Bagerich', 'Bodoni Moda', 'Italiana', 'Cinzel Decorative', 'Playfair Display', serif;
-  font-feature-settings: "liga" 1, "dlig" 1, "calt" 1, "ss01" 1, "ss02" 1;
-  letter-spacing: -0.015em;
+  font-family: 'Playfair Display', 'Prata', 'Cormorant Garamond', Georgia, serif;
+  font-feature-settings: "liga" 1, "kern" 1;
+  letter-spacing: -0.01em;
+  line-height: 1.16;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-editorial-serif,
+.font-serif-editorial {
+  font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+  font-feature-settings: "liga" 1, "kern" 1;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
 
-.font-editorial-serif {
-  font-family: 'Bagerich', 'Bodoni Moda', 'Italiana', 'Cormorant Garamond', serif;
-  font-feature-settings: "liga" 1, "dlig" 1;
-}
-
 .font-botanical-prose {
-  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+  text-rendering: optimizeLegibility;
 }
 
 .font-display-modern {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', 'Plus Jakarta Sans', ui-monospace, SFMono-Regular, monospace;
+  font-feature-settings: "zero" 1;
 }
 
 /* Smooth custom scrollbars */

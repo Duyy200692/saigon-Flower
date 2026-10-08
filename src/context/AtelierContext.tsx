@@ -3,6 +3,13 @@ import { FlowerItem, FLOWERS, ATELIER_DATA } from '../data/flowers';
 import { WorkshopItem, WORKSHOPS } from '../data/workshop';
 import { db, handleFirestoreError, OperationType, testFirestoreConnection } from '../lib/firebase';
 import {
+  formatDisplayUppercase,
+  formatTitleCase,
+  formatBotanicalLatin,
+  formatProseNFC,
+  normalizeUnicodeNFC
+} from '../utils/textFormatter';
+import {
   collection,
   doc,
   setDoc,
@@ -157,70 +164,101 @@ function safeRemoveStorage(key: string): void {
   }
 }
 
-// Normalize a flower item so missing fields never cause runtime crashes
+// Normalize a flower item so missing fields never cause runtime crashes and all titles are synchronized
 function normalizeFlower(item: Partial<FlowerItem>, idx: number): FlowerItem {
   const fallback = FLOWERS[idx % FLOWERS.length] || FLOWERS[0];
+  const rawMaterials = Array.isArray(item.materials) ? item.materials : fallback.materials;
+  const rawMaterialsVi = Array.isArray(item.materialsVi) ? item.materialsVi : fallback.materialsVi;
+  const rawGallery =
+    Array.isArray(item.galleryImages) && item.galleryImages.length > 0
+      ? item.galleryImages
+      : fallback.galleryImages;
+
   return {
     ...fallback,
     ...item,
     id: item.id || fallback.id || `flower-${idx + 1}`,
     indexNumber: item.indexNumber || String(idx + 1).padStart(2, '0'),
-    name: item.name || fallback.name,
-    vietnameseName: item.vietnameseName || item.name || fallback.vietnameseName,
-    latinName: item.latinName || fallback.latinName,
+    name: formatDisplayUppercase(item.name || fallback.name),
+    vietnameseName: formatTitleCase(item.vietnameseName || item.name || fallback.vietnameseName),
+    latinName: formatBotanicalLatin(item.latinName || fallback.latinName),
     category: item.category || fallback.category,
-    categoryLabelEn: item.categoryLabelEn || fallback.categoryLabelEn,
-    categoryLabelVi: item.categoryLabelVi || fallback.categoryLabelVi,
-    shortDescriptionEn: item.shortDescriptionEn || fallback.shortDescriptionEn,
-    shortDescriptionVi: item.shortDescriptionVi || fallback.shortDescriptionVi,
-    storyEn: item.storyEn || fallback.storyEn,
-    storyVi: item.storyVi || fallback.storyVi,
-    botanicalNotesEn: item.botanicalNotesEn || fallback.botanicalNotesEn,
-    botanicalNotesVi: item.botanicalNotesVi || fallback.botanicalNotesVi,
-    materials: Array.isArray(item.materials) ? item.materials : fallback.materials,
-    materialsVi: Array.isArray(item.materialsVi) ? item.materialsVi : fallback.materialsVi,
-    scent: item.scent && typeof item.scent === 'object' ? { ...fallback.scent, ...item.scent } : fallback.scent,
+    categoryLabelEn: formatTitleCase(item.categoryLabelEn || fallback.categoryLabelEn),
+    categoryLabelVi: formatTitleCase(item.categoryLabelVi || fallback.categoryLabelVi),
+    shortDescriptionEn: formatProseNFC(item.shortDescriptionEn || fallback.shortDescriptionEn),
+    shortDescriptionVi: formatProseNFC(item.shortDescriptionVi || fallback.shortDescriptionVi),
+    storyEn: formatProseNFC(item.storyEn || fallback.storyEn),
+    storyVi: formatProseNFC(item.storyVi || fallback.storyVi),
+    botanicalNotesEn: formatProseNFC(item.botanicalNotesEn || fallback.botanicalNotesEn),
+    botanicalNotesVi: formatProseNFC(item.botanicalNotesVi || fallback.botanicalNotesVi),
+    materials: rawMaterials.map((m) => formatTitleCase(m)),
+    materialsVi: rawMaterialsVi.map((m) => formatTitleCase(m)),
+    scent:
+      item.scent && typeof item.scent === 'object'
+        ? {
+            ...fallback.scent,
+            ...item.scent,
+            top: formatTitleCase(item.scent.top || fallback.scent.top),
+            heart: formatTitleCase(item.scent.heart || fallback.scent.heart),
+            base: formatTitleCase(item.scent.base || fallback.scent.base),
+            mood: formatTitleCase(item.scent.mood || fallback.scent.mood)
+          }
+        : fallback.scent,
     anatomy: Array.isArray(item.anatomy) ? item.anatomy : fallback.anatomy,
-    dimensions: item.dimensions || fallback.dimensions,
-    seasonality: item.seasonality || fallback.seasonality,
+    dimensions: normalizeUnicodeNFC(item.dimensions || fallback.dimensions),
+    seasonality: normalizeUnicodeNFC(item.seasonality || fallback.seasonality),
     priceVnd: typeof item.priceVnd === 'number' && !Number.isNaN(item.priceVnd) ? item.priceVnd : fallback.priceVnd,
     priceUsd: typeof item.priceUsd === 'number' && !Number.isNaN(item.priceUsd) ? item.priceUsd : fallback.priceUsd,
     image: item.image || fallback.image,
-    galleryImages:
-      Array.isArray(item.galleryImages) && item.galleryImages.length > 0
-        ? item.galleryImages
-        : fallback.galleryImages,
+    galleryImages: rawGallery.map((g) => ({
+      ...g,
+      captionVi: formatProseNFC(g.captionVi),
+      captionEn: formatProseNFC(g.captionEn)
+    })),
     audioFrequency: typeof item.audioFrequency === 'number' ? item.audioFrequency : fallback.audioFrequency,
     pinnedToLanding: item.pinnedToLanding !== undefined ? item.pinnedToLanding : idx < 12
   };
 }
 
-// Normalize a workshop item so missing fields never cause runtime crashes
+// Normalize a workshop item so missing fields never cause runtime crashes and all titles are synchronized
 function normalizeWorkshop(item: Partial<WorkshopItem>, idx: number): WorkshopItem {
   const fallback = WORKSHOPS[idx % WORKSHOPS.length] || WORKSHOPS[0];
+  const rawGallery =
+    Array.isArray(item.galleryImages) && item.galleryImages.length > 0
+      ? item.galleryImages
+      : fallback.galleryImages;
+
   return {
     ...fallback,
     ...item,
     id: item.id || fallback.id || `workshop-${idx + 1}`,
     indexNumber: item.indexNumber || String(idx + 1).padStart(2, '0'),
-    name: item.name || fallback.name,
-    latinMonographName: item.latinMonographName || fallback.latinMonographName,
-    titleVi: item.titleVi || fallback.titleVi,
-    titleEn: item.titleEn || fallback.titleEn,
-    subtitleVi: item.subtitleVi || fallback.subtitleVi,
-    subtitleEn: item.subtitleEn || fallback.subtitleEn,
-    editorialQuoteVi: item.editorialQuoteVi || fallback.editorialQuoteVi,
-    editorialQuoteEn: item.editorialQuoteEn || fallback.editorialQuoteEn,
-    descriptionVi: item.descriptionVi || fallback.descriptionVi,
-    descriptionEn: item.descriptionEn || fallback.descriptionEn,
-    fullContentVi: Array.isArray(item.fullContentVi) ? item.fullContentVi : fallback.fullContentVi,
-    fullContentEn: Array.isArray(item.fullContentEn) ? item.fullContentEn : fallback.fullContentEn,
-    highlightsVi: Array.isArray(item.highlightsVi) ? item.highlightsVi : fallback.highlightsVi,
-    highlightsEn: Array.isArray(item.highlightsEn) ? item.highlightsEn : fallback.highlightsEn,
-    duration: item.duration || fallback.duration,
-    groupSize: item.groupSize || fallback.groupSize,
-    locationVi: item.locationVi || fallback.locationVi,
-    locationEn: item.locationEn || fallback.locationEn,
+    name: formatDisplayUppercase(item.name || fallback.name),
+    latinMonographName: formatTitleCase(item.latinMonographName || fallback.latinMonographName),
+    titleVi: formatTitleCase(item.titleVi || fallback.titleVi),
+    titleEn: formatTitleCase(item.titleEn || fallback.titleEn),
+    subtitleVi: formatProseNFC(item.subtitleVi || fallback.subtitleVi),
+    subtitleEn: formatProseNFC(item.subtitleEn || fallback.subtitleEn),
+    editorialQuoteVi: formatProseNFC(item.editorialQuoteVi || fallback.editorialQuoteVi),
+    editorialQuoteEn: formatProseNFC(item.editorialQuoteEn || fallback.editorialQuoteEn),
+    descriptionVi: formatProseNFC(item.descriptionVi || fallback.descriptionVi),
+    descriptionEn: formatProseNFC(item.descriptionEn || fallback.descriptionEn),
+    fullContentVi: (Array.isArray(item.fullContentVi) ? item.fullContentVi : fallback.fullContentVi).map((p) =>
+      formatProseNFC(p)
+    ),
+    fullContentEn: (Array.isArray(item.fullContentEn) ? item.fullContentEn : fallback.fullContentEn).map((p) =>
+      formatProseNFC(p)
+    ),
+    highlightsVi: (Array.isArray(item.highlightsVi) ? item.highlightsVi : fallback.highlightsVi).map((h) =>
+      formatProseNFC(h)
+    ),
+    highlightsEn: (Array.isArray(item.highlightsEn) ? item.highlightsEn : fallback.highlightsEn).map((h) =>
+      formatProseNFC(h)
+    ),
+    duration: normalizeUnicodeNFC(item.duration || fallback.duration),
+    groupSize: normalizeUnicodeNFC(item.groupSize || fallback.groupSize),
+    locationVi: normalizeUnicodeNFC(item.locationVi || fallback.locationVi),
+    locationEn: normalizeUnicodeNFC(item.locationEn || fallback.locationEn),
     pricePerPaxVnd:
       typeof item.pricePerPaxVnd === 'number' && !Number.isNaN(item.pricePerPaxVnd)
         ? item.pricePerPaxVnd
@@ -232,10 +270,11 @@ function normalizeWorkshop(item: Partial<WorkshopItem>, idx: number): WorkshopIt
     zaloCommunityUrl: item.zaloCommunityUrl || fallback.zaloCommunityUrl,
     hotline: item.hotline || fallback.hotline,
     image: item.image || fallback.image,
-    galleryImages:
-      Array.isArray(item.galleryImages) && item.galleryImages.length > 0
-        ? item.galleryImages
-        : fallback.galleryImages
+    galleryImages: rawGallery.map((g) => ({
+      ...g,
+      captionVi: formatProseNFC(g.captionVi),
+      captionEn: formatProseNFC(g.captionEn)
+    }))
   };
 }
 
@@ -749,6 +788,13 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const updateFlower = async (id: string, updatedFields: Partial<FlowerItem>) => {
+    const existingIdx = flowers.findIndex((f) => f.id === id);
+    const existingFlower = existingIdx >= 0 ? flowers[existingIdx] : FLOWERS[0];
+    const normalizedUpdated = normalizeFlower(
+      { ...existingFlower, ...updatedFields, id },
+      existingIdx >= 0 ? existingIdx : 0
+    );
+
     setFlowers((prev) =>
       prev.map((f, idx) => (f.id === id ? normalizeFlower({ ...f, ...updatedFields }, idx) : f))
     );
@@ -756,7 +802,7 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       await setDoc(
         doc(db, 'flowers', id),
-        { ...updatedFields, updatedAt: new Date().toISOString() },
+        { ...normalizedUpdated, updatedAt: new Date().toISOString() },
         { merge: true }
       );
     } catch (error) {
@@ -825,6 +871,13 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const updateWorkshop = async (id: string, updatedFields: Partial<WorkshopItem>) => {
+    const existingIdx = workshops.findIndex((w) => w.id === id);
+    const existingWorkshop = existingIdx >= 0 ? workshops[existingIdx] : WORKSHOPS[0];
+    const normalizedUpdated = normalizeWorkshop(
+      { ...existingWorkshop, ...updatedFields, id },
+      existingIdx >= 0 ? existingIdx : 0
+    );
+
     setWorkshops((prev) =>
       prev.map((w, idx) => (w.id === id ? normalizeWorkshop({ ...w, ...updatedFields }, idx) : w))
     );
@@ -832,7 +885,7 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       await setDoc(
         doc(db, 'workshops', id),
-        { ...updatedFields, updatedAt: new Date().toISOString() },
+        { ...normalizedUpdated, updatedAt: new Date().toISOString() },
         { merge: true }
       );
     } catch (error) {

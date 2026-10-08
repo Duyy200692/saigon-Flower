@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { FlowerItem } from '../data/flowers';
-import { ArrowRight, Heart } from 'lucide-react';
+import { ArrowRight, Heart, Maximize2, Minimize2 } from 'lucide-react';
 import { useAtelier } from '../context/AtelierContext';
 
 interface BotanicalMatrixProps {
@@ -20,6 +20,7 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
 }) => {
   const { toggleWishlist, isInWishlist } = useAtelier();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [gridFitMode, setGridFitMode] = useState<'cover' | 'contain'>('cover');
   const gridRef = useRef<HTMLDivElement>(null);
   const isDark = theme === 'dark';
 
@@ -63,22 +64,55 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
     <section id="gallery-matrix" className="max-w-4xl mx-auto px-4 sm:px-6 my-10 relative overflow-x-clip">
       
       <div
-        className={`flex items-center justify-between text-[11px] font-mono uppercase tracking-widest mb-3 px-1 transition-colors ${
+        className={`flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono uppercase tracking-widest mb-3 px-1 transition-colors ${
           isDark ? 'text-[#ede9df]/65' : 'text-[#141414]/60'
         }`}
       >
         <span>COLLECTION ARCHIVE · NỔI BẬT ({displayFlowers.length} SPECIMENS)</span>
-        {onOpenCollection && (
+        <div className="flex items-center gap-3">
           <button
-            onClick={onOpenCollection}
-            className={`transition-colors underline underline-offset-4 flex items-center gap-1 font-semibold ${
-              isDark ? 'hover:text-white' : 'hover:text-[#141414]'
+            type="button"
+            onClick={() => setGridFitMode((prev) => (prev === 'cover' ? 'contain' : 'cover'))}
+            className={`px-2.5 py-1 rounded-full border text-[10px] font-mono uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer ${
+              gridFitMode === 'contain'
+                ? isDark
+                  ? 'bg-amber-400/20 border-amber-400/50 text-amber-300 font-bold'
+                  : 'bg-[#141414] border-[#141414] text-[#dcd8cf] font-bold'
+                : isDark
+                  ? 'border-white/15 hover:border-white/35 text-[#ede9df]/75'
+                  : 'border-[#141414]/20 hover:border-[#141414]/45 text-[#141414]/75'
             }`}
+            title={
+              gridFitMode === 'cover'
+                ? 'Chuyển sang hiển thị Vừa Khung Gốc (giữ nguyên tỉ lệ ảnh gốc bên ngoài)'
+                : 'Chuyển sang Lấp Đầy Khung 3:4 đồng bộ'
+            }
           >
-            <span>{lang === 'vi' ? `Xem Tất Cả (${flowers.length})` : `View All (${flowers.length})`}</span>
-            <span>→</span>
+            {gridFitMode === 'cover' ? (
+              <>
+                <Minimize2 className="w-3 h-3" />
+                <span>{lang === 'vi' ? 'Tỉ Lệ: Lấp Đầy 3:4' : 'Frame: 3:4 Fill'}</span>
+              </>
+            ) : (
+              <>
+                <Maximize2 className="w-3 h-3" />
+                <span>{lang === 'vi' ? 'Tỉ Lệ: Nguyên Bản' : 'Frame: Original Fit'}</span>
+              </>
+            )}
           </button>
-        )}
+
+          {onOpenCollection && (
+            <button
+              onClick={onOpenCollection}
+              className={`transition-colors underline underline-offset-4 flex items-center gap-1 font-semibold ${
+                isDark ? 'hover:text-white' : 'hover:text-[#141414]'
+              }`}
+            >
+              <span>{lang === 'vi' ? `Xem Tất Cả (${flowers.length})` : `View All (${flowers.length})`}</span>
+              <span>→</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 3-column mosaic grid matching classic editorial atelier */}
@@ -114,16 +148,29 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
             >
               {/* Inner card container for clipping image */}
               <div
-                className={`w-full h-full overflow-hidden bg-[#1f1e1c] transition-all duration-300 ${
+                className={`relative w-full h-full overflow-hidden bg-[#1f1e1c] transition-all duration-300 ${
                   isHovered ? 'rounded-xl' : 'rounded-lg'
                 }`}
               >
+                {/* Ambient Blur Backdrop when viewing uncropped external aspect ratios */}
+                {gridFitMode === 'contain' && (
+                  <img
+                    src={flower.image}
+                    alt=""
+                    aria-hidden="true"
+                    referrerPolicy="no-referrer"
+                    className="absolute inset-0 w-full h-full object-cover scale-115 blur-xl opacity-45 pointer-events-none"
+                  />
+                )}
+
                 {/* Image */}
                 <img
                   src={flower.image}
                   alt={flower.name}
                   referrerPolicy="no-referrer"
-                  className={`w-full h-full object-cover object-center transition-all duration-500 ease-out ${
+                  className={`relative z-10 w-full h-full transition-all duration-500 ease-out ${
+                    gridFitMode === 'contain' ? 'object-contain p-1' : 'object-cover object-center'
+                  } ${
                     isHovered
                       ? 'scale-105 filter grayscale-0 brightness-95'
                       : 'scale-100 filter grayscale-[10%]'

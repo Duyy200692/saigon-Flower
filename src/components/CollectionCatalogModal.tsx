@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { X, Search, Filter, Pin, Heart } from 'lucide-react';
+import { X, Search, Filter, Pin, Heart, Maximize2, Minimize2 } from 'lucide-react';
 import { FlowerItem, BOTANICAL_CATEGORIES, BOTANICAL_SEASONS } from '../data/flowers';
 import { useAtelier } from '../context/AtelierContext';
 
@@ -25,6 +25,7 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
   const [selectedSeason, setSelectedSeason] = useState<string>('all');
   const [showPinnedOnly, setShowPinnedOnly] = useState<boolean>(false);
   const [showWishlistOnly, setShowWishlistOnly] = useState<boolean>(false);
+  const [gridFitMode, setGridFitMode] = useState<'cover' | 'contain'>('cover');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const isDark = theme === 'dark';
 
@@ -275,6 +276,33 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
               <Heart className={`w-3 h-3 ${showWishlistOnly ? 'fill-current' : ''}`} />
               <span>Moodboard ({wishlistIds.length})</span>
             </button>
+
+            {/* Quick Toggle: Khung Hình Tỉ Lệ Gốc vs Lấp Đầy */}
+            <button
+              onClick={() => setGridFitMode((prev) => (prev === 'cover' ? 'contain' : 'cover'))}
+              className={`px-3.5 py-1 rounded-[18px] text-[11px] font-mono whitespace-nowrap transition-all border flex items-center gap-1.5 ${
+                gridFitMode === 'contain'
+                  ? isDark
+                    ? 'bg-emerald-500/25 text-emerald-300 border-emerald-400/60 font-bold shadow-sm'
+                    : 'bg-[#141414] text-[#dcd8cf] border-[#141414] font-bold shadow-sm'
+                  : isDark
+                    ? 'bg-transparent text-white/60 hover:text-white border-white/10'
+                    : 'bg-white/50 text-[#141414]/70 hover:text-[#141414] border-[#141414]/15'
+              }`}
+              title="Chuyển đổi giữa Lấp Đầy Khung 3:4 và Vừa Khung Tỉ Lệ Gốc"
+            >
+              {gridFitMode === 'cover' ? (
+                <>
+                  <Minimize2 className="w-3 h-3" />
+                  <span>{lang === 'vi' ? 'Khung: Lấp Đầy 3:4' : 'Frame: 3:4 Fill'}</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-3 h-3" />
+                  <span>{lang === 'vi' ? 'Khung: Tỉ Lệ Gốc' : 'Frame: Original Fit'}</span>
+                </>
+              )}
+            </button>
           </div>
 
           {/* Results Counter */}
@@ -355,11 +383,22 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
                   >
                     {/* Image Stage */}
                     <div className="relative aspect-[3/4] bg-black rounded-[22px] sm:rounded-[26px] overflow-hidden">
+                      {gridFitMode === 'contain' && (
+                        <img
+                          src={flower.image}
+                          alt=""
+                          aria-hidden="true"
+                          referrerPolicy="no-referrer"
+                          className="absolute inset-0 w-full h-full object-cover scale-115 blur-xl opacity-45 pointer-events-none"
+                        />
+                      )}
                       <img
                         src={flower.image}
                         alt={flower.name}
                         referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-700 ease-out"
+                        className={`relative z-10 w-full h-full group-hover:scale-108 transition-transform duration-700 ease-out ${
+                          gridFitMode === 'contain' ? 'object-contain p-1.5' : 'object-cover object-center'
+                        }`}
                         loading="lazy"
                       />
 
