@@ -30,6 +30,18 @@ service cloud.firestore {
       allow create, update, delete: if isValidId(docId);
     }
 
+    // Bespoke Floral Orders & Consultations Collection
+    match /orders/{orderId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(orderId);
+    }
+
+    // Workshop Bookings & Corporate Registrations Collection
+    match /workshop_bookings/{bookingId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(bookingId);
+    }
+
     // Test connection document
     match /test/{testId} {
       allow read, write: if true;

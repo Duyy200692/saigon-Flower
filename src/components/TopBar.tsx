@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, Sparkles, Shield, Sun, Moon } from 'lucide-react';
+import { Menu, Sparkles, Shield, Sun, Moon, Heart, Compass } from 'lucide-react';
 import { useAtelier } from '../context/AtelierContext';
 
 interface TopBarProps {
@@ -11,6 +11,8 @@ interface TopBarProps {
   onOpenOrder: () => void;
   onOpenAtelier: () => void;
   onOpenWorkshop?: () => void;
+  onOpenSommelier?: () => void;
+  onOpenMoodboard?: () => void;
   onOpenAdmin: () => void;
   flowerCount: number;
 }
@@ -23,11 +25,16 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenIndex,
   onOpenOrder,
   onOpenWorkshop,
+  onOpenSommelier,
+  onOpenMoodboard,
   onOpenAdmin,
   flowerCount
 }) => {
-  const { atelierData, logoUrl, logoWhiteUrl, isAdmin } = useAtelier();
+  const { atelierData, logoUrl, logoWhiteUrl, isAdmin, wishlistIds, orders, workshopBookings } = useAtelier();
   const isDark = theme === 'dark';
+  const pendingCount =
+    orders.filter((o) => o.status === 'pending').length +
+    workshopBookings.filter((b) => b.status === 'pending').length;
 
   // Automatic theme-aware logo resolution:
   // - Dark mode prefers logoWhiteUrl; if only logoUrl (black logo) is uploaded, auto-invert it to white so it's always visible.
@@ -116,6 +123,17 @@ export const TopBar: React.FC<TopBarProps> = ({
               {lang === 'vi' ? 'Workshop Cắm Hoa' : 'Workshop'}
             </a>
           )}
+          {onOpenSommelier && (
+            <button
+              onClick={onOpenSommelier}
+              className={`transition-colors flex items-center gap-1 ${
+                isDark ? 'hover:text-amber-300' : 'hover:text-[#141414]'
+              }`}
+            >
+              <Compass className="w-3.5 h-3.5" />
+              <span>{lang === 'vi' ? 'Cố Vấn Hoa (Sommelier)' : 'Sommelier'}</span>
+            </button>
+          )}
           <a
             href="#philosophy"
             className={`transition-colors ${
@@ -127,8 +145,26 @@ export const TopBar: React.FC<TopBarProps> = ({
         </nav>
 
         {/* Zone 3: Primary Actions & Utility Controls (Compact & never crowding logo on mobile) */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           
+          {/* Moodboard / Wishlist Trigger */}
+          {onOpenMoodboard && (
+            <button
+              onClick={onOpenMoodboard}
+              className={`relative p-1.5 sm:px-2.5 sm:py-1.5 rounded-full border transition-all flex items-center gap-1 text-[11px] font-mono shadow-sm ${
+                wishlistIds.length > 0
+                  ? 'bg-rose-500/15 border-rose-500/40 text-rose-500 font-bold'
+                  : isDark
+                    ? 'border-white/15 bg-white/10 hover:bg-white/20 text-[#ede9df]'
+                    : 'border-[#141414]/15 bg-white/60 hover:bg-white text-[#141414]'
+              }`}
+              title={lang === 'vi' ? 'Bộ sưu tập yêu thích (Moodboard)' : 'Personal Moodboard'}
+            >
+              <Heart className={`w-3.5 h-3.5 ${wishlistIds.length > 0 ? 'fill-current text-rose-500' : ''}`} />
+              {wishlistIds.length > 0 && <span>{wishlistIds.length}</span>}
+            </button>
+          )}
+
           {/* Index Trigger (Desktop/Tablet - Mobile uses FloatingMobileBar) */}
           <button
             onClick={onOpenIndex}
@@ -229,7 +265,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           {/* Admin Portal Button (Far right, discreet & clean so it never overlaps the brand logo) */}
           <button
             onClick={onOpenAdmin}
-            className={`p-1.5 sm:p-2 rounded-full border transition-all flex items-center gap-1.5 text-[10px] font-mono uppercase shadow-sm ${
+            className={`relative p-1.5 sm:p-2 rounded-full border transition-all flex items-center gap-1.5 text-[10px] font-mono uppercase shadow-sm ${
               isAdmin
                 ? 'bg-amber-400 text-[#141414] border-amber-500 font-bold'
                 : isDark
@@ -240,6 +276,11 @@ export const TopBar: React.FC<TopBarProps> = ({
           >
             <Shield className="w-3.5 h-3.5" />
             <span className="hidden xl:inline">{isAdmin ? 'ADMIN ACTIVE' : 'ADMIN'}</span>
+            {pendingCount > 0 && (
+              <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
+                {pendingCount}
+              </span>
+            )}
           </button>
 
         </div>

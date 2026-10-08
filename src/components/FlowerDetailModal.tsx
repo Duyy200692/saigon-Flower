@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { X, Sparkles, ChevronLeft, ChevronRight, Share2, Check, Maximize2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Sparkles, ChevronLeft, ChevronRight, Share2, Check, Maximize2, Heart } from 'lucide-react';
 import { FlowerItem, FLOWERS } from '../data/flowers';
+import { useAtelier } from '../context/AtelierContext';
 
 interface FlowerDetailModalProps {
   flower: FlowerItem | null;
@@ -23,12 +24,17 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
   onNext,
   onPrev
 }) => {
+  const { flowers, toggleWishlist, isInWishlist } = useAtelier();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedAnatomy, setSelectedAnatomy] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'story' | 'scent' | 'materials'>('story');
   const [isCopied, setIsCopied] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
+
+  // Touch swipe state for mobile gallery navigation
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
 
   const isDark = theme === 'dark';
 
@@ -62,7 +68,7 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
 
   if (!isOpen || !flower) return null;
 
-  const totalCount = FLOWERS.length;
+  const totalCount = flowers.length || FLOWERS.length;
   const gallery = flower.galleryImages && flower.galleryImages.length > 0 
     ? flower.galleryImages 
     : [
@@ -80,14 +86,34 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
     setIsLandscape(naturalWidth > naturalHeight);
   };
 
-  const handlePrevImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handlePrevImage = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     setSelectedImageIndex((prev) => (prev - 1 + gallery.length) % gallery.length);
   };
 
-  const handleNextImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleNextImage = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     setSelectedImageIndex((prev) => (prev + 1) % gallery.length);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX.current === null || touchEndX.current === null) return;
+    const distance = touchStartX.current - touchEndX.current;
+    if (distance > 45) {
+      handleNextImage();
+    } else if (distance < -45) {
+      handlePrevImage();
+    }
+    touchStartX.current = null;
+    touchEndX.current = null;
   };
 
   const handleShare = () => {
@@ -166,8 +192,29 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
             )}
           </div>
 
-          {/* Right Action Icons: Share & Close (Speaker button removed per user request) */}
+          {/* Right Action Icons: Wishlist Heart, Share & Close */}
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => toggleWishlist(flower.id)}
+              className={`px-3 py-1.5 rounded-[18px] border transition-all flex items-center gap-1.5 text-xs font-mono ${
+                isInWishlist(flower.id)
+                  ? 'bg-rose-500 border-rose-500 text-white font-bold shadow-sm'
+                  : isDark
+                    ? 'border-white/20 hover:border-white text-[#ede9df]'
+                    : 'border-[#141414]/20 hover:border-[#141414] text-[#141414]'
+              }`}
+              title={lang === 'vi' ? 'Lưu vào Moodboard Yêu Thích' : 'Save to Moodboard'}
+            >
+              <Heart className={`w-3.5 h-3.5 ${isInWishlist(flower.id) ? 'fill-current' : ''}`} />
+              <span className="hidden sm:inline">
+                {isInWishlist(flower.id)
+                  ? lang === 'vi'
+                    ? 'Đã Lưu'
+                    : 'Saved'
+                  : 'Moodboard'}
+              </span>
+            </button>
+
             <button
               onClick={handleShare}
               className={`p-2 rounded-[18px] border transition-all ${
@@ -205,6 +252,9 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
               
               {/* Main Adaptive Image Frame */}
               <div
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
                 className={`relative w-full mx-auto rounded-[26px] sm:rounded-[34px] overflow-hidden bg-[#181716] shadow-2xl border group transition-all duration-500 ${
                   isDark ? 'border-white/15' : 'border-[#141414]/20'
                 } ${
@@ -520,21 +570,21 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                 </div>
               )}
 
-              {/* Order & Pricing Callout Card */}
+              {/* Order & Pricing Callout Card (Sticky on mobile for effortless thumb reach) */}
               <div
-                className={`p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl border ${
+                className={`sticky bottom-0 z-20 p-3.5 sm:p-4 rounded-2xl flex items-center justify-between gap-3 shadow-2xl border backdrop-blur-xl ${
                   isDark
-                    ? 'bg-[#20221e] text-[#ede9df] border-white/15'
-                    : 'bg-[#141414] text-[#dcd8cf] border-transparent'
+                    ? 'bg-[#20221e]/95 text-[#ede9df] border-white/15'
+                    : 'bg-[#141414]/95 text-[#dcd8cf] border-transparent'
                 }`}
               >
                 <div>
                   <span className="text-[10px] font-mono text-white/60 uppercase block">
                     {lang === 'vi' ? 'Giá Ước Tính Thiết Kế' : 'Estimated Investment'}
                   </span>
-                  <div className="text-xl font-bold font-mono text-white">
+                  <div className="text-lg sm:text-xl font-bold font-mono tabular-nums text-white">
                     {flower.priceVnd.toLocaleString('vi-VN')} VND
-                    <span className="text-xs font-normal text-white/60 ml-1.5">(~${flower.priceUsd} USD)</span>
+                    <span className="text-xs font-normal text-white/60 ml-1.5 hidden sm:inline">(~${flower.priceUsd} USD)</span>
                   </div>
                 </div>
 
@@ -543,7 +593,7 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                     onClose();
                     onOrderFlower(flower);
                   }}
-                  className="px-5 py-2.5 rounded-full bg-[#dcd8cf] text-[#141414] font-bold text-xs uppercase tracking-wider hover:bg-white transition-all flex items-center justify-center gap-1.5 shadow-lg whitespace-nowrap"
+                  className="min-h-[44px] px-5 py-2.5 rounded-full bg-[#dcd8cf] text-[#141414] font-bold text-xs uppercase tracking-wider hover:bg-white transition-all flex items-center justify-center gap-1.5 shadow-lg whitespace-nowrap"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-[#141414]" />
                   <span>{lang === 'vi' ? 'Đặt Mẫu Này' : 'Order Specimen'}</span>

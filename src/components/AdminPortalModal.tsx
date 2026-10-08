@@ -34,7 +34,9 @@ import {
   Lock,
   Key,
   Eye,
-  EyeOff
+  EyeOff,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useAtelier } from '../context/AtelierContext';
 import { FlowerItem } from '../data/flowers';
@@ -52,13 +54,18 @@ interface AdminPortalModalProps {
   isOpen: boolean;
   onClose: () => void;
   lang: 'vi' | 'en';
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
 }
 
 export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   isOpen,
   onClose,
-  lang
+  lang,
+  theme = 'light',
+  onToggleTheme
 }) => {
+  const isDark = theme === 'dark';
   const {
     flowers,
     workshops,
@@ -78,13 +85,21 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     updateLogoWhiteUrl,
     adminPassword,
     changeAdminPassword,
+    orders,
+    workshopBookings,
+    updateOrderStatus,
+    deleteOrder,
+    updateWorkshopBookingStatus,
+    deleteWorkshopBooking,
     isCloudConnected,
     isSyncing,
     syncAllToCloud,
     resetAllData
   } = useAtelier();
 
-  const [activeTab, setActiveTab] = useState<'flowers' | 'workshops' | 'branding' | 'security'>('flowers');
+  const [activeTab, setActiveTab] = useState<'flowers' | 'workshops' | 'orders' | 'branding' | 'security'>('flowers');
+  const [crmSubTab, setCrmSubTab] = useState<'floral_orders' | 'workshop_bookings'>('floral_orders');
+  const [adminNoteDrafts, setAdminNoteDrafts] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState('');
   
   // Security / Password State
@@ -757,28 +772,60 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-60 bg-black/90 backdrop-blur-md flex flex-col justify-between overflow-hidden animate-fadeIn">
+    <div
+      className={`fixed inset-0 z-60 backdrop-blur-md flex flex-col justify-between overflow-hidden animate-fadeIn transition-colors duration-300 ${
+        isDark
+          ? 'bg-[#0f100e]/95 text-[#ede9df] admin-theme-dark'
+          : 'bg-[#dcd8cf] text-[#141414] admin-theme-light'
+      }`}
+    >
       
-      {/* Top Admin Header (Responsive: Shows 4 Navigation Tabs on BOTH Mobile & Desktop) */}
-      <header className="bg-[#181917] border-b border-white/15 px-3 sm:px-8 py-2.5 sm:py-3 flex flex-col gap-2.5 flex-shrink-0">
+      {/* Top Admin Header (Responsive: Shows 4 Navigation Tabs + Light/Dark Toggle on BOTH Mobile & Desktop) */}
+      <header
+        className={`border-b px-3 sm:px-8 py-2.5 sm:py-3 flex flex-col gap-2.5 flex-shrink-0 transition-colors duration-300 ${
+          isDark
+            ? 'bg-[#181917] border-white/15 text-white'
+            : 'bg-[#e8e4dc] border-[#141414]/15 text-[#141414]'
+        }`}
+      >
         {/* Top Row: Brand Badge + Desktop Tabs + Action Controls */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-amber-400/20 text-amber-300 flex items-center justify-center font-bold text-xs font-mono shrink-0">
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs font-mono shrink-0 ${
+                isDark
+                  ? 'bg-amber-400/20 text-amber-300'
+                  : 'bg-[#141414] text-amber-300'
+              }`}
+            >
               AD
             </div>
             <div className="min-w-0">
-              <h2 className="text-xs sm:text-sm font-bold font-mono uppercase tracking-wider text-white truncate">
+              <h2
+                className={`text-xs sm:text-sm font-bold font-mono uppercase tracking-wider truncate ${
+                  isDark ? 'text-white' : 'text-[#141414]'
+                }`}
+              >
                 JU ET SAIGON · BẢNG QUẢN TRỊ ADMIN
               </h2>
-              <p className="hidden sm:block text-[10px] text-white/60 font-sans truncate">
+              <p
+                className={`hidden sm:block text-[10px] font-sans truncate ${
+                  isDark ? 'text-white/60' : 'text-[#141414]/65'
+                }`}
+              >
                 Quản lý tác phẩm hoa · Dịch vụ Workshop · Thay đổi logo & thông tin thương hiệu
               </p>
             </div>
           </div>
 
           {/* Desktop Tab Navigation (lg and up) */}
-          <div className="hidden lg:flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10 text-xs font-medium shrink-0">
+          <div
+            className={`hidden lg:flex items-center gap-1 p-1 rounded-xl border text-xs font-medium shrink-0 ${
+              isDark
+                ? 'bg-black/40 border-white/10'
+                : 'bg-[#dcd8cf] border-[#141414]/15'
+            }`}
+          >
             <button
               onClick={() => {
                 setActiveTab('flowers');
@@ -786,7 +833,11 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                 setIsAddingFlower(false);
               }}
               className={`px-4 py-1.5 rounded-lg transition-all ${
-                activeTab === 'flowers' ? 'bg-amber-400 text-[#141414] font-bold' : 'text-white/70 hover:text-white'
+                activeTab === 'flowers'
+                  ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
+                  : isDark
+                    ? 'text-white/70 hover:text-white'
+                    : 'text-[#141414]/75 hover:text-[#141414] hover:bg-white/60'
               }`}
             >
               Tác Phẩm Hoa ({flowers.length})
@@ -796,16 +847,36 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                 setActiveTab('workshops');
                 setEditingWorkshop(null);
               }}
-              className={`px-4 py-1.5 rounded-lg transition-all ${
-                activeTab === 'workshops' ? 'bg-amber-400 text-[#141414] font-bold' : 'text-white/70 hover:text-white'
+              className={`px-3.5 py-1.5 rounded-lg transition-all ${
+                activeTab === 'workshops'
+                  ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
+                  : isDark
+                    ? 'text-white/70 hover:text-white'
+                    : 'text-[#141414]/75 hover:text-[#141414] hover:bg-white/60'
               }`}
             >
               Workshop ({workshops.length})
             </button>
             <button
+              onClick={() => setActiveTab('orders')}
+              className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === 'orders'
+                  ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
+                  : isDark
+                    ? 'text-white/70 hover:text-white'
+                    : 'text-[#141414]/75 hover:text-[#141414] hover:bg-white/60'
+              }`}
+            >
+              <span>Đơn Hàng & Lịch Hẹn ({orders.length + workshopBookings.length})</span>
+            </button>
+            <button
               onClick={() => setActiveTab('branding')}
               className={`px-4 py-1.5 rounded-lg transition-all ${
-                activeTab === 'branding' ? 'bg-amber-400 text-[#141414] font-bold' : 'text-white/70 hover:text-white'
+                activeTab === 'branding'
+                  ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
+                  : isDark
+                    ? 'text-white/70 hover:text-white'
+                    : 'text-[#141414]/75 hover:text-[#141414] hover:bg-white/60'
               }`}
             >
               Logo, Thông Tin & Social
@@ -813,7 +884,11 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
             <button
               onClick={() => setActiveTab('security')}
               className={`px-4 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                activeTab === 'security' ? 'bg-amber-400 text-[#141414] font-bold' : 'text-white/70 hover:text-white'
+                activeTab === 'security'
+                  ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
+                  : isDark
+                    ? 'text-white/70 hover:text-white'
+                    : 'text-[#141414]/75 hover:text-[#141414] hover:bg-white/60'
               }`}
             >
               <ShieldCheck className="w-3.5 h-3.5" />
@@ -821,8 +896,38 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
             </button>
           </div>
 
-          {/* Actions */}
+          {/* Actions (Includes Light/Dark Mode Toggle, Cloud Sync, Reset, Logout, Close) */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Light / Dark Mode Switcher inside Admin */}
+            {onToggleTheme && (
+              <button
+                type="button"
+                onClick={onToggleTheme}
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg border text-xs font-mono font-bold uppercase flex items-center gap-1.5 transition-all shadow-sm ${
+                  isDark
+                    ? 'bg-amber-400/15 text-amber-300 border-amber-400/40 hover:bg-amber-400/25'
+                    : 'bg-white text-[#141414] border-[#141414]/20 hover:bg-[#141414] hover:text-[#f7f5f0]'
+                }`}
+                title={
+                  isDark
+                    ? 'Đang ở nền Tối (Dark Mode) — Bấm để chuyển sang nền Sáng (Light Mode)'
+                    : 'Đang ở nền Sáng (Light Mode) — Bấm để chuyển sang nền Tối (Dark Mode)'
+                }
+              >
+                {isDark ? (
+                  <>
+                    <Sun className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Light</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="w-3.5 h-3.5" />
+                    <span>Dark</span>
+                  </>
+                )}
+              </button>
+            )}
+
             {/* Cloud Sync Button */}
             <button
               type="button"
@@ -838,8 +943,12 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
               disabled={isSyncing}
               className={`px-2.5 sm:px-3 py-1.5 rounded-lg border text-xs font-mono uppercase flex items-center gap-1.5 transition-all shadow-sm ${
                 isCloudConnected
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
-                  : 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+                  ? isDark
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+                    : 'bg-emerald-600/15 text-emerald-900 border-emerald-600/35 hover:bg-emerald-600/25 font-bold'
+                  : isDark
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+                    : 'bg-amber-500/20 text-amber-900 border-amber-600/35 hover:bg-amber-500/30 font-bold'
               }`}
               title="Đồng bộ dữ liệu lên Firebase Firestore"
             >
@@ -856,7 +965,11 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                   alert('Đã khôi phục dữ liệu mặc định!');
                 }
               }}
-              className="p-2 text-xs font-mono rounded-lg border border-white/10 hover:border-amber-400/50 text-white/60 hover:text-amber-300 transition-colors"
+              className={`p-2 text-xs font-mono rounded-lg border transition-colors ${
+                isDark
+                  ? 'border-white/10 hover:border-amber-400/50 text-white/60 hover:text-amber-300'
+                  : 'border-[#141414]/15 bg-white/60 hover:bg-white text-[#141414]/70 hover:text-[#141414]'
+              }`}
               title="Khôi phục dữ liệu gốc"
             >
               <RotateCcw className="w-4 h-4" />
@@ -867,7 +980,11 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                 logout();
                 onClose();
               }}
-              className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-red-900/40 hover:bg-red-900/80 text-red-200 border border-red-500/30 text-xs font-mono uppercase flex items-center gap-1 transition-all"
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg border text-xs font-mono uppercase flex items-center gap-1 transition-all ${
+                isDark
+                  ? 'bg-red-900/40 hover:bg-red-900/80 text-red-200 border-red-500/30'
+                  : 'bg-red-600/10 hover:bg-red-600 text-red-800 hover:text-white border-red-600/25 font-bold'
+              }`}
               title="Đăng xuất quản trị"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -876,7 +993,11 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+              className={`p-2 rounded-lg transition-colors ${
+                isDark
+                  ? 'bg-white/10 hover:bg-white/20 text-white'
+                  : 'bg-[#141414]/10 hover:bg-[#141414]/20 text-[#141414]'
+              }`}
               aria-label="Close"
             >
               <X className="w-5 h-5" />
@@ -884,8 +1005,14 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           </div>
         </div>
 
-        {/* Mobile & Tablet Tab Navigation Bar (Visible on screens < lg so mobile users see all 4 tabs clearly) */}
-        <div className="lg:hidden grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-black/50 p-1.5 rounded-xl border border-white/15 text-[11px] sm:text-xs font-medium">
+        {/* Mobile & Tablet Tab Navigation Bar (Visible on screens < lg so mobile users see all 5 tabs clearly) */}
+        <div
+          className={`lg:hidden grid grid-cols-2 sm:grid-cols-5 gap-1.5 p-1.5 rounded-xl border text-[11px] sm:text-xs font-medium ${
+            isDark
+              ? 'bg-black/50 border-white/15'
+              : 'bg-[#dcd8cf] border-[#141414]/15'
+          }`}
+        >
           <button
             type="button"
             onClick={() => {
@@ -896,7 +1023,9 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
             className={`px-2.5 py-2 rounded-lg transition-all text-center truncate ${
               activeTab === 'flowers'
                 ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
-                : 'text-white/80 hover:text-white bg-white/5'
+                : isDark
+                  ? 'text-white/80 hover:text-white bg-white/5'
+                  : 'text-[#141414]/80 hover:text-[#141414] bg-white/60'
             }`}
           >
             Tác Phẩm Hoa ({flowers.length})
@@ -911,10 +1040,25 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
             className={`px-2.5 py-2 rounded-lg transition-all text-center truncate ${
               activeTab === 'workshops'
                 ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
-                : 'text-white/80 hover:text-white bg-white/5'
+                : isDark
+                  ? 'text-white/80 hover:text-white bg-white/5'
+                  : 'text-[#141414]/80 hover:text-[#141414] bg-white/60'
             }`}
           >
             Workshop ({workshops.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('orders')}
+            className={`px-2.5 py-2 rounded-lg transition-all text-center truncate ${
+              activeTab === 'orders'
+                ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
+                : isDark
+                  ? 'text-white/80 hover:text-white bg-white/5'
+                  : 'text-[#141414]/80 hover:text-[#141414] bg-white/60'
+            }`}
+          >
+            Đơn Hàng ({orders.length + workshopBookings.length})
           </button>
           <button
             type="button"
@@ -922,7 +1066,9 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
             className={`px-2.5 py-2 rounded-lg transition-all text-center truncate ${
               activeTab === 'branding'
                 ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
-                : 'text-white/80 hover:text-white bg-white/5'
+                : isDark
+                  ? 'text-white/80 hover:text-white bg-white/5'
+                  : 'text-[#141414]/80 hover:text-[#141414] bg-white/60'
             }`}
           >
             Logo, Thông Tin & Social
@@ -933,7 +1079,9 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
             className={`px-2.5 py-2 rounded-lg transition-all flex items-center justify-center gap-1 truncate ${
               activeTab === 'security'
                 ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
-                : 'text-white/80 hover:text-white bg-white/5'
+                : isDark
+                  ? 'text-white/80 hover:text-white bg-white/5'
+                  : 'text-[#141414]/80 hover:text-[#141414] bg-white/60'
             }`}
           >
             <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
@@ -943,7 +1091,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 text-[#ede9df]">
+      <main className={`flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 ${isDark ? 'text-[#ede9df]' : 'text-[#141414]'}`}>
         <div className="max-w-6xl mx-auto space-y-6">
           
           {/* TAB 1: FLOWERS CRUD */}
@@ -2171,8 +2319,8 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                         </span>
                       </div>
 
-                      {/* Preview on Dark Mode Background */}
-                      <div className="w-full h-24 rounded-xl border border-white/20 bg-[#0f100e] flex items-center justify-center p-3 text-center overflow-hidden relative shadow-inner">
+                      {/* Preview on Dark Mode Background (Always stays dark so White Logo is visible) */}
+                      <div className="admin-keep-dark w-full h-24 rounded-xl border border-white/20 bg-[#0f100e] flex items-center justify-center p-3 text-center overflow-hidden relative shadow-inner">
                         {logoWhiteUrl ? (
                           <img
                             src={logoWhiteUrl}
@@ -2655,6 +2803,302 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                   </button>
                 </div>
               </form>
+            </div>
+          )}
+
+          {/* TAB 3: ATELIER CRM — BESPOKE ORDERS & WORKSHOP BOOKINGS */}
+          {activeTab === 'orders' && (
+            <div className="bg-[#1e1f1c] rounded-2xl p-4 sm:p-6 border border-white/15 space-y-6 animate-fadeIn">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+                <div>
+                  <h3 className="text-lg sm:text-xl font-bagerich font-bold uppercase text-white">
+                    TRUNG TÂM QUẢN TRỊ ĐƠN HÀNG & LỊCH HẸN (ATELIER CRM)
+                  </h3>
+                  <p className="text-xs text-white/60 font-sans mt-0.5">
+                    Đồng bộ thời gian thực từ Firebase Firestore · Quản lý đơn đặt hoa, thiệp đóng dấu sáp và lịch đăng ký Workshop
+                  </p>
+                </div>
+
+                {/* Sub-tab switcher */}
+                <div className="flex items-center gap-1.5 p-1 rounded-xl bg-black/40 border border-white/15 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => setCrmSubTab('floral_orders')}
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-mono transition-all ${
+                      crmSubTab === 'floral_orders'
+                        ? 'bg-amber-400 text-[#141414] font-bold'
+                        : 'text-white/70 hover:text-white'
+                    }`}
+                  >
+                    Đơn Đặt Hoa ({orders.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCrmSubTab('workshop_bookings')}
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-mono transition-all ${
+                      crmSubTab === 'workshop_bookings'
+                        ? 'bg-amber-400 text-[#141414] font-bold'
+                        : 'text-white/70 hover:text-white'
+                    }`}
+                  >
+                    Đăng Ký Workshop ({workshopBookings.length})
+                  </button>
+                </div>
+              </div>
+
+              {crmSubTab === 'floral_orders' ? (
+                orders.length === 0 ? (
+                  <div className="py-16 text-center space-y-2 text-white/60">
+                    <p className="text-sm font-mono uppercase">Chưa có đơn đặt hoa nào trên hệ thống</p>
+                    <p className="text-xs">
+                      Khi khách hàng gửi yêu cầu tư vấn hoặc thiết kế thiệp đóng dấu sáp, đơn hàng sẽ tự động xuất hiện tại đây.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {orders.map((ord) => {
+                      const noteDraft =
+                        adminNoteDrafts[ord.id] !== undefined
+                          ? adminNoteDrafts[ord.id]
+                          : ord.adminNote || '';
+                      return (
+                        <div
+                          key={ord.id}
+                          className="p-4 sm:p-5 rounded-xl bg-black/40 border border-white/15 space-y-4"
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 pb-3">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-[#141414] font-mono text-xs font-bold">
+                                  {ord.orderCode}
+                                </span>
+                                <span className="text-xs font-mono text-white/50">
+                                  {new Date(ord.createdAt).toLocaleString('vi-VN')}
+                                </span>
+                              </div>
+                              <h4 className="text-base font-bold text-white">
+                                {ord.customerName} —{' '}
+                                <a
+                                  href={`tel:${ord.customerPhone.replace(/\s+/g, '')}`}
+                                  className="text-amber-300 underline"
+                                >
+                                  {ord.customerPhone}
+                                </a>
+                              </h4>
+                              <p className="text-xs text-white/80">
+                                <strong>Tác phẩm:</strong> {ord.flowerName} ·{' '}
+                                <strong>Ngân sách:</strong> {ord.budgetVnd.toLocaleString('vi-VN')} VND
+                              </p>
+                              <p className="text-xs text-white/70">
+                                <strong>Khu vực giao:</strong> {ord.district} ·{' '}
+                                <strong>Ngày nhận:</strong> {ord.deliveryDate} ·{' '}
+                                <strong>Dịp:</strong> {ord.occasion}
+                              </p>
+                            </div>
+
+                            {/* Status Controls */}
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {(
+                                [
+                                  { id: 'pending', label: '1. Tiếp Nhận' },
+                                  { id: 'crafting', label: '2. Đang Cắm Hoa' },
+                                  { id: 'delivering', label: '3. Đang Giao' },
+                                  { id: 'completed', label: '4. Hoàn Tất' },
+                                  { id: 'cancelled', label: 'Hủy' }
+                                ] as const
+                              ).map((st) => (
+                                <button
+                                  key={st.id}
+                                  type="button"
+                                  onClick={() => updateOrderStatus(ord.id, st.id)}
+                                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-mono transition-all border ${
+                                    ord.status === st.id
+                                      ? 'bg-amber-400 text-[#141414] border-amber-400 font-bold shadow'
+                                      : 'bg-white/5 text-white/70 border-white/15 hover:bg-white/15'
+                                  }`}
+                                >
+                                  {st.label}
+                                </button>
+                              ))}
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (window.confirm(`Xóa đơn hàng ${ord.orderCode}?`)) {
+                                    deleteOrder(ord.id);
+                                  }
+                                }}
+                                className="p-1.5 rounded-lg bg-red-950/50 text-red-300 border border-red-500/30 hover:bg-red-900"
+                                title="Xóa đơn hàng"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Moodboard items if included */}
+                          {ord.moodboardItems && ord.moodboardItems.length > 0 && (
+                            <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-400/25 text-xs text-rose-200">
+                              <span className="font-mono font-bold uppercase text-[10px] block mb-1">
+                                Danh sách Moodboard khách đã chọn ({ord.moodboardItems.length} mẫu):
+                              </span>
+                              <p>{ord.moodboardItems.join(' · ')}</p>
+                            </div>
+                          )}
+
+                          {/* Customer Notes */}
+                          {ord.notes && (
+                            <div className="text-xs text-white/85 bg-white/5 p-3 rounded-lg border border-white/10">
+                              <span className="font-mono text-[10px] uppercase text-white/50 block mb-0.5">
+                                Ghi chú của khách hàng:
+                              </span>
+                              <p>{ord.notes}</p>
+                            </div>
+                          )}
+
+                          {/* Bespoke Wax-Seal Greeting Card Details */}
+                          {ord.giftCard?.enabled && (
+                            <div className="p-3.5 rounded-xl bg-amber-400/10 border border-amber-400/30 text-xs space-y-1.5">
+                              <div className="flex items-center justify-between font-mono text-[10px] uppercase text-amber-300 font-bold">
+                                <span>✉ THIỆP ĐÓNG DẤU SÁP ĐI KÈM HOA</span>
+                                <span>
+                                  Giấy: {ord.giftCard.paperStyle.toUpperCase()} · Sáp:{' '}
+                                  {ord.giftCard.waxColor.toUpperCase()}
+                                </span>
+                              </div>
+                              <p className="text-white">
+                                <strong>Người nhận:</strong> {ord.giftCard.recipient || '—'} ·{' '}
+                                <strong>Người gửi:</strong> {ord.giftCard.sender || ord.customerName}
+                              </p>
+                              <p className="italic text-amber-100 bg-black/30 p-2.5 rounded-lg border border-white/10">
+                                "{ord.giftCard.message}"
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Admin Note & Zalo Quick Action */}
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+                            <input
+                              type="text"
+                              placeholder="Ghi chú tiến độ cho khách xem khi tra cứu đơn (VD: Đã tuyển chọn mẫu đơn Hà Lan, giao lúc 14h)..."
+                              value={noteDraft}
+                              onChange={(e) =>
+                                setAdminNoteDrafts((prev) => ({
+                                  ...prev,
+                                  [ord.id]: e.target.value
+                                }))
+                              }
+                              className="flex-1 px-3 py-2 rounded-lg bg-black/60 border border-white/15 text-xs text-white font-sans focus:outline-none focus:border-amber-400"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => updateOrderStatus(ord.id, ord.status, noteDraft)}
+                              className="px-4 py-2 rounded-lg bg-white/15 hover:bg-amber-400 hover:text-black text-white text-xs font-mono font-bold transition-colors shrink-0"
+                            >
+                              Lưu Ghi Chú
+                            </button>
+                            <a
+                              href={`https://zalo.me/${ord.customerPhone.replace(/\s+/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-4 py-2 rounded-lg bg-[#0068FF] text-white text-xs font-mono font-bold text-center shrink-0"
+                            >
+                              Chat Zalo Khách
+                            </a>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              ) : workshopBookings.length === 0 ? (
+                <div className="py-16 text-center space-y-2 text-white/60">
+                  <p className="text-sm font-mono uppercase">Chưa có đăng ký Workshop nào</p>
+                  <p className="text-xs">
+                    Khi khách hàng hoặc doanh nghiệp đăng ký lịch Workshop, thông tin sẽ hiển thị tại đây.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {workshopBookings.map((bk) => (
+                    <div
+                      key={bk.id}
+                      className="p-4 sm:p-5 rounded-xl bg-black/40 border border-white/15 space-y-3"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-[#141414] font-mono text-xs font-bold">
+                              {bk.bookingCode}
+                            </span>
+                            <span className="text-xs font-mono text-white/50">
+                              {new Date(bk.createdAt).toLocaleString('vi-VN')}
+                            </span>
+                          </div>
+                          <h4 className="text-base font-bold text-white">
+                            {bk.customerName}{' '}
+                            {bk.companyName ? `(${bk.companyName})` : ''} —{' '}
+                            <a
+                              href={`tel:${bk.customerPhone.replace(/\s+/g, '')}`}
+                              className="text-amber-300 underline"
+                            >
+                              {bk.customerPhone}
+                            </a>
+                          </h4>
+                          <p className="text-xs text-white/85">
+                            <strong>Chủ đề:</strong> {bk.workshopName} ·{' '}
+                            <strong>Số lượng:</strong> {bk.participantsCount} Pax
+                          </p>
+                          <p className="text-xs text-white/70">
+                            <strong>Ngày dự kiến:</strong> {bk.preferredDate} ·{' '}
+                            <strong>Địa điểm:</strong> {bk.locationType}
+                          </p>
+                          {bk.notes && (
+                            <p className="text-xs text-amber-200/90 pt-1">
+                              <strong>Ghi chú:</strong> {bk.notes}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {(
+                            [
+                              { id: 'pending', label: 'Chờ Xác Nhận' },
+                              { id: 'confirmed', label: 'Đã Xác Nhận Lịch' },
+                              { id: 'completed', label: 'Hoàn Tất' },
+                              { id: 'cancelled', label: 'Hủy' }
+                            ] as const
+                          ).map((st) => (
+                            <button
+                              key={st.id}
+                              type="button"
+                              onClick={() => updateWorkshopBookingStatus(bk.id, st.id)}
+                              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-mono transition-all border ${
+                                bk.status === st.id
+                                  ? 'bg-amber-400 text-[#141414] border-amber-400 font-bold'
+                                  : 'bg-white/5 text-white/70 border-white/15 hover:bg-white/15'
+                              }`}
+                            >
+                              {st.label}
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(`Xóa đăng ký ${bk.bookingCode}?`)) {
+                                deleteWorkshopBooking(bk.id);
+                              }
+                            }}
+                            className="p-1.5 rounded-lg bg-red-950/50 text-red-300 border border-red-500/30 hover:bg-red-900"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

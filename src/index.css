@@ -110,3 +110,140 @@
 .flower-frame {
   box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.25);
 }
+
+/* ==========================================================================
+   Admin Portal Light Mode Theme Adaptation (.admin-theme-light)
+   ========================================================================== */
+.admin-theme-light {
+  background-color: #dcd8cf;
+  color: #141414;
+}
+
+.admin-theme-light .bg-\[\#1e1f1c\],
+.admin-theme-light .bg-\[\#141513\] {
+  background-color: #f4f1ea !important;
+  color: #141414 !important;
+  border-color: rgba(20, 20, 20, 0.15) !important;
+  box-shadow: 0 6px 24px -6px rgba(20, 20, 20, 0.07);
+}
+
+.admin-theme-light .from-\[\#23211d\] {
+  background-image: linear-gradient(to bottom right, #f4f1ea, #e8e4dc) !important;
+}
+
+.admin-theme-light div.bg-black\/40,
+.admin-theme-light div.bg-black\/50 {
+  background-color: #e8e4dc !important;
+  border-color: rgba(20, 20, 20, 0.14) !important;
+}
+
+.admin-theme-light input:not([type="checkbox"]):not([type="file"]),
+.admin-theme-light select,
+.admin-theme-light textarea {
+  background-color: #ffffff !important;
+  color: #141414 !important;
+  border-color: rgba(20, 20, 20, 0.22) !important;
+}
+
+.admin-theme-light input::placeholder,
+.admin-theme-light textarea::placeholder {
+  color: rgba(20, 20, 20, 0.45) !important;
+}
+
+.admin-theme-light .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.72) !important;
+}
+
+.admin-theme-light .bg-white\/10 {
+  background-color: rgba(20, 20, 20, 0.08) !important;
+}
+
+.admin-theme-light .hover\:bg-white\/20:hover {
+  background-color: rgba(20, 20, 20, 0.15) !important;
+}
+
+.admin-theme-light .border-white\/10,
+.admin-theme-light .border-white\/15,
+.admin-theme-light .border-white\/20:not(.admin-keep-dark) {
+  border-color: rgba(20, 20, 20, 0.15) !important;
+}
+
+.admin-theme-light .text-white:not(.admin-keep-dark *):not(label.bg-black\/60):not(label.bg-black\/60 *):not(.bg-black\/70) {
+  color: #141414 !important;
+}
+
+.admin-theme-light .text-white\/90:not(.admin-keep-dark *):not(.bg-black\/70),
+.admin-theme-light .text-white\/80:not(.admin-keep-dark *),
+.admin-theme-light .text-white\/70:not(.admin-keep-dark *) {
+  color: rgba(20, 20, 20, 0.8) !important;
+}
+
+.admin-theme-light .text-white\/60:not(.admin-keep-dark *),
+.admin-theme-light .text-white\/50:not(.admin-keep-dark *),
+.admin-theme-light .text-white\/40:not(.admin-keep-dark *) {
+  color: rgba(20, 20, 20, 0.58) !important;
+}
+
+.admin-theme-light .text-amber-300:not(.admin-keep-dark *):not(label.bg-black\/60):not(label.bg-black\/60 *):not(.bg-black\/70),
+.admin-theme-light .text-amber-300\/90:not(.admin-keep-dark *),
+.admin-theme-light .text-amber-300\/80:not(.admin-keep-dark *),
+.admin-theme-light .text-amber-400:not(.admin-keep-dark *) {
+  color: #92400e !important;
+}
+
+.admin-theme-light .bg-amber-400\/10,
+.admin-theme-light .bg-amber-400\/20 {
+  background-color: rgba(217, 119, 6, 0.14) !important;
+  border-color: rgba(180, 83, 9, 0.35) !important;
+}
+
+.admin-theme-light .bg-emerald-950\/70 {
+  background-color: #ecfdf5 !important;
+  border-color: rgba(16, 185, 129, 0.45) !important;
+}
+
+.admin-theme-light .text-emerald-200,
+.admin-theme-light .text-emerald-300,
+.admin-theme-light .text-emerald-400 {
+  color: #065f46 !important;
+}
+
+.admin-theme-light .bg-amber-950\/80 {
+  background-color: #fffbeb !important;
+  border-color: rgba(217, 119, 6, 0.45) !important;
+}
+
+.admin-theme-light .text-amber-200 {
+  color: #78350f !important;
+}
+
+.admin-theme-light .bg-red-950\/60 {
+  background-color: rgba(220, 38, 38, 0.12) !important;
+  border-color: rgba(220, 38, 38, 0.28) !important;
+}
+
+.admin-theme-light .text-red-200,
+.admin-theme-light .text-red-300 {
+  color: #991b1b !important;
+}
+
+.admin-theme-light .text-pink-300,
+.admin-theme-light .text-pink-400 {
+  color: #be185d !important;
+}
+
+.admin-theme-light .text-blue-300,
+.admin-theme-light .text-blue-400 {
+  color: #1d4ed8 !important;
+}
+
+.admin-theme-light .text-cyan-300,
+.admin-theme-light .text-cyan-400 {
+  color: #0e7490 !important;
+}
+
+.admin-theme-light .text-purple-300,
+.admin-theme-light .text-purple-400 {
+  color: #7e22ce !important;
+}
+

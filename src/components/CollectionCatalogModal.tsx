@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { X, Search, Filter, Pin } from 'lucide-react';
+import { X, Search, Filter, Pin, Heart } from 'lucide-react';
 import { FlowerItem, BOTANICAL_CATEGORIES, BOTANICAL_SEASONS } from '../data/flowers';
+import { useAtelier } from '../context/AtelierContext';
 
 interface CollectionCatalogModalProps {
   isOpen: boolean;
@@ -19,9 +20,11 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
   theme = 'light',
   onSelectFlower
 }) => {
+  const { atelierData, wishlistIds, toggleWishlist, isInWishlist } = useAtelier();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedSeason, setSelectedSeason] = useState<string>('all');
   const [showPinnedOnly, setShowPinnedOnly] = useState<boolean>(false);
+  const [showWishlistOnly, setShowWishlistOnly] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const isDark = theme === 'dark';
 
@@ -46,8 +49,9 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
         else if (selectedSeason === 'year-round') matchSeason = seasonLower.includes('year-round') || seasonLower.includes('quanh năm');
       }
 
-      // 3. Pinned filter
+      // 3. Pinned & Wishlist filter
       const matchPinned = !showPinnedOnly || flower.pinnedToLanding !== false;
+      const matchWishlist = !showWishlistOnly || wishlistIds.includes(flower.id);
 
       // 4. Search Filter
       const q = searchQuery.toLowerCase().trim();
@@ -61,9 +65,9 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
         flower.materialsVi.some((m) => m.toLowerCase().includes(q)) ||
         flower.scent.mood.toLowerCase().includes(q);
 
-      return matchCategory && matchSeason && matchPinned && matchSearch;
+      return matchCategory && matchSeason && matchPinned && matchWishlist && matchSearch;
     });
-  }, [flowers, selectedCategory, selectedSeason, showPinnedOnly, searchQuery]);
+  }, [flowers, selectedCategory, selectedSeason, showPinnedOnly, showWishlistOnly, wishlistIds, searchQuery]);
 
   if (!isOpen) return null;
 
@@ -104,7 +108,7 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
               JU ET SAIGON · ARCHIVE
             </span>
             <span className={`text-xs font-mono hidden sm:inline-block ${isDark ? 'text-white/50' : 'text-[#141414]/60'}`}>
-              {flowers.length} Tác Phẩm Độc Bản · 12 Ghim Landing Page
+              {flowers.length} Tác Phẩm Độc Bản · {pinnedCount} Ghim Landing Page
             </span>
           </div>
           <h2 className="text-lg sm:text-xl font-bagerich uppercase tracking-wider mt-0.5">
@@ -255,6 +259,22 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
               <Pin className={`w-3 h-3 ${showPinnedOnly ? 'fill-current' : ''}`} />
               <span>{lang === 'vi' ? `Ghim Trang Chủ (${pinnedCount})` : `Pinned Landing (${pinnedCount})`}</span>
             </button>
+
+            {/* Quick Toggle: Moodboard Yêu Thích */}
+            <button
+              onClick={() => setShowWishlistOnly((prev) => !prev)}
+              className={`px-3.5 py-1 rounded-[18px] text-[11px] font-mono whitespace-nowrap transition-all border flex items-center gap-1.5 ${
+                showWishlistOnly
+                  ? 'bg-rose-500 text-white border-rose-500 font-bold shadow-sm'
+                  : isDark
+                    ? 'bg-transparent text-white/60 hover:text-rose-300 border-white/10 hover:border-rose-400/30'
+                    : 'bg-white/50 text-[#141414]/70 hover:text-rose-700 border-[#141414]/15'
+              }`}
+              title="Hiển thị các tác phẩm đã lưu trong Moodboard Yêu Thích"
+            >
+              <Heart className={`w-3 h-3 ${showWishlistOnly ? 'fill-current' : ''}`} />
+              <span>Moodboard ({wishlistIds.length})</span>
+            </button>
           </div>
 
           {/* Results Counter */}
@@ -351,6 +371,23 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
                         #{flower.indexNumber}
                       </div>
 
+                      {/* Moodboard Heart Toggle Button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleWishlist(flower.id);
+                        }}
+                        className={`absolute bottom-2.5 left-2.5 w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-xl transition-all shadow-md ${
+                          isInWishlist(flower.id)
+                            ? 'bg-rose-500 text-white'
+                            : 'bg-black/60 text-white/90 hover:bg-black border border-white/20'
+                        }`}
+                        title={lang === 'vi' ? 'Lưu vào Moodboard Yêu Thích' : 'Save to Moodboard'}
+                      >
+                        <Heart className={`w-3.5 h-3.5 ${isInWishlist(flower.id) ? 'fill-current' : ''}`} />
+                      </button>
+
                       {/* Pinned to Landing Page Badge */}
                       {isPinned && (
                         <div
@@ -427,11 +464,11 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
             : 'bg-[#e6e2da] border-[#141414]/15 text-[#141414]/70'
         }`}
       >
-        <span>
-          JU ET SAIGON · Lầu 1, 31 Nguyễn Trãi, Q.1, TP.HCM
+        <span className="truncate mr-2">
+          {atelierData.name || 'JU ET SAIGON'} · {lang === 'vi' ? atelierData.addressVi : atelierData.addressEn}
         </span>
-        <span className={isDark ? 'text-amber-400' : 'text-amber-900 font-bold'}>
-          Hotline: 090 936 80 80
+        <span className={`shrink-0 ${isDark ? 'text-amber-400' : 'text-amber-900 font-bold'}`}>
+          Hotline: {atelierData.phoneFormatted || atelierData.phone}
         </span>
       </footer>
 

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { FlowerItem } from '../data/flowers';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Heart } from 'lucide-react';
+import { useAtelier } from '../context/AtelierContext';
 
 interface BotanicalMatrixProps {
   flowers: FlowerItem[];
@@ -17,6 +18,7 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
   onSelectFlower,
   onOpenCollection
 }) => {
+  const { toggleWishlist, isInWishlist } = useAtelier();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const isDark = theme === 'dark';
@@ -58,7 +60,7 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
   };
 
   return (
-    <section id="gallery-matrix" className="max-w-4xl mx-auto px-4 sm:px-6 my-10 relative">
+    <section id="gallery-matrix" className="max-w-4xl mx-auto px-4 sm:px-6 my-10 relative overflow-x-clip">
       
       <div
         className={`flex items-center justify-between text-[11px] font-mono uppercase tracking-widest mb-3 px-1 transition-colors ${
@@ -171,6 +173,25 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
                 >
                   {flower.indexNumber}
                 </div>
+
+                {/* Quick Wishlist Heart button top-right */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleWishlist(flower.id);
+                  }}
+                  className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-all z-20 ${
+                    isInWishlist(flower.id)
+                      ? 'bg-rose-500 text-white opacity-100 shadow-md'
+                      : isHovered
+                        ? 'bg-black/70 text-white/90 hover:bg-black opacity-100'
+                        : 'opacity-0 pointer-events-none'
+                  }`}
+                  title={lang === 'vi' ? 'Lưu vào Moodboard Yêu Thích' : 'Save to Moodboard'}
+                >
+                  <Heart className={`w-3.5 h-3.5 ${isInWishlist(flower.id) ? 'fill-current' : ''}`} />
+                </button>
               </div>
             </div>
           );

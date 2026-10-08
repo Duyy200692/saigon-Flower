@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Minus, MapPin, Clock, Truck, ShieldCheck } from 'lucide-react';
-import { ATELIER_DATA } from '../data/flowers';
+import { useAtelier } from '../context/AtelierContext';
 
 interface ManifestoSectionProps {
   lang: 'vi' | 'en';
@@ -15,6 +15,7 @@ export const ManifestoSection: React.FC<ManifestoSectionProps> = ({
   onOpenOrder,
   onOpenAtelier
 }) => {
+  const { atelierData } = useAtelier();
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const isDark = theme === 'dark';
 
@@ -119,7 +120,7 @@ export const ManifestoSection: React.FC<ManifestoSectionProps> = ({
                   <span>{lang === 'vi' ? 'Địa Chỉ Atelier' : 'Atelier Location'}</span>
                 </div>
                 <p className={`leading-relaxed font-sans ${isDark ? 'text-[#ede9df]/80' : 'text-[#141414]/80'}`}>
-                  {lang === 'vi' ? ATELIER_DATA.addressVi : ATELIER_DATA.addressEn}
+                  {lang === 'vi' ? atelierData.addressVi : atelierData.addressEn}
                 </p>
                 <button
                   onClick={onOpenAtelier}
@@ -143,10 +144,10 @@ export const ManifestoSection: React.FC<ManifestoSectionProps> = ({
                   <span>{lang === 'vi' ? 'Giờ Hoạt Động' : 'Operating Hours'}</span>
                 </div>
                 <p className={`font-sans ${isDark ? 'text-[#ede9df]/80' : 'text-[#141414]/80'}`}>
-                  {lang === 'vi' ? ATELIER_DATA.hoursVi : ATELIER_DATA.hoursEn}
+                  {lang === 'vi' ? atelierData.hoursVi : atelierData.hoursEn}
                 </p>
                 <p className={`text-[11px] italic font-serif-editorial ${isDark ? 'text-[#ede9df]/60' : 'text-[#141414]/60'}`}>
-                  {lang === 'vi' ? ATELIER_DATA.consultationNoticeVi : ATELIER_DATA.consultationNoticeEn}
+                  {lang === 'vi' ? atelierData.consultationNoticeVi : atelierData.consultationNoticeEn}
                 </p>
               </div>
 

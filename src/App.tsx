@@ -25,6 +25,8 @@ import { FloatingMobileBar } from './components/FloatingMobileBar';
 import { Footer } from './components/Footer';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { AdminPortalModal } from './components/AdminPortalModal';
+import { FlowerSommelierModal } from './components/FlowerSommelierModal';
+import { MoodboardModal } from './components/MoodboardModal';
 
 function AtelierApp() {
   const { flowers, isAdmin } = useAtelier();
@@ -62,6 +64,8 @@ function AtelierApp() {
   const [isAtelierOpen, setIsAtelierOpen] = useState(false);
   const [isCreditsOpen, setIsCreditsOpen] = useState(false);
   const [isWorkshopGalleryOpen, setIsWorkshopGalleryOpen] = useState(false);
+  const [isSommelierOpen, setIsSommelierOpen] = useState(false);
+  const [isMoodboardOpen, setIsMoodboardOpen] = useState(false);
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [isAdminPortalOpen, setIsAdminPortalOpen] = useState(false);
   
@@ -125,6 +129,8 @@ function AtelierApp() {
         onOpenOrder={handleOpenGeneralOrder}
         onOpenAtelier={() => setIsAtelierOpen(true)}
         onOpenWorkshop={() => setIsWorkshopGalleryOpen(true)}
+        onOpenSommelier={() => setIsSommelierOpen(true)}
+        onOpenMoodboard={() => setIsMoodboardOpen(true)}
         onOpenAdmin={handleOpenAdminTrigger}
         flowerCount={flowers.length}
       />
@@ -156,12 +162,13 @@ function AtelierApp() {
           onOpenWorkshopGallery={() => setIsWorkshopGalleryOpen(true)}
         />
 
-        {/* Action Capsule Links (Instagram / Consultation / Hotline) */}
+        {/* Action Capsule Links (Instagram / Sommelier / Consultation / Hotline) */}
         <ActionLinks
           lang={lang}
           theme={theme}
           onOpenOrder={handleOpenGeneralOrder}
           onOpenAtelier={() => setIsAtelierOpen(true)}
+          onOpenSommelier={() => setIsSommelierOpen(true)}
         />
 
         {/* Longform Botanical Manifesto & Expandable Details */}
@@ -192,6 +199,8 @@ function AtelierApp() {
         onOpenIndex={() => setIsIndexOpen(true)}
         onOpenOrder={handleOpenGeneralOrder}
         onOpenWorkshop={() => setIsWorkshopGalleryOpen(true)}
+        onOpenSommelier={() => setIsSommelierOpen(true)}
+        onOpenMoodboard={() => setIsMoodboardOpen(true)}
         flowerCount={flowers.length}
       />
 
@@ -217,11 +226,34 @@ function AtelierApp() {
         onPrev={handlePrevFlower}
       />
 
+      {/* Flower Sommelier Advisor Modal (Hạng mục 1) */}
+      <FlowerSommelierModal
+        isOpen={isSommelierOpen}
+        onClose={() => setIsSommelierOpen(false)}
+        lang={lang}
+        theme={theme}
+        onSelectFlower={handleSelectFlower}
+        onOrderFlower={handleOrderFlower}
+      />
+
+      {/* Personal Botanical Moodboard & Comparison Modal (Hạng mục 2) */}
+      <MoodboardModal
+        isOpen={isMoodboardOpen}
+        onClose={() => setIsMoodboardOpen(false)}
+        lang={lang}
+        theme={theme}
+        onSelectFlower={handleSelectFlower}
+        onOrderFlower={handleOrderFlower}
+        onConsultMoodboard={handleOpenGeneralOrder}
+        onOpenSommelier={() => setIsSommelierOpen(true)}
+      />
+
       {/* Dedicated Fullscreen Workshop Gallery Overlay */}
       <WorkshopGalleryModal
         isOpen={isWorkshopGalleryOpen}
         onClose={() => setIsWorkshopGalleryOpen(false)}
         lang={lang}
+        theme={theme}
         onSelectWorkshop={(ws) => setSelectedWorkshop(ws)}
       />
 
@@ -231,6 +263,7 @@ function AtelierApp() {
         isOpen={!!selectedWorkshop}
         onClose={() => setSelectedWorkshop(null)}
         lang={lang}
+        theme={theme}
       />
 
       <BespokeOrderModal
@@ -238,12 +271,14 @@ function AtelierApp() {
         onClose={() => setIsOrderOpen(false)}
         selectedFlower={orderFlower}
         lang={lang}
+        theme={theme}
       />
 
       <AtelierModal
         isOpen={isAtelierOpen}
         onClose={() => setIsAtelierOpen(false)}
         lang={lang}
+        theme={theme}
         onOpenOrder={handleOpenGeneralOrder}
       />
 
@@ -251,6 +286,7 @@ function AtelierApp() {
         isOpen={isCreditsOpen}
         onClose={() => setIsCreditsOpen(false)}
         lang={lang}
+        theme={theme}
       />
 
       {/* Admin Login Dialog */}
@@ -262,6 +298,8 @@ function AtelierApp() {
           setIsAdminPortalOpen(true);
         }}
         lang={lang}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
       />
 
       {/* Full Admin Management Portal with WebP Compressor */}
@@ -269,6 +307,8 @@ function AtelierApp() {
         isOpen={isAdminPortalOpen}
         onClose={() => setIsAdminPortalOpen(false)}
         lang={lang}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
       />
     </div>
   );

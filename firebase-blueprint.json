@@ -99,6 +99,56 @@
         "updatedBy": { "type": "string", "description": "Actor who made the modification" }
       },
       "required": ["adminPassword"]
+    },
+    "BespokeOrder": {
+      "title": "BespokeOrder",
+      "description": "Customer bespoke floral consultation or specimen order with optional digital wax-seal card",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the order" },
+        "orderCode": { "type": "string", "description": "Human-readable order tracking code e.g. JU-2610-842" },
+        "customerName": { "type": "string", "description": "Customer full name" },
+        "customerPhone": { "type": "string", "description": "Customer phone/Zalo number" },
+        "customerEmail": { "type": "string", "description": "Customer email address" },
+        "flowerId": { "type": "string", "description": "Selected primary flower specimen ID if applicable" },
+        "flowerName": { "type": "string", "description": "Selected primary flower specimen name" },
+        "flowerImage": { "type": "string", "description": "Selected primary flower specimen image" },
+        "moodboardItems": { "type": "array", "description": "List of curated moodboard flower names included in the consultation" },
+        "occasion": { "type": "string", "description": "Occasion type e.g. bridal, anniversary, corporate" },
+        "deliveryDate": { "type": "string", "description": "Preferred delivery or consultation date" },
+        "district": { "type": "string", "description": "Delivery district in Ho Chi Minh City" },
+        "budgetVnd": { "type": "number", "description": "Estimated budget in VND" },
+        "notes": { "type": "string", "description": "Customer bespoke concept notes" },
+        "giftCard": { "type": "object", "description": "Bespoke digital wax-seal greeting card configuration" },
+        "status": { "type": "string", "enum": ["pending", "crafting", "delivering", "completed", "cancelled"], "description": "Current fulfillment status" },
+        "adminNote": { "type": "string", "description": "Internal atelier concierge note" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last status update timestamp" }
+      },
+      "required": ["id", "orderCode", "customerName", "customerPhone", "status", "createdAt"]
+    },
+    "WorkshopBooking": {
+      "title": "WorkshopBooking",
+      "description": "Client or corporate registration for a botanical floral workshop",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique booking identifier" },
+        "bookingCode": { "type": "string", "description": "Human-readable booking code e.g. WS-2610-519" },
+        "workshopId": { "type": "string", "description": "Selected workshop ID" },
+        "workshopName": { "type": "string", "description": "Selected workshop title" },
+        "customerName": { "type": "string", "description": "Registrant or corporate contact name" },
+        "customerPhone": { "type": "string", "description": "Registrant phone/Zalo number" },
+        "customerEmail": { "type": "string", "description": "Registrant email" },
+        "companyName": { "type": "string", "description": "Company or group name if corporate" },
+        "participantsCount": { "type": "number", "description": "Number of participants (pax)" },
+        "preferredDate": { "type": "string", "description": "Preferred workshop date" },
+        "locationType": { "type": "string", "description": "At JU Atelier or On-site at client venue" },
+        "notes": { "type": "string", "description": "Special requests or theme notes" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "completed", "cancelled"], "description": "Booking confirmation status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp" }
+      },
+      "required": ["id", "bookingCode", "workshopName", "customerName", "customerPhone", "status", "createdAt"]
     }
   },
   "firestore": {
@@ -117,6 +167,14 @@
     "/settings/security": {
       "schema": { "$ref": "#/entities/SecuritySettings" },
       "description": "Singleton document storing admin password and security credentials"
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/BespokeOrder" },
+      "description": "Collection storing customer bespoke floral orders, consultations, and wax-seal cards"
+    },
+    "/workshop_bookings/{bookingId}": {
+      "schema": { "$ref": "#/entities/WorkshopBooking" },
+      "description": "Collection storing workshop registrations and corporate booking inquiries"
     }
   }
 }
