@@ -200,7 +200,7 @@ export const FlowerSommelierModal: React.FC<FlowerSommelierModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-50 overflow-y-auto backdrop-blur-2xl flex items-center justify-center p-2.5 sm:p-6 animate-fadeIn transition-colors duration-300 ${
+      className={`fixed inset-0 z-50 overflow-hidden backdrop-blur-2xl flex items-center justify-center p-2.5 sm:p-6 animate-fadeIn transition-colors duration-300 ${
         isDark ? 'bg-black/85' : 'bg-[#dcd8cf]/90'
       }`}
     >
@@ -296,7 +296,7 @@ export const FlowerSommelierModal: React.FC<FlowerSommelierModalProps> = ({
         </div>
 
         {/* Body Content */}
-        <div className="p-5 sm:p-8 overflow-y-auto flex-1 space-y-6">
+        <div className="p-5 sm:p-8 overflow-y-auto no-scrollbar overscroll-contain flex-1 space-y-6">
           {step === 1 && (
             <div className="space-y-5 animate-fadeIn">
               <div>

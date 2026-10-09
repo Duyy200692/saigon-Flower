@@ -33,7 +33,7 @@ export const MoodboardModal: React.FC<MoodboardModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-50 overflow-y-auto backdrop-blur-2xl flex items-center justify-center p-2.5 sm:p-6 animate-fadeIn transition-colors duration-300 ${
+      className={`fixed inset-0 z-50 overflow-hidden backdrop-blur-2xl flex items-center justify-center p-2.5 sm:p-6 animate-fadeIn transition-colors duration-300 ${
         isDark ? 'bg-black/85' : 'bg-[#dcd8cf]/90'
       }`}
     >
@@ -100,7 +100,7 @@ export const MoodboardModal: React.FC<MoodboardModalProps> = ({
         </div>
 
         {/* Body */}
-        <div className="p-5 sm:p-8 overflow-y-auto flex-1">
+        <div className="p-5 sm:p-8 overflow-y-auto no-scrollbar overscroll-contain flex-1">
           {savedFlowers.length === 0 ? (
             <div className="py-16 text-center space-y-4 max-w-md mx-auto">
               <div className="w-14 h-14 rounded-full bg-rose-500/10 text-rose-400 flex items-center justify-center mx-auto">

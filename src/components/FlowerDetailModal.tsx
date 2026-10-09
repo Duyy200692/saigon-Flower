@@ -219,7 +219,7 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-50 overflow-y-auto backdrop-blur-2xl flex items-center justify-center p-2 sm:p-4 md:p-6 animate-fadeIn ${
+      className={`fixed inset-0 z-50 overflow-hidden backdrop-blur-2xl flex items-center justify-center p-2 sm:p-4 md:p-6 animate-fadeIn ${
         isDark ? 'bg-black/85' : 'bg-[#dcd8cf]/90'
       }`}
     >
@@ -333,7 +333,7 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
         </div>
 
         {/* Modal Main Body */}
-        <div className="overflow-y-auto flex-1 p-4 sm:p-6 md:p-8 space-y-6">
+        <div className="overflow-y-auto no-scrollbar overscroll-contain flex-1 p-4 sm:p-6 md:p-8 space-y-6">
           
           {/* Main Grid: Auto-Adaptive Aspect Ratio Gallery on Left & Details on Right */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">

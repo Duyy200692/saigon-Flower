@@ -261,7 +261,7 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-50 overflow-y-auto backdrop-blur-2xl flex items-center justify-center p-2.5 sm:p-6 animate-fadeIn transition-colors duration-300 ${
+      className={`fixed inset-0 z-50 overflow-hidden backdrop-blur-2xl flex items-center justify-center p-2.5 sm:p-6 animate-fadeIn transition-colors duration-300 ${
         isDark ? 'bg-black/80' : 'bg-[#dcd8cf]/90'
       }`}
     >
@@ -321,7 +321,7 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
           </button>
         </div>
 
-        <div className="overflow-y-auto flex-1">
+        <div className="overflow-y-auto no-scrollbar overscroll-contain flex-1">
           {modeTab === 'track' ? (
             /* ORDER TRACKING TAB */
             <div className="p-5 sm:p-8 space-y-6 animate-fadeIn">

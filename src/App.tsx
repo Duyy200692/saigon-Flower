@@ -73,6 +73,34 @@ function AtelierApp() {
   const [orderFlower, setOrderFlower] = useState<FlowerItem | null>(null);
   const [selectedWorkshop, setSelectedWorkshop] = useState<WorkshopItem | null>(null);
 
+  const isAnyModalOpen = Boolean(
+    inspectedFlower ||
+      selectedWorkshop ||
+      isIndexOpen ||
+      isOrderOpen ||
+      isAtelierOpen ||
+      isCreditsOpen ||
+      isWorkshopGalleryOpen ||
+      isSommelierOpen ||
+      isMoodboardOpen ||
+      isAdminLoginOpen ||
+      isAdminPortalOpen
+  );
+
+  useEffect(() => {
+    if (isAnyModalOpen) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, [isAnyModalOpen]);
+
   // Open Flower Detail (silent — no audio on product click)
   const handleSelectFlower = (flower: FlowerItem) => {
     setInspectedFlower(flower);

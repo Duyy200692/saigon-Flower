@@ -28,7 +28,7 @@ export const AtelierModal: React.FC<AtelierModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-50 overflow-y-auto backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fadeIn transition-colors duration-300 ${
+      className={`fixed inset-0 z-50 overflow-hidden backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fadeIn transition-colors duration-300 ${
         isDark ? 'bg-black/80' : 'bg-[#dcd8cf]/90'
       }`}
     >
@@ -49,7 +49,7 @@ export const AtelierModal: React.FC<AtelierModalProps> = ({
         </button>
 
         {/* Content Body */}
-        <div className="overflow-y-auto flex-1 p-6 sm:p-8 space-y-8">
+        <div className="overflow-y-auto no-scrollbar overscroll-contain flex-1 p-6 sm:p-8 space-y-8">
           {/* Header */}
           <div className={`border-b pb-4 pr-10 ${isDark ? 'border-white/15' : 'border-[#141414]/15'}`}>
             <span className={`text-[10px] font-mono tracking-widest uppercase block mb-1 ${isDark ? 'text-amber-300/80' : 'text-[#141414]/60'}`}>
