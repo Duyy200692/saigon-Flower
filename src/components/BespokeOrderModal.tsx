@@ -13,10 +13,18 @@ import {
   Package,
   Clock,
   Truck,
-  Heart
+  Heart,
+  Droplets,
+  Camera,
+  ShieldCheck
 } from 'lucide-react';
 import { FlowerItem } from '../data/flowers';
-import { useAtelier, WaxSealGiftCard, BespokeOrder } from '../context/AtelierContext';
+import {
+  useAtelier,
+  WaxSealGiftCard,
+  BespokeOrder,
+  ORDER_WORKFLOW_STAGES
+} from '../context/AtelierContext';
 
 interface BespokeOrderModalProps {
   isOpen: boolean;
@@ -73,6 +81,7 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
     selectedFlower?.category === 'bridal' ? 'bridal' : 'anniversary'
   );
   const [date, setDate] = useState('');
+  const [deliveryTimeSlot, setDeliveryTimeSlot] = useState('08:30 – 11:30 (Sáng)');
   const [district, setDistrict] = useState('Quận 1');
   const [budget, setBudget] = useState(selectedFlower ? selectedFlower.priceVnd : 3500000);
   const [notes, setNotes] = useState('');
@@ -143,6 +152,7 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
         moodboardItems: moodboardNames,
         occasion,
         deliveryDate: date || 'Sớm nhất',
+        deliveryTimeSlot,
         district,
         budgetVnd: budget,
         notes: notes.trim(),
@@ -168,7 +178,7 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
     const codeText = targetOrder ? `\n- Mã đơn hệ thống: ${targetOrder.orderCode}` : '';
 
     const message = encodeURIComponent(
-      `Chào ${atelierData.name || 'JU et Saigon'}! Tôi muốn xác nhận tư vấn đặt hoa:${codeText}\n- Khách hàng: ${name || targetOrder?.customerName || 'Quý khách'}\n- Số điện thoại: ${phone || targetOrder?.customerPhone}\n- ${flowerText}\n- Dịp: ${occasion}\n- Ngày giao: ${date || 'Sớm nhất'}\n- Khu vực: ${district}, TP.HCM\n- Ngân sách: ${budget.toLocaleString('vi-VN')} VND${cardSummary}\n- Ghi chú: ${notes}`
+      `Chào ${atelierData.name || 'JU et Saigon'}! Tôi muốn xác nhận tư vấn đặt hoa:${codeText}\n- Khách hàng: ${name || targetOrder?.customerName || 'Quý khách'}\n- Số điện thoại: ${phone || targetOrder?.customerPhone}\n- ${flowerText}\n- Dịp: ${occasion}\n- Ngày giao: ${date || targetOrder?.deliveryDate || 'Sớm nhất'} (${deliveryTimeSlot || targetOrder?.deliveryTimeSlot || 'Theo lịch hẹn'})\n- Khu vực: ${district}, TP.HCM\n- Ngân sách: ${budget.toLocaleString('vi-VN')} VND${cardSummary}\n- Ghi chú: ${notes}`
     );
     const link = document.createElement('a');
     link.href = `https://zalo.me/${cleanPhone}?text=${message}`;
@@ -221,40 +231,172 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
     }
   };
 
-  const renderStatusSteps = (status: BespokeOrder['status']) => {
+  const renderStatusSteps = (ord: BespokeOrder) => {
+    const status = ord.status;
     const steps = [
-      { id: 'pending', labelVi: 'Đã Tiếp Nhận', labelEn: 'Received', icon: CheckCircle2 },
-      { id: 'crafting', labelVi: 'Đang Tuyển Hoa & Cắm', labelEn: 'Crafting', icon: Sparkles },
-      { id: 'delivering', labelVi: 'Đang Giao Hoa', labelEn: 'In Transit', icon: Truck },
-      { id: 'completed', labelVi: 'Hoàn Tất', labelEn: 'Delivered', icon: Package }
-    ];
+      { id: 'pending', labelVi: '1. Tiếp Nhận', labelEn: '1. Received', icon: CheckCircle2 },
+      { id: 'conditioning', labelVi: '2. Dưỡng Hoa', labelEn: '2. Conditioning', icon: Droplets },
+      { id: 'crafting', labelVi: '3. Chế Tác & Sáp', labelEn: '3. Crafting', icon: Sparkles },
+      { id: 'quality_check', labelVi: '4. Nghiệm Thu Ảnh', labelEn: '4. Photo QC', icon: Camera },
+      { id: 'delivering', labelVi: '5. Đang Giao', labelEn: '5. In Transit', icon: Truck },
+      { id: 'completed', labelVi: '6. Hoàn Tất', labelEn: '6. Delivered', icon: Package }
+    ] as const;
+
     const activeIdx = steps.findIndex((s) => s.id === status);
+    const activeStageMeta = ORDER_WORKFLOW_STAGES.find((s) => s.id === status);
+    const checklist = ord.workflowChecklist;
 
     return (
-      <div className="grid grid-cols-4 gap-1.5 sm:gap-2 pt-2">
-        {steps.map((st, idx) => {
-          const Icon = st.icon;
-          const isDone = activeIdx >= idx;
-          return (
-            <div
-              key={st.id}
-              className={`p-2.5 rounded-xl border text-center flex flex-col items-center gap-1 transition-all ${
-                isDone
-                  ? isDark
-                    ? 'bg-emerald-500/15 border-emerald-400/40 text-emerald-300'
-                    : 'bg-[#141414] border-[#141414] text-amber-300'
-                  : isDark
-                    ? 'bg-white/5 border-white/10 text-white/40'
-                    : 'bg-white/50 border-[#141414]/10 text-[#141414]/45'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span className="text-[10px] font-mono font-bold leading-tight">
-                {lang === 'vi' ? st.labelVi : st.labelEn}
-              </span>
+      <div className="space-y-3 pt-2">
+        {status === 'cancelled' ? (
+          <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-mono text-center font-bold">
+            {lang === 'vi' ? 'Đơn hàng đã tạm dừng / hủy bỏ' : 'Order Cancelled'}
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-6 gap-1.5">
+              {steps.map((st, idx) => {
+                const Icon = st.icon;
+                const isDone = activeIdx >= idx;
+                const isCurrent = activeIdx === idx;
+                return (
+                  <div
+                    key={st.id}
+                    className={`p-2 rounded-xl border text-center flex flex-col items-center justify-center gap-1 transition-all ${
+                      isCurrent
+                        ? isDark
+                          ? 'bg-amber-400 text-[#141414] border-amber-300 font-bold shadow-md ring-2 ring-amber-400/30'
+                          : 'bg-[#141414] text-amber-300 border-[#141414] font-bold shadow-md'
+                        : isDone
+                          ? isDark
+                            ? 'bg-emerald-500/15 border-emerald-400/40 text-emerald-300'
+                            : 'bg-emerald-950/10 border-emerald-800/30 text-emerald-900'
+                          : isDark
+                            ? 'bg-white/5 border-white/10 text-white/40'
+                            : 'bg-white/50 border-[#141414]/10 text-[#141414]/45'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-mono font-bold leading-tight">
+                      {lang === 'vi' ? st.labelVi : st.labelEn}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
+
+            {activeStageMeta && (
+              <div
+                className={`p-3 rounded-xl border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                  isDark ? 'bg-white/5 border-white/10' : 'bg-white/70 border-[#141414]/10'
+                }`}
+              >
+                <div>
+                  <span className="text-[10px] font-mono uppercase opacity-65 block">
+                    {lang === 'vi' ? 'CÔNG ĐOẠN HIỆN TẠI TẠI XƯỞNG:' : 'CURRENT ATELIER STAGE:'}
+                  </span>
+                  <p className="font-semibold">
+                    {lang === 'vi' ? activeStageMeta.descVi : activeStageMeta.descEn}
+                  </p>
+                </div>
+                {ord.assignedFlorist && (
+                  <span className="px-2.5 py-1 rounded-lg bg-amber-400/15 border border-amber-400/30 text-[10px] font-mono font-bold shrink-0">
+                    {lang === 'vi' ? `Nghệ nhân: ${ord.assignedFlorist}` : `Florist: ${ord.assignedFlorist}`}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Operational Checklist Badges */}
+            {checklist && (
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {[
+                  { key: 'stemsConditioned', labelVi: 'Tuyển & dưỡng hoa', labelEn: 'Stems Conditioned' },
+                  { key: 'vesselPrepared', labelVi: 'Chuẩn bị cốt/bình', labelEn: 'Vessel Ready' },
+                  { key: 'arrangementCrafted', labelVi: 'Hoàn thiện cắm hoa', labelEn: 'Crafted' },
+                  ...(ord.giftCard?.enabled
+                    ? [{ key: 'waxSealCardAttached', labelVi: 'Thiệp đóng dấu sáp', labelEn: 'Wax-Seal Card' }]
+                    : []),
+                  { key: 'qcPhotoUploaded', labelVi: 'Nghiệm thu hình ảnh', labelEn: 'Photo QC' },
+                  { key: 'hydrationWrapped', labelVi: 'Bọc giữ ẩm & Care Tag', labelEn: 'Hydration Wrapped' }
+                ].map((item) => {
+                  const checked = Boolean(
+                    checklist[item.key as keyof typeof checklist]
+                  );
+                  return (
+                    <span
+                      key={item.key}
+                      className={`px-2 py-0.5 rounded-md text-[10px] font-mono border flex items-center gap-1 ${
+                        checked
+                          ? isDark
+                            ? 'bg-emerald-500/15 border-emerald-400/40 text-emerald-300'
+                            : 'bg-emerald-900/10 border-emerald-800/30 text-emerald-900 font-semibold'
+                          : 'border-current/15 opacity-45'
+                      }`}
+                    >
+                      <span>{checked ? '✓' : '○'}</span>
+                      <span>{lang === 'vi' ? item.labelVi : item.labelEn}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Pre-Delivery QC Photo if uploaded by Florist */}
+            {ord.finishedPhotoUrl && (
+              <div
+                className={`p-3.5 rounded-2xl border space-y-2 ${
+                  isDark ? 'bg-amber-400/10 border-amber-400/30' : 'bg-white border-[#141414]/20'
+                }`}
+              >
+                <div className="flex items-center justify-between text-[10px] font-mono uppercase font-bold">
+                  <span className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>
+                      {lang === 'vi'
+                        ? 'ẢNH NGHIỆM THU TÁC PHẨM THỰC TẾ TẠI XƯỞNG'
+                        : 'PRE-DELIVERY FINISHED ARRANGEMENT PHOTO'}
+                    </span>
+                  </span>
+                  <span className="opacity-70">{ord.orderCode}</span>
+                </div>
+                <div className="w-full max-h-72 rounded-xl overflow-hidden bg-black/20 border border-current/10 flex items-center justify-center">
+                  <img
+                    src={ord.finishedPhotoUrl}
+                    alt={ord.flowerName || 'Finished floral piece'}
+                    className="w-full max-h-72 object-contain"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Sequential Workflow History Log */}
+            {ord.workflowHistory && ord.workflowHistory.length > 0 && (
+              <div className="pt-1 space-y-1">
+                <span className="text-[10px] font-mono uppercase opacity-55 block">
+                  {lang === 'vi' ? 'NHẬT KÝ TRÌNH TỰ VẬN HÀNH:' : 'WORKFLOW TIMELINE LOG:'}
+                </span>
+                <div className="space-y-1">
+                  {ord.workflowHistory.map((log, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between text-[11px] font-mono opacity-80 py-0.5 border-b border-current/5 last:border-none"
+                    >
+                      <span>• {log.note || log.stage}</span>
+                      <span className="opacity-60 text-[10px]">
+                        {new Date(log.timestamp).toLocaleTimeString('vi-VN', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}{' '}
+                        {new Date(log.timestamp).toLocaleDateString('vi-VN')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     );
   };
@@ -390,11 +532,12 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
                           </span>
                           <span className="text-[10px] opacity-60">
                             {lang === 'vi' ? 'Giao tại:' : 'Area:'} {ord.district} · {ord.deliveryDate}
+                            {ord.deliveryTimeSlot ? ` (${ord.deliveryTimeSlot})` : ''}
                           </span>
                         </div>
                       </div>
 
-                      {renderStatusSteps(ord.status)}
+                      {renderStatusSteps(ord)}
 
                       {ord.adminNote && (
                         <div className="p-3 rounded-xl bg-amber-400/10 border border-amber-400/30 text-xs">
@@ -456,7 +599,7 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
                   </span>
                   <span className="opacity-70">{liveOrder.flowerName}</span>
                 </div>
-                {renderStatusSteps(liveOrder.status)}
+                {renderStatusSteps(liveOrder)}
               </div>
 
               {/* Preview Wax Seal Card if enabled */}
@@ -568,17 +711,62 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
                       {lang === 'vi' ? selectedFlower.vietnameseName : selectedFlower.latinName}
                     </p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right space-y-1">
                     <span
-                      className={`text-xs font-bold font-mono tabular-nums ${
+                      className={`text-xs font-bold font-mono tabular-nums block ${
                         isDark ? 'text-amber-300' : 'text-[#141414]'
                       }`}
                     >
                       {selectedFlower.priceVnd.toLocaleString('vi-VN')} đ
                     </span>
+                    <span
+                      className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-mono uppercase font-bold ${
+                        selectedFlower.availabilityStatus === 'seasonal_out'
+                          ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                          : selectedFlower.availabilityStatus === 'preorder_24h'
+                            ? 'bg-amber-400/20 text-amber-500 border border-amber-400/40'
+                            : 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30'
+                      }`}
+                    >
+                      {selectedFlower.availabilityStatus === 'seasonal_out'
+                        ? lang === 'vi'
+                          ? 'Hết mùa · Cần tư vấn mẫu tương đương'
+                          : 'Seasonal Out'
+                        : selectedFlower.availabilityStatus === 'preorder_24h'
+                          ? lang === 'vi'
+                            ? 'Đặt trước 24h (Haute Couture)'
+                            : '24h Pre-order'
+                          : lang === 'vi'
+                            ? 'Sẵn hoa tươi trong ngày'
+                            : 'Available Today'}
+                    </span>
                   </div>
                 </div>
               )}
+
+              {/* 6-Stage Atelier Craftsmanship Pipeline Overview Strip */}
+              <div
+                className={`p-3 rounded-2xl border text-[11px] flex flex-wrap items-center justify-between gap-2 ${
+                  isDark ? 'bg-white/5 border-white/10 text-white/75' : 'bg-white/60 border-[#141414]/10 text-[#141414]/80'
+                }`}
+              >
+                <span className="font-mono uppercase font-bold text-[10px]">
+                  {lang === 'vi' ? 'QUY TRÌNH 6 BƯỚC CHUẨN ATELIER:' : '6-STAGE ATELIER WORKFLOW:'}
+                </span>
+                <div className="flex flex-wrap items-center gap-1.5 font-mono text-[10px]">
+                  <span>1. Tiếp nhận</span>
+                  <span className="opacity-40">→</span>
+                  <span>2. Dưỡng hoa</span>
+                  <span className="opacity-40">→</span>
+                  <span>3. Chế tác & Thiệp sáp</span>
+                  <span className="opacity-40">→</span>
+                  <span>4. Chụp ảnh nghiệm thu</span>
+                  <span className="opacity-40">→</span>
+                  <span>5. Đóng gói giữ ẩm</span>
+                  <span className="opacity-40">→</span>
+                  <span>6. Trao tận tay</span>
+                </div>
+              </div>
 
               {/* Attach Moodboard items checkbox if user has saved items */}
               {moodboardFlowers.length > 0 && (
@@ -718,6 +906,34 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
                 </div>
 
                 <div className="space-y-1">
+                  <label className="font-semibold uppercase tracking-wider flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5 opacity-60" />
+                    <span>{lang === 'vi' ? 'Khung Giờ Nhận Hoa (Time Slot)' : 'Delivery Time Window'}</span>
+                  </label>
+                  <select
+                    value={deliveryTimeSlot}
+                    onChange={(e) => setDeliveryTimeSlot(e.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="08:30 – 11:30 (Sáng)" className="text-black">
+                      {lang === 'vi' ? '08:30 – 11:30 (Khung Giờ Sáng)' : '08:30 – 11:30 AM (Morning)'}
+                    </option>
+                    <option value="11:30 – 14:30 (Trưa)" className="text-black">
+                      {lang === 'vi' ? '11:30 – 14:30 (Khung Giờ Trưa)' : '11:30 AM – 02:30 PM (Midday)'}
+                    </option>
+                    <option value="14:30 – 17:30 (Chiều)" className="text-black">
+                      {lang === 'vi' ? '14:30 – 17:30 (Khung Giờ Chiều)' : '02:30 – 05:30 PM (Afternoon)'}
+                    </option>
+                    <option value="17:30 – 20:30 (Tối)" className="text-black">
+                      {lang === 'vi' ? '17:30 – 20:30 (Khung Giờ Tối)' : '05:30 – 08:30 PM (Evening)'}
+                    </option>
+                    <option value="Giao Gấp (Express 2h - 3h)" className="text-black">
+                      {lang === 'vi' ? '⚡ Giao Gấp Trong 2h – 3h (Express)' : '⚡ Express Delivery (2-3h)'}
+                    </option>
+                  </select>
+                </div>
+
+                <div className="space-y-1 sm:col-span-2">
                   <label className="font-semibold uppercase tracking-wider block">
                     {lang === 'vi' ? 'Ngân Sách Dự Kiến:' : 'Budget Guide:'}{' '}
                     <span

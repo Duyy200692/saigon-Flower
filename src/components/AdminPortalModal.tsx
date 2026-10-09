@@ -38,9 +38,19 @@ import {
   Sun,
   Moon,
   Crop,
-  Type
+  Type,
+  ArrowRight,
+  Clock,
+  Camera,
+  CheckSquare
 } from 'lucide-react';
-import { useAtelier } from '../context/AtelierContext';
+import {
+  useAtelier,
+  ORDER_WORKFLOW_STAGES,
+  DEFAULT_WORKFLOW_CHECKLIST,
+  OrderStatus,
+  OrderWorkflowChecklist
+} from '../context/AtelierContext';
 import { FlowerItem } from '../data/flowers';
 import { WorkshopItem } from '../data/workshop';
 import {
@@ -97,6 +107,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     orders,
     workshopBookings,
     updateOrderStatus,
+    updateOrderWorkflow,
     deleteOrder,
     updateWorkshopBookingStatus,
     deleteWorkshopBooking,
@@ -108,7 +119,11 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
   const [activeTab, setActiveTab] = useState<'flowers' | 'workshops' | 'orders' | 'branding' | 'security'>('flowers');
   const [crmSubTab, setCrmSubTab] = useState<'floral_orders' | 'workshop_bookings'>('floral_orders');
+  const [workflowStageFilter, setWorkflowStageFilter] = useState<'all' | OrderStatus>('all');
+  const [floristTicketMode, setFloristTicketMode] = useState<boolean>(false);
+  const [uploadingQcOrderId, setUploadingQcOrderId] = useState<string | null>(null);
   const [adminNoteDrafts, setAdminNoteDrafts] = useState<Record<string, string>>({});
+  const [floristDrafts, setFloristDrafts] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState('');
   
   // Security / Password State
@@ -1684,6 +1699,32 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                           className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
                         />
                       </div>
+
+                      <div>
+                        <label className="font-bold text-amber-300 block mb-1">
+                          Trạng Thái Vận Hành Nguồn Hoa
+                        </label>
+                        <select
+                          value={flowerForm.availabilityStatus || 'ready_today'}
+                          onChange={(e) =>
+                            setFlowerForm((prev) => ({
+                              ...prev,
+                              availabilityStatus: e.target.value as FlowerItem['availabilityStatus']
+                            }))
+                          }
+                          className="w-full px-3 py-2 bg-black/50 border border-amber-400/30 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
+                        >
+                          <option value="ready_today" className="bg-[#1e1f1c] text-white">
+                            ✓ Sẵn Hoa Trong Ngày (Giao 2h - 4h)
+                          </option>
+                          <option value="preorder_24h" className="bg-[#1e1f1c] text-white">
+                            ⏳ Đặt Trước 24h (Haute Couture / Hoa Nhập)
+                          </option>
+                          <option value="seasonal_out" className="bg-[#1e1f1c] text-white">
+                            ✕ Tạm Hết Mùa (Tư vấn mẫu tương đương)
+                          </option>
+                        </select>
+                      </div>
                     </div>
 
                     {/* Narrative Story */}
@@ -1795,9 +1836,37 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                               {f.name}
                             </h4>
                             <p className="text-xs text-white/70 truncate">{f.vietnameseName}</p>
-                            <p className="text-xs font-mono font-bold text-white/90 mt-1">
-                              {f.priceVnd.toLocaleString('vi-VN')} VND
-                            </p>
+                            <div className="flex items-center justify-between gap-2 mt-1">
+                              <p className="text-xs font-mono font-bold text-white/90">
+                                {f.priceVnd.toLocaleString('vi-VN')} VND
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const nextAvail: FlowerItem['availabilityStatus'] =
+                                    f.availabilityStatus === 'ready_today'
+                                      ? 'preorder_24h'
+                                      : f.availabilityStatus === 'preorder_24h'
+                                        ? 'seasonal_out'
+                                        : 'ready_today';
+                                  updateFlower(f.id, { availabilityStatus: nextAvail });
+                                }}
+                                className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold border transition-all ${
+                                  f.availabilityStatus === 'seasonal_out'
+                                    ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                                    : f.availabilityStatus === 'preorder_24h'
+                                      ? 'bg-amber-400/20 text-amber-300 border-amber-400/40'
+                                      : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                }`}
+                                title="Bấm để chuyển nhanh trạng thái nguồn hoa"
+                              >
+                                {f.availabilityStatus === 'seasonal_out'
+                                  ? 'Hết mùa'
+                                  : f.availabilityStatus === 'preorder_24h'
+                                    ? 'Đặt 24h'
+                                    : 'Sẵn hoa'}
+                              </button>
+                            </div>
                           </div>
 
                           <div className="flex flex-col gap-1.5">
@@ -3126,170 +3195,499 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
               </div>
 
               {crmSubTab === 'floral_orders' ? (
-                orders.length === 0 ? (
-                  <div className="py-16 text-center space-y-2 text-white/60">
-                    <p className="text-sm font-mono uppercase">Chưa có đơn đặt hoa nào trên hệ thống</p>
-                    <p className="text-xs">
-                      Khi khách hàng gửi yêu cầu tư vấn hoặc thiết kế thiệp đóng dấu sáp, đơn hàng sẽ tự động xuất hiện tại đây.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {orders.map((ord) => {
-                      const noteDraft =
-                        adminNoteDrafts[ord.id] !== undefined
-                          ? adminNoteDrafts[ord.id]
-                          : ord.adminNote || '';
-                      return (
-                        <div
-                          key={ord.id}
-                          className="p-4 sm:p-5 rounded-xl bg-black/40 border border-white/15 space-y-4"
-                        >
-                          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 pb-3">
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-[#141414] font-mono text-xs font-bold">
-                                  {ord.orderCode}
-                                </span>
-                                <span className="text-xs font-mono text-white/50">
-                                  {new Date(ord.createdAt).toLocaleString('vi-VN')}
-                                </span>
-                              </div>
-                              <h4 className="text-base font-bold text-white">
-                                {ord.customerName} —{' '}
-                                <a
-                                  href={`tel:${ord.customerPhone.replace(/\s+/g, '')}`}
-                                  className="text-amber-300 underline"
-                                >
-                                  {ord.customerPhone}
-                                </a>
-                              </h4>
-                              <p className="text-xs text-white/80">
-                                <strong>Tác phẩm:</strong> {ord.flowerName} ·{' '}
-                                <strong>Ngân sách:</strong> {ord.budgetVnd.toLocaleString('vi-VN')} VND
-                              </p>
-                              <p className="text-xs text-white/70">
-                                <strong>Khu vực giao:</strong> {ord.district} ·{' '}
-                                <strong>Ngày nhận:</strong> {ord.deliveryDate} ·{' '}
-                                <strong>Dịp:</strong> {ord.occasion}
-                              </p>
-                            </div>
+                <div className="space-y-5">
+                  {/* 6-STAGE SEQUENTIAL WORKFLOW PIPELINE OVERVIEW & FILTER BAR */}
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/15 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono font-bold uppercase text-amber-300">
+                          QUY TRÌNH 6 BƯỚC TRÌNH TỰ VẬN HÀNH HOA (SEQUENTIAL ATELIER WORKFLOW)
+                        </span>
+                      </div>
 
-                            {/* Status Controls */}
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              {(
-                                [
-                                  { id: 'pending', label: '1. Tiếp Nhận' },
-                                  { id: 'crafting', label: '2. Đang Cắm Hoa' },
-                                  { id: 'delivering', label: '3. Đang Giao' },
-                                  { id: 'completed', label: '4. Hoàn Tất' },
-                                  { id: 'cancelled', label: 'Hủy' }
-                                ] as const
-                              ).map((st) => (
+                      <button
+                        type="button"
+                        onClick={() => setFloristTicketMode((prev) => !prev)}
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-mono font-bold border flex items-center gap-1.5 transition-all ${
+                          floristTicketMode
+                            ? 'bg-amber-400 text-[#141414] border-amber-300 shadow'
+                            : 'bg-white/5 text-white/80 border-white/15 hover:bg-white/15'
+                        }`}
+                      >
+                        <CheckSquare className="w-3.5 h-3.5" />
+                        <span>
+                          {floristTicketMode
+                            ? 'Đang bật: Chế Độ Phiếu Thợ Hoa (Florist Ticket)'
+                            : 'Chuyển sang Phiếu Chế Tác Cho Thợ Hoa'}
+                        </span>
+                      </button>
+                    </div>
+
+                    {/* Stage Filter Pills with Live Counts */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setWorkflowStageFilter('all')}
+                        className={`p-2 rounded-lg border text-left font-mono transition-all ${
+                          workflowStageFilter === 'all'
+                            ? 'bg-amber-400 text-[#141414] border-amber-400 font-bold'
+                            : 'bg-white/5 text-white/75 border-white/10 hover:bg-white/10'
+                        }`}
+                      >
+                        <span className="text-[10px] uppercase block opacity-75">Tất cả đơn</span>
+                        <span className="text-sm font-bold">{orders.length}</span>
+                      </button>
+
+                      {ORDER_WORKFLOW_STAGES.map((st) => {
+                        const count = orders.filter((o) => o.status === st.id).length;
+                        const isSelected = workflowStageFilter === st.id;
+                        return (
+                          <button
+                            key={st.id}
+                            type="button"
+                            onClick={() => setWorkflowStageFilter(st.id)}
+                            className={`p-2 rounded-lg border text-left font-mono transition-all ${
+                              isSelected
+                                ? 'bg-amber-400 text-[#141414] border-amber-400 font-bold'
+                                : 'bg-white/5 text-white/75 border-white/10 hover:bg-white/10'
+                            }`}
+                          >
+                            <span className="text-[10px] truncate block opacity-80">
+                              {st.stepNum}. {st.shortVi}
+                            </span>
+                            <span className="text-sm font-bold">{count}</span>
+                          </button>
+                        );
+                      })}
+
+                      <button
+                        type="button"
+                        onClick={() => setWorkflowStageFilter('cancelled')}
+                        className={`p-2 rounded-lg border text-left font-mono transition-all ${
+                          workflowStageFilter === 'cancelled'
+                            ? 'bg-red-500 text-white border-red-400 font-bold'
+                            : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/10'
+                        }`}
+                      >
+                        <span className="text-[10px] uppercase block opacity-75">Đã hủy</span>
+                        <span className="text-sm font-bold">
+                          {orders.filter((o) => o.status === 'cancelled').length}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {orders.length === 0 ? (
+                    <div className="py-16 text-center space-y-2 text-white/60">
+                      <p className="text-sm font-mono uppercase">
+                        Chưa có đơn đặt hoa nào trên hệ thống
+                      </p>
+                      <p className="text-xs">
+                        Khi khách hàng gửi yêu cầu tư vấn hoặc thiết kế thiệp đóng dấu sáp, đơn hàng sẽ tự động xuất hiện tại đây theo quy trình 6 bước.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {orders
+                        .filter((o) =>
+                          workflowStageFilter === 'all' ? true : o.status === workflowStageFilter
+                        )
+                        .map((ord) => {
+                          const noteDraft =
+                            adminNoteDrafts[ord.id] !== undefined
+                              ? adminNoteDrafts[ord.id]
+                              : ord.adminNote || '';
+                          const floristDraft =
+                            floristDrafts[ord.id] !== undefined
+                              ? floristDrafts[ord.id]
+                              : ord.assignedFlorist || '';
+
+                          const stageIndex = ORDER_WORKFLOW_STAGES.findIndex(
+                            (s) => s.id === ord.status
+                          );
+                          const nextStage =
+                            stageIndex >= 0 && stageIndex < ORDER_WORKFLOW_STAGES.length - 1
+                              ? ORDER_WORKFLOW_STAGES[stageIndex + 1]
+                              : null;
+
+                          const checklist: OrderWorkflowChecklist = {
+                            ...DEFAULT_WORKFLOW_CHECKLIST,
+                            ...(ord.workflowChecklist || {})
+                          };
+
+                          const checklistItems: Array<{
+                            key: keyof OrderWorkflowChecklist;
+                            label: string;
+                          }> = [
+                            {
+                              key: 'stemsConditioned',
+                              label: '1. Đã tuyển chọn & dưỡng hoa cấp nước'
+                            },
+                            {
+                              key: 'vesselPrepared',
+                              label: '2. Đã chuẩn bị cốt cắm / bình & phụ kiện'
+                            },
+                            {
+                              key: 'arrangementCrafted',
+                              label: '3. Đã cắm hoa hoàn thiện đúng form & tông màu'
+                            },
+                            {
+                              key: 'waxSealCardAttached',
+                              label: ord.giftCard?.enabled
+                                ? '4. Đã viết thiệp tay & đóng dấu sáp (Có thiệp)'
+                                : '4. Kiểm tra phụ kiện thiệp / tag thương hiệu'
+                            },
+                            {
+                              key: 'qcPhotoUploaded',
+                              label: '5. Đã chụp & tải ảnh nghiệm thu thành phẩm'
+                            },
+                            {
+                              key: 'hydrationWrapped',
+                              label: '6. Đã bọc giữ ẩm gốc hoa & đính kèm Care Tag'
+                            }
+                          ];
+
+                          const completedChecklistCount = checklistItems.filter(
+                            (it) => checklist[it.key]
+                          ).length;
+
+                          return (
+                            <div
+                              key={ord.id}
+                              className="p-4 sm:p-5 rounded-xl bg-black/40 border border-white/15 space-y-4"
+                            >
+                              {/* Top Header Row */}
+                              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 pb-3">
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-[#141414] font-mono text-xs font-bold">
+                                      {ord.orderCode}
+                                    </span>
+                                    <span className="px-2.5 py-0.5 rounded-full bg-white/10 text-amber-200 font-mono text-[11px] flex items-center gap-1 border border-amber-400/30">
+                                      <Clock className="w-3 h-3" />
+                                      <span>
+                                        {ord.deliveryDate} ·{' '}
+                                        {ord.deliveryTimeSlot || '08:30 – 11:30 (Sáng)'}
+                                      </span>
+                                    </span>
+                                    <span className="text-xs font-mono text-white/50">
+                                      Tạo lúc: {new Date(ord.createdAt).toLocaleString('vi-VN')}
+                                    </span>
+                                  </div>
+
+                                  {!floristTicketMode ? (
+                                    <h4 className="text-base font-bold text-white">
+                                      {ord.customerName} —{' '}
+                                      <a
+                                        href={`tel:${ord.customerPhone.replace(/\s+/g, '')}`}
+                                        className="text-amber-300 underline"
+                                      >
+                                        {ord.customerPhone}
+                                      </a>
+                                    </h4>
+                                  ) : (
+                                    <h4 className="text-base font-bold text-amber-300 font-mono uppercase">
+                                      PHIẾU CHẾ TÁC: {ord.flowerName}
+                                    </h4>
+                                  )}
+
+                                  <p className="text-xs text-white/85">
+                                    <strong>Tác phẩm:</strong> {ord.flowerName} ·{' '}
+                                    {!floristTicketMode && (
+                                      <>
+                                        <strong>Ngân sách:</strong>{' '}
+                                        {ord.budgetVnd.toLocaleString('vi-VN')} VND ·{' '}
+                                      </>
+                                    )}
+                                    <strong>Khu vực giao:</strong> {ord.district} ·{' '}
+                                    <strong>Dịp:</strong> {ord.occasion}
+                                  </p>
+                                </div>
+
+                                {/* 1-Click Sequential Advance Button & Delete */}
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {nextStage && ord.status !== 'cancelled' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => updateOrderStatus(ord.id, nextStage.id)}
+                                      className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-[#141414] font-mono text-xs font-bold flex items-center gap-1.5 shadow-lg transition-all"
+                                    >
+                                      <span>Chuyển sang: {nextStage.labelVi}</span>
+                                      <ArrowRight className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (window.confirm(`Xóa đơn hàng ${ord.orderCode}?`)) {
+                                        deleteOrder(ord.id);
+                                      }
+                                    }}
+                                    className="p-2 rounded-lg bg-red-950/50 text-red-300 border border-red-500/30 hover:bg-red-900"
+                                    title="Xóa đơn hàng"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* 6-Stage Sequential Stepper Controls */}
+                              <div className="grid grid-cols-2 sm:grid-cols-7 gap-1.5">
+                                {ORDER_WORKFLOW_STAGES.map((st, idx) => {
+                                  const isCurrent = ord.status === st.id;
+                                  const isPassed = stageIndex > idx;
+                                  return (
+                                    <button
+                                      key={st.id}
+                                      type="button"
+                                      onClick={() => updateOrderStatus(ord.id, st.id)}
+                                      className={`px-2.5 py-2 rounded-lg text-[11px] font-mono transition-all border text-left ${
+                                        isCurrent
+                                          ? 'bg-amber-400 text-[#141414] border-amber-300 font-bold shadow'
+                                          : isPassed
+                                            ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30'
+                                            : 'bg-white/5 text-white/65 border-white/10 hover:bg-white/15'
+                                      }`}
+                                    >
+                                      <span className="block truncate">{st.labelVi}</span>
+                                    </button>
+                                  );
+                                })}
+
                                 <button
-                                  key={st.id}
                                   type="button"
-                                  onClick={() => updateOrderStatus(ord.id, st.id)}
-                                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-mono transition-all border ${
-                                    ord.status === st.id
-                                      ? 'bg-amber-400 text-[#141414] border-amber-400 font-bold shadow'
-                                      : 'bg-white/5 text-white/70 border-white/15 hover:bg-white/15'
+                                  onClick={() => updateOrderStatus(ord.id, 'cancelled')}
+                                  className={`px-2.5 py-2 rounded-lg text-[11px] font-mono transition-all border text-center ${
+                                    ord.status === 'cancelled'
+                                      ? 'bg-red-600 text-white border-red-400 font-bold'
+                                      : 'bg-white/5 text-white/60 border-white/10 hover:bg-red-950/50 hover:text-red-300'
                                   }`}
                                 >
-                                  {st.label}
+                                  Hủy Đơn
                                 </button>
-                              ))}
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (window.confirm(`Xóa đơn hàng ${ord.orderCode}?`)) {
-                                    deleteOrder(ord.id);
-                                  }
-                                }}
-                                className="p-1.5 rounded-lg bg-red-950/50 text-red-300 border border-red-500/30 hover:bg-red-900"
-                                title="Xóa đơn hàng"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Moodboard items if included */}
-                          {ord.moodboardItems && ord.moodboardItems.length > 0 && (
-                            <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-400/25 text-xs text-rose-200">
-                              <span className="font-mono font-bold uppercase text-[10px] block mb-1">
-                                Danh sách Moodboard khách đã chọn ({ord.moodboardItems.length} mẫu):
-                              </span>
-                              <p>{ord.moodboardItems.join(' · ')}</p>
-                            </div>
-                          )}
-
-                          {/* Customer Notes */}
-                          {ord.notes && (
-                            <div className="text-xs text-white/85 bg-white/5 p-3 rounded-lg border border-white/10">
-                              <span className="font-mono text-[10px] uppercase text-white/50 block mb-0.5">
-                                Ghi chú của khách hàng:
-                              </span>
-                              <p>{ord.notes}</p>
-                            </div>
-                          )}
-
-                          {/* Bespoke Wax-Seal Greeting Card Details */}
-                          {ord.giftCard?.enabled && (
-                            <div className="p-3.5 rounded-xl bg-amber-400/10 border border-amber-400/30 text-xs space-y-1.5">
-                              <div className="flex items-center justify-between font-mono text-[10px] uppercase text-amber-300 font-bold">
-                                <span>✉ THIỆP ĐÓNG DẤU SÁP ĐI KÈM HOA</span>
-                                <span>
-                                  Giấy: {ord.giftCard.paperStyle.toUpperCase()} · Sáp:{' '}
-                                  {ord.giftCard.waxColor.toUpperCase()}
-                                </span>
                               </div>
-                              <p className="text-white">
-                                <strong>Người nhận:</strong> {ord.giftCard.recipient || '—'} ·{' '}
-                                <strong>Người gửi:</strong> {ord.giftCard.sender || ord.customerName}
-                              </p>
-                              <p className="italic text-amber-100 bg-black/30 p-2.5 rounded-lg border border-white/10">
-                                "{ord.giftCard.message}"
-                              </p>
-                            </div>
-                          )}
 
-                          {/* Admin Note & Zalo Quick Action */}
-                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
-                            <input
-                              type="text"
-                              placeholder="Ghi chú tiến độ cho khách xem khi tra cứu đơn (VD: Đã tuyển chọn mẫu đơn Hà Lan, giao lúc 14h)..."
-                              value={noteDraft}
-                              onChange={(e) =>
-                                setAdminNoteDrafts((prev) => ({
-                                  ...prev,
-                                  [ord.id]: e.target.value
-                                }))
-                              }
-                              className="flex-1 px-3 py-2 rounded-lg bg-black/60 border border-white/15 text-xs text-white font-sans focus:outline-none focus:border-amber-400"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => updateOrderStatus(ord.id, ord.status, noteDraft)}
-                              className="px-4 py-2 rounded-lg bg-white/15 hover:bg-amber-400 hover:text-black text-white text-xs font-mono font-bold transition-colors shrink-0"
-                            >
-                              Lưu Ghi Chú
-                            </button>
-                            <a
-                              href={`https://zalo.me/${ord.customerPhone.replace(/\s+/g, '')}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-4 py-2 rounded-lg bg-[#0068FF] text-white text-xs font-mono font-bold text-center shrink-0"
-                            >
-                              Chat Zalo Khách
-                            </a>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )
+                              {/* Interactive 6-Point Florist Checklist & Pre-Delivery QC Photo */}
+                              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 p-3.5 rounded-xl bg-white/5 border border-white/10">
+                                {/* Left 7 cols: Sequential Checklist */}
+                                <div className="lg:col-span-7 space-y-2.5">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-mono text-[11px] font-bold uppercase text-amber-300">
+                                      CHECKLIST CÔNG ĐOẠN CHẾ TÁC ({completedChecklistCount}/6 HOÀN TẤT)
+                                    </span>
+                                    <span className="text-[10px] font-mono text-white/50">
+                                      Tích kiểm tra từng khâu trước khi giao
+                                    </span>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {checklistItems.map((item) => {
+                                      const isChecked = Boolean(checklist[item.key]);
+                                      return (
+                                        <label
+                                          key={item.key}
+                                          className={`p-2 rounded-lg border text-xs flex items-center gap-2 cursor-pointer transition-all ${
+                                            isChecked
+                                              ? 'bg-emerald-500/15 border-emerald-400/40 text-emerald-200 font-medium'
+                                              : 'bg-black/40 border-white/10 text-white/70 hover:border-white/25'
+                                          }`}
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={isChecked}
+                                            onChange={(e) =>
+                                              updateOrderWorkflow(ord.id, {
+                                                workflowChecklist: {
+                                                  ...checklist,
+                                                  [item.key]: e.target.checked
+                                                }
+                                              })
+                                            }
+                                            className="w-3.5 h-3.5 accent-emerald-400 rounded cursor-pointer"
+                                          />
+                                          <span className="leading-snug">{item.label}</span>
+                                        </label>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                {/* Right 5 cols: Pre-Delivery QC Photo & Florist Assignment */}
+                                <div className="lg:col-span-5 space-y-2.5 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-white/10 pt-3 lg:pt-0 lg:pl-4">
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-mono text-[11px] font-bold uppercase text-amber-300 flex items-center gap-1">
+                                        <Camera className="w-3.5 h-3.5" />
+                                        <span>ẢNH NGHIỆM THU THÀNH PHẨM</span>
+                                      </span>
+                                      <label className="cursor-pointer px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-[#141414] font-mono text-[10px] font-bold transition-colors">
+                                        {uploadingQcOrderId === ord.id
+                                          ? 'Đang nén WebP...'
+                                          : '+ Tải Ảnh Nghiệm Thu'}
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          className="hidden"
+                                          onChange={async (e) => {
+                                            const file = e.target.files?.[0];
+                                            if (!file) return;
+                                            try {
+                                              setUploadingQcOrderId(ord.id);
+                                              const compressed = await compressAndConvertToWebP(
+                                                file,
+                                                { maxWidth: 1000, maxHeight: 1000, quality: 0.82 }
+                                              );
+                                              await updateOrderWorkflow(ord.id, {
+                                                finishedPhotoUrl: compressed.webpDataUrl,
+                                                status:
+                                                  ord.status === 'pending' ||
+                                                  ord.status === 'conditioning' ||
+                                                  ord.status === 'crafting'
+                                                    ? 'quality_check'
+                                                    : ord.status
+                                              });
+                                            } finally {
+                                              setUploadingQcOrderId(null);
+                                            }
+                                          }}
+                                        />
+                                      </label>
+                                    </div>
+
+                                    {ord.finishedPhotoUrl ? (
+                                      <div className="relative h-28 rounded-lg overflow-hidden bg-black border border-emerald-400/40 flex items-center justify-center">
+                                        <img
+                                          src={ord.finishedPhotoUrl}
+                                          alt="QC Finished Piece"
+                                          className="max-h-full max-w-full object-contain"
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            updateOrderWorkflow(ord.id, { finishedPhotoUrl: '' })
+                                          }
+                                          className="absolute top-1.5 right-1.5 px-2 py-0.5 rounded bg-black/80 text-red-300 text-[10px] font-mono hover:bg-red-900"
+                                        >
+                                          Xóa ảnh
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="h-20 rounded-lg border border-dashed border-white/15 bg-black/30 flex items-center justify-center text-[11px] text-white/45 font-mono text-center px-3">
+                                        Chưa có ảnh nghiệm thu. Tải ảnh hoa hoàn thiện để khách xem khi tra cứu đơn.
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Assigned Florist Input */}
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="text"
+                                      placeholder="Nghệ nhân phụ trách (VD: Florist Minh Anh)..."
+                                      value={floristDraft}
+                                      onChange={(e) =>
+                                        setFloristDrafts((prev) => ({
+                                          ...prev,
+                                          [ord.id]: e.target.value
+                                        }))
+                                      }
+                                      className="flex-1 px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/15 text-xs text-white font-mono focus:outline-none focus:border-amber-400"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        updateOrderWorkflow(ord.id, {
+                                          assignedFlorist: floristDraft.trim()
+                                        })
+                                      }
+                                      className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-amber-400 hover:text-black text-white text-[11px] font-mono font-bold transition-colors shrink-0"
+                                    >
+                                      Gán Thợ
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Moodboard items if included */}
+                              {ord.moodboardItems && ord.moodboardItems.length > 0 && (
+                                <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-400/25 text-xs text-rose-200">
+                                  <span className="font-mono font-bold uppercase text-[10px] block mb-1">
+                                    Danh sách Moodboard khách đã chọn ({ord.moodboardItems.length}{' '}
+                                    mẫu):
+                                  </span>
+                                  <p>{ord.moodboardItems.join(' · ')}</p>
+                                </div>
+                              )}
+
+                              {/* Customer Notes */}
+                              {ord.notes && (
+                                <div className="text-xs text-white/85 bg-white/5 p-3 rounded-lg border border-white/10">
+                                  <span className="font-mono text-[10px] uppercase text-white/50 block mb-0.5">
+                                    Ghi chú thiết kế & yêu cầu của khách:
+                                  </span>
+                                  <p>{ord.notes}</p>
+                                </div>
+                              )}
+
+                              {/* Bespoke Wax-Seal Greeting Card Details */}
+                              {ord.giftCard?.enabled && (
+                                <div className="p-3.5 rounded-xl bg-amber-400/10 border border-amber-400/30 text-xs space-y-1.5">
+                                  <div className="flex items-center justify-between font-mono text-[10px] uppercase text-amber-300 font-bold">
+                                    <span>✉ THIỆP ĐÓNG DẤU SÁP ĐI KÈM HOA</span>
+                                    <span>
+                                      Giấy: {ord.giftCard.paperStyle.toUpperCase()} · Sáp:{' '}
+                                      {ord.giftCard.waxColor.toUpperCase()}
+                                    </span>
+                                  </div>
+                                  <p className="text-white">
+                                    <strong>Người nhận:</strong> {ord.giftCard.recipient || '—'} ·{' '}
+                                    <strong>Người gửi:</strong>{' '}
+                                    {ord.giftCard.sender || ord.customerName}
+                                  </p>
+                                  <p className="italic text-amber-100 bg-black/30 p-2.5 rounded-lg border border-white/10">
+                                    "{ord.giftCard.message}"
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Admin Note & Zalo Quick Action */}
+                              {!floristTicketMode && (
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+                                  <input
+                                    type="text"
+                                    placeholder="Ghi chú tiến độ cho khách xem khi tra cứu đơn (VD: Đã tuyển chọn mẫu đơn Hà Lan, giao lúc 14h)..."
+                                    value={noteDraft}
+                                    onChange={(e) =>
+                                      setAdminNoteDrafts((prev) => ({
+                                        ...prev,
+                                        [ord.id]: e.target.value
+                                      }))
+                                    }
+                                    className="flex-1 px-3 py-2 rounded-lg bg-black/60 border border-white/15 text-xs text-white font-sans focus:outline-none focus:border-amber-400"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => updateOrderStatus(ord.id, ord.status, noteDraft)}
+                                    className="px-4 py-2 rounded-lg bg-white/15 hover:bg-amber-400 hover:text-black text-white text-xs font-mono font-bold transition-colors shrink-0"
+                                  >
+                                    Lưu Ghi Chú
+                                  </button>
+                                  <a
+                                    href={`https://zalo.me/${ord.customerPhone.replace(/\s+/g, '')}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-4 py-2 rounded-lg bg-[#0068FF] text-white text-xs font-mono font-bold text-center shrink-0"
+                                  >
+                                    Chat Zalo Khách
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
+                </div>
               ) : workshopBookings.length === 0 ? (
                 <div className="py-16 text-center space-y-2 text-white/60">
                   <p className="text-sm font-mono uppercase">Chưa có đăng ký Workshop nào</p>

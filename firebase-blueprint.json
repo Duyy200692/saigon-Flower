@@ -26,6 +26,8 @@
         "audioFrequency": { "type": "number", "description": "Solfeggio or botanical chime resonance frequency" },
         "highlight": { "type": "boolean", "description": "Whether this piece is marked as highlight" },
         "pinnedToLanding": { "type": "boolean", "description": "Whether this piece is pinned on the 3-column landing matrix" },
+        "availabilityStatus": { "type": "string", "enum": ["ready_today", "preorder_24h", "seasonal_out"], "description": "Operational availability status of the floral specimen" },
+        "prepLeadTimeHours": { "type": "number", "description": "Standard preparation and stem conditioning lead time in hours" },
         "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp of last modification" }
       },
       "required": ["id", "name", "vietnameseName", "image"]
@@ -116,11 +118,16 @@
         "moodboardItems": { "type": "array", "description": "List of curated moodboard flower names included in the consultation" },
         "occasion": { "type": "string", "description": "Occasion type e.g. bridal, anniversary, corporate" },
         "deliveryDate": { "type": "string", "description": "Preferred delivery or consultation date" },
+        "deliveryTimeSlot": { "type": "string", "description": "Preferred delivery time window slot" },
         "district": { "type": "string", "description": "Delivery district in Ho Chi Minh City" },
         "budgetVnd": { "type": "number", "description": "Estimated budget in VND" },
         "notes": { "type": "string", "description": "Customer bespoke concept notes" },
         "giftCard": { "type": "object", "description": "Bespoke digital wax-seal greeting card configuration" },
-        "status": { "type": "string", "enum": ["pending", "crafting", "delivering", "completed", "cancelled"], "description": "Current fulfillment status" },
+        "status": { "type": "string", "enum": ["pending", "conditioning", "crafting", "quality_check", "delivering", "completed", "cancelled"], "description": "Current 6-stage sequential fulfillment status" },
+        "assignedFlorist": { "type": "string", "description": "Assigned master florist or artisan" },
+        "finishedPhotoUrl": { "type": "string", "description": "Pre-delivery quality check photo of the finished floral piece" },
+        "workflowChecklist": { "type": "object", "description": "Sequential operational checklist for florists" },
+        "workflowHistory": { "type": "array", "description": "Timestamped log of sequential stage transitions" },
         "adminNote": { "type": "string", "description": "Internal atelier concierge note" },
         "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
         "updatedAt": { "type": "string", "format": "date-time", "description": "Last status update timestamp" }

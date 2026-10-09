@@ -50,6 +50,8 @@ export interface FlowerItem {
   audioFrequency: number;
   highlight?: boolean;
   pinnedToLanding?: boolean;
+  availabilityStatus?: 'ready_today' | 'preorder_24h' | 'seasonal_out';
+  prepLeadTimeHours?: number;
 }
 
 export const ATELIER_DATA = {

@@ -28,7 +28,103 @@ export interface WaxSealGiftCard {
   waxColor: 'gold' | 'crimson' | 'bronze' | 'moss';
 }
 
-export type OrderStatus = 'pending' | 'crafting' | 'delivering' | 'completed' | 'cancelled';
+export type OrderStatus =
+  | 'pending'
+  | 'conditioning'
+  | 'crafting'
+  | 'quality_check'
+  | 'delivering'
+  | 'completed'
+  | 'cancelled';
+
+export interface OrderWorkflowChecklist {
+  stemsConditioned: boolean;
+  vesselPrepared: boolean;
+  arrangementCrafted: boolean;
+  waxSealCardAttached: boolean;
+  qcPhotoUploaded: boolean;
+  hydrationWrapped: boolean;
+}
+
+export interface OrderWorkflowLog {
+  stage: OrderStatus;
+  timestamp: string;
+  note?: string;
+}
+
+export const DEFAULT_WORKFLOW_CHECKLIST: OrderWorkflowChecklist = {
+  stemsConditioned: false,
+  vesselPrepared: false,
+  arrangementCrafted: false,
+  waxSealCardAttached: false,
+  qcPhotoUploaded: false,
+  hydrationWrapped: false
+};
+
+export const ORDER_WORKFLOW_STAGES: Array<{
+  id: OrderStatus;
+  stepNum: number;
+  labelVi: string;
+  labelEn: string;
+  shortVi: string;
+  descVi: string;
+  descEn: string;
+}> = [
+  {
+    id: 'pending',
+    stepNum: 1,
+    labelVi: '1. Tiếp Nhận & Xác Nhận',
+    labelEn: '1. Order Received',
+    shortVi: 'Tiếp nhận',
+    descVi: 'Xác nhận yêu cầu thiết kế, khung giờ giao và thông tin người nhận',
+    descEn: 'Validating bespoke concept, delivery window, and recipient details'
+  },
+  {
+    id: 'conditioning',
+    stepNum: 2,
+    labelVi: '2. Tuyển Chọn & Dưỡng Hoa',
+    labelEn: '2. Stem Conditioning',
+    shortVi: 'Dưỡng hoa',
+    descVi: 'Tuyển chọn cành hoa tươi, cắt gốc và cấp nước dưỡng chuyên sâu tại Atelier',
+    descEn: 'Selecting premium blooms, stem trimming, and deep hydration conditioning'
+  },
+  {
+    id: 'crafting',
+    stepNum: 3,
+    labelVi: '3. Chế Tác & Đóng Dấu Sáp',
+    labelEn: '3. Floral Crafting & Wax Seal',
+    shortVi: 'Đang chế tác',
+    descVi: 'Nghệ nhân cắm hoa thủ công theo cấu trúc và niêm phong thiệp dấu sáp',
+    descEn: 'Master florist crafting the arrangement and hand-stamping the wax seal card'
+  },
+  {
+    id: 'quality_check',
+    stepNum: 4,
+    labelVi: '4. Nghiệm Thu Ảnh Thực Tế',
+    labelEn: '4. Pre-Delivery Photo QC',
+    shortVi: 'Nghiệm thu ảnh',
+    descVi: 'Kiểm định form dáng, chụp ảnh tác phẩm hoàn thiện tại xưởng gửi khách xem',
+    descEn: 'Final quality inspection and studio photography of your finished piece'
+  },
+  {
+    id: 'delivering',
+    stepNum: 5,
+    labelVi: '5. Đóng Gói & Đang Giao',
+    labelEn: '5. Hydration Wrap & Dispatch',
+    shortVi: 'Đang giao',
+    descVi: 'Bọc giữ ẩm gốc hoa, đính kèm hướng dẫn chăm sóc và vận chuyển tận nơi',
+    descEn: 'Hydration root wrapping, care guide attachment, and courier dispatch'
+  },
+  {
+    id: 'completed',
+    stepNum: 6,
+    labelVi: '6. Trao Tận Tay Hoàn Tất',
+    labelEn: '6. Delivered & Completed',
+    shortVi: 'Hoàn tất',
+    descVi: 'Tác phẩm đã được trao tận tay người nhận trọn vẹn cảm xúc',
+    descEn: 'Successfully delivered to the recipient'
+  }
+];
 
 export interface BespokeOrder {
   id: string;
@@ -42,11 +138,16 @@ export interface BespokeOrder {
   moodboardItems?: string[];
   occasion: string;
   deliveryDate: string;
+  deliveryTimeSlot?: string;
   district: string;
   budgetVnd: number;
   notes: string;
   giftCard?: WaxSealGiftCard;
   status: OrderStatus;
+  assignedFlorist?: string;
+  finishedPhotoUrl?: string;
+  workflowChecklist?: OrderWorkflowChecklist;
+  workflowHistory?: OrderWorkflowLog[];
   adminNote?: string;
   createdAt: string;
   updatedAt: string;
@@ -94,6 +195,21 @@ interface AtelierContextType {
     orderData: Omit<BespokeOrder, 'id' | 'orderCode' | 'status' | 'createdAt' | 'updatedAt'>
   ) => Promise<BespokeOrder>;
   updateOrderStatus: (orderId: string, status: OrderStatus, adminNote?: string) => Promise<void>;
+  updateOrderWorkflow: (
+    orderId: string,
+    updates: Partial<
+      Pick<
+        BespokeOrder,
+        | 'status'
+        | 'adminNote'
+        | 'assignedFlorist'
+        | 'finishedPhotoUrl'
+        | 'deliveryTimeSlot'
+        | 'workflowChecklist'
+        | 'workflowHistory'
+      >
+    >
+  ) => Promise<void>;
   deleteOrder: (orderId: string) => Promise<void>;
   createWorkshopBooking: (
     bookingData: Omit<WorkshopBooking, 'id' | 'bookingCode' | 'status' | 'createdAt' | 'updatedAt'>
@@ -241,7 +357,16 @@ function normalizeFlower(item: Partial<FlowerItem>, idx: number): FlowerItem {
       captionEn: formatProseNFC(g.captionEn || 'Artistic perspective')
     })),
     audioFrequency: typeof item.audioFrequency === 'number' ? item.audioFrequency : fallback.audioFrequency,
-    pinnedToLanding: item.pinnedToLanding !== undefined ? item.pinnedToLanding : idx < 12
+    pinnedToLanding: item.pinnedToLanding !== undefined ? item.pinnedToLanding : idx < 12,
+    availabilityStatus:
+      item.availabilityStatus ||
+      (item.category === 'bridal' || item.category === 'installation' ? 'preorder_24h' : 'ready_today'),
+    prepLeadTimeHours:
+      typeof item.prepLeadTimeHours === 'number'
+        ? item.prepLeadTimeHours
+        : item.category === 'bridal' || item.category === 'installation'
+          ? 24
+          : 4
   };
 }
 
@@ -1096,6 +1221,15 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
       id: newId,
       orderCode,
       status: 'pending',
+      deliveryTimeSlot: orderData.deliveryTimeSlot || '08:30 – 11:30 (Sáng)',
+      workflowChecklist: { ...DEFAULT_WORKFLOW_CHECKLIST },
+      workflowHistory: [
+        {
+          stage: 'pending',
+          timestamp: isoNow,
+          note: 'Đơn hàng được khởi tạo trên hệ thống Atelier'
+        }
+      ],
       createdAt: isoNow,
       updatedAt: isoNow
     });
@@ -1115,31 +1249,89 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return newOrder;
   };
 
-  const updateOrderStatus = async (orderId: string, status: OrderStatus, adminNote?: string) => {
+  const updateOrderWorkflow = async (
+    orderId: string,
+    updates: Partial<
+      Pick<
+        BespokeOrder,
+        | 'status'
+        | 'adminNote'
+        | 'assignedFlorist'
+        | 'finishedPhotoUrl'
+        | 'deliveryTimeSlot'
+        | 'workflowChecklist'
+        | 'workflowHistory'
+      >
+    >
+  ) => {
     const isoNow = new Date().toISOString();
+    const targetOrder = orders.find((o) => o.id === orderId);
+    const currentChecklist: OrderWorkflowChecklist = {
+      ...DEFAULT_WORKFLOW_CHECKLIST,
+      ...(targetOrder?.workflowChecklist || {}),
+      ...(updates.workflowChecklist || {})
+    };
+
+    // Auto-sync checklist flags when advancing stages or uploading QC photo
+    if (updates.finishedPhotoUrl) {
+      currentChecklist.qcPhotoUploaded = true;
+    }
+    if (updates.status === 'conditioning') {
+      currentChecklist.stemsConditioned = true;
+    } else if (updates.status === 'crafting') {
+      currentChecklist.stemsConditioned = true;
+      currentChecklist.vesselPrepared = true;
+    } else if (updates.status === 'quality_check') {
+      currentChecklist.stemsConditioned = true;
+      currentChecklist.vesselPrepared = true;
+      currentChecklist.arrangementCrafted = true;
+      if (targetOrder?.giftCard?.enabled) {
+        currentChecklist.waxSealCardAttached = true;
+      }
+    } else if (updates.status === 'delivering') {
+      currentChecklist.stemsConditioned = true;
+      currentChecklist.vesselPrepared = true;
+      currentChecklist.arrangementCrafted = true;
+      currentChecklist.hydrationWrapped = true;
+    } else if (updates.status === 'completed') {
+      currentChecklist.stemsConditioned = true;
+      currentChecklist.vesselPrepared = true;
+      currentChecklist.arrangementCrafted = true;
+      currentChecklist.hydrationWrapped = true;
+    }
+
+    const existingHistory = Array.isArray(targetOrder?.workflowHistory)
+      ? targetOrder!.workflowHistory!
+      : [];
+    const shouldAppendHistory =
+      updates.status && updates.status !== targetOrder?.status;
+    const stageMeta = ORDER_WORKFLOW_STAGES.find((s) => s.id === updates.status);
+    const updatedHistory: OrderWorkflowLog[] = shouldAppendHistory
+      ? [
+          ...existingHistory,
+          {
+            stage: updates.status!,
+            timestamp: isoNow,
+            note:
+              updates.adminNote ||
+              (stageMeta ? stageMeta.labelVi : `Chuyển trạng thái: ${updates.status}`)
+          }
+        ]
+      : updates.workflowHistory || existingHistory;
+
+    const payload = stripUndefined({
+      ...updates,
+      workflowChecklist: currentChecklist,
+      workflowHistory: updatedHistory,
+      updatedAt: isoNow
+    });
+
     setOrders((prev) =>
-      prev.map((o) =>
-        o.id === orderId
-          ? {
-              ...o,
-              status,
-              ...(adminNote !== undefined ? { adminNote } : {}),
-              updatedAt: isoNow
-            }
-          : o
-      )
+      prev.map((o) => (o.id === orderId ? { ...o, ...payload } : o))
     );
 
     try {
-      await setDoc(
-        doc(db, 'orders', orderId),
-        stripUndefined({
-          status,
-          ...(adminNote !== undefined ? { adminNote } : {}),
-          updatedAt: isoNow
-        }),
-        { merge: true }
-      );
+      await setDoc(doc(db, 'orders', orderId), payload, { merge: true });
     } catch (error) {
       try {
         handleFirestoreError(error, OperationType.UPDATE, `orders/${orderId}`);
@@ -1147,6 +1339,13 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
         // Keep local optimistic state
       }
     }
+  };
+
+  const updateOrderStatus = async (orderId: string, status: OrderStatus, adminNote?: string) => {
+    await updateOrderWorkflow(orderId, {
+      status,
+      ...(adminNote !== undefined ? { adminNote } : {})
+    });
   };
 
   const deleteOrder = async (orderId: string) => {
@@ -1274,6 +1473,7 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
         workshopBookings,
         createOrder,
         updateOrderStatus,
+        updateOrderWorkflow,
         deleteOrder,
         createWorkshopBooking,
         updateWorkshopBookingStatus,
