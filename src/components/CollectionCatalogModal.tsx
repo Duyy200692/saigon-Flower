@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { X, Search, Filter, Pin, Heart, Maximize2, Minimize2 } from 'lucide-react';
+import { X, Search, Filter, Pin, Heart, Maximize2, Minimize2, Flame } from 'lucide-react';
 import { FlowerItem, BOTANICAL_CATEGORIES, BOTANICAL_SEASONS } from '../data/flowers';
+import { computeFlowerMarketTrends } from '../data/inventoryAndTrends';
 import { useAtelier } from '../context/AtelierContext';
 
 interface CollectionCatalogModalProps {
@@ -20,14 +21,24 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
   theme = 'light',
   onSelectFlower
 }) => {
-  const { atelierData, wishlistIds, toggleWishlist, isInWishlist } = useAtelier();
+  const { atelierData, wishlistIds, orders, toggleWishlist, isInWishlist } = useAtelier();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedSeason, setSelectedSeason] = useState<string>('all');
   const [showPinnedOnly, setShowPinnedOnly] = useState<boolean>(false);
   const [showWishlistOnly, setShowWishlistOnly] = useState<boolean>(false);
+  const [showHotReadyOnly, setShowHotReadyOnly] = useState<boolean>(false);
   const [gridFitMode, setGridFitMode] = useState<'cover' | 'contain'>('cover');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const isDark = theme === 'dark';
+
+  const trendMetricsMap = useMemo(() => {
+    const metrics = computeFlowerMarketTrends(flowers, orders, wishlistIds);
+    const map: Record<string, (typeof metrics)[number]> = {};
+    metrics.forEach((m) => {
+      map[m.flower.id] = m;
+    });
+    return map;
+  }, [flowers, orders, wishlistIds]);
 
   // Multi-tier filtering
   const filteredFlowers = useMemo(() => {
@@ -50,9 +61,14 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
         else if (selectedSeason === 'year-round') matchSeason = seasonLower.includes('year-round') || seasonLower.includes('quanh năm');
       }
 
-      // 3. Pinned & Wishlist filter
+      // 3. Pinned, Wishlist & Hot/Ready filter
       const matchPinned = !showPinnedOnly || flower.pinnedToLanding !== false;
       const matchWishlist = !showWishlistOnly || wishlistIds.includes(flower.id);
+      const tMetric = trendMetricsMap[flower.id];
+      const matchHotReady =
+        !showHotReadyOnly ||
+        ((flower.availabilityStatus || 'ready_today') === 'ready_today' &&
+          (tMetric?.trendType === 'hot' || tMetric?.trendType === 'seasonal' || (tMetric?.heatScore || 0) >= 75));
 
       // 4. Search Filter
       const q = searchQuery.toLowerCase().trim();
@@ -66,9 +82,9 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
         flower.materialsVi.some((m) => m.toLowerCase().includes(q)) ||
         flower.scent.mood.toLowerCase().includes(q);
 
-      return matchCategory && matchSeason && matchPinned && matchWishlist && matchSearch;
+      return matchCategory && matchSeason && matchPinned && matchWishlist && matchHotReady && matchSearch;
     });
-  }, [flowers, selectedCategory, selectedSeason, showPinnedOnly, showWishlistOnly, wishlistIds, searchQuery]);
+  }, [flowers, selectedCategory, selectedSeason, showPinnedOnly, showWishlistOnly, showHotReadyOnly, trendMetricsMap, wishlistIds, searchQuery]);
 
   if (!isOpen) return null;
 
@@ -265,6 +281,22 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
               <span>{lang === 'vi' ? `Ghim Trang Chủ (${pinnedCount})` : `Pinned Landing (${pinnedCount})`}</span>
             </button>
 
+            {/* Quick Toggle: Mẫu Đang Hot & Sẵn Hoa */}
+            <button
+              onClick={() => setShowHotReadyOnly((prev) => !prev)}
+              className={`px-3.5 py-1 rounded-[18px] text-[11px] font-mono whitespace-nowrap transition-all border flex items-center gap-1.5 ${
+                showHotReadyOnly
+                  ? 'bg-amber-400 text-[#141414] border-amber-400 font-bold shadow-sm'
+                  : isDark
+                    ? 'bg-transparent text-amber-300/85 hover:text-amber-300 border-amber-400/25'
+                    : 'bg-white/50 text-amber-900 border-amber-700/25'
+              }`}
+              title="Lọc nhanh các mẫu hoa đang Hot trên thị trường và sẵn hoa giao trong ngày"
+            >
+              <Flame className="w-3 h-3" />
+              <span>{lang === 'vi' ? 'Đang Hot & Sẵn Hoa' : 'Trending & Ready'}</span>
+            </button>
+
             {/* Quick Toggle: Moodboard Yêu Thích */}
             <button
               onClick={() => setShowWishlistOnly((prev) => !prev)}
@@ -457,6 +489,7 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
                     {/* Content Details */}
                     <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between space-y-2">
                       <div>
+                      <div className="flex items-center justify-between gap-1">
                         <span
                           className={`text-[10px] font-mono uppercase tracking-widest block truncate ${
                             isDark ? 'text-amber-400/80' : 'text-amber-900'
@@ -464,6 +497,14 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
                         >
                           {flower.categoryLabelVi || flower.category}
                         </span>
+                        {trendMetricsMap[flower.id]?.trendBadgeVi && (
+                          <span className="px-1.5 py-0.2 rounded bg-amber-400/20 text-amber-500 font-mono text-[9px] font-bold shrink-0">
+                            {lang === 'vi'
+                              ? trendMetricsMap[flower.id].trendBadgeVi
+                              : trendMetricsMap[flower.id].trendBadgeEn}
+                          </span>
+                        )}
+                      </div>
                         
                         <h4
                           className={`font-bagerich font-medium text-sm sm:text-base uppercase tracking-tight transition-colors line-clamp-1 mt-0.5 ${

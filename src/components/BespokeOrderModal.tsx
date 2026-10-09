@@ -19,6 +19,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { FlowerItem } from '../data/flowers';
+import { getSmartAlternativeFlowers } from '../data/inventoryAndTrends';
 import {
   useAtelier,
   WaxSealGiftCard,
@@ -72,6 +73,8 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
   const isDark = theme === 'dark';
 
   const [modeTab, setModeTab] = useState<'order' | 'track'>('order');
+  const [activeFlower, setActiveFlower] = useState<FlowerItem | null>(selectedFlower);
+  const [showAlternativesDrawer, setShowAlternativesDrawer] = useState<boolean>(false);
 
   // Customer Order State
   const [name, setName] = useState('');
@@ -82,6 +85,9 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
   );
   const [date, setDate] = useState('');
   const [deliveryTimeSlot, setDeliveryTimeSlot] = useState('08:30 – 11:30 (Sáng)');
+  const [substitutionPolicy, setSubstitutionPolicy] = useState<
+    'allow_equivalent' | 'strict_confirm' | 'designer_choice'
+  >('allow_equivalent');
   const [district, setDistrict] = useState('Quận 1');
   const [budget, setBudget] = useState(selectedFlower ? selectedFlower.priceVnd : 3500000);
   const [notes, setNotes] = useState('');
@@ -104,9 +110,11 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
   const [trackQuery, setTrackQuery] = useState('');
 
   useEffect(() => {
+    setActiveFlower(selectedFlower);
     if (selectedFlower) {
       setBudget(selectedFlower.priceVnd);
       setOccasion(selectedFlower.category === 'bridal' ? 'bridal' : 'anniversary');
+      setShowAlternativesDrawer(selectedFlower.availabilityStatus === 'seasonal_out');
     }
   }, [selectedFlower]);
 
@@ -114,6 +122,14 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
 
   const cleanPhone = (atelierData.phone || '0909368080').replace(/\s+/g, '');
   const moodboardFlowers = flowers.filter((f) => wishlistIds.includes(f.id));
+  const smartAlternatives = getSmartAlternativeFlowers(activeFlower, flowers, 3);
+  const isExpressConflict =
+    activeFlower?.availabilityStatus === 'preorder_24h' &&
+    deliveryTimeSlot.includes('Express');
+  const shouldHighlightAlternatives =
+    activeFlower?.availabilityStatus === 'seasonal_out' ||
+    isExpressConflict ||
+    showAlternativesDrawer;
 
   // Keep createdOrder synced with real-time Firestore updates if Admin updates status while modal is open
   const liveOrder = createdOrder
@@ -142,17 +158,18 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
         customerName: name.trim(),
         customerPhone: phone.trim(),
         customerEmail: email.trim(),
-        flowerId: selectedFlower?.id || '',
-        flowerName: selectedFlower
-          ? `${selectedFlower.name} (${selectedFlower.vietnameseName})`
+        flowerId: activeFlower?.id || '',
+        flowerName: activeFlower
+          ? `${activeFlower.name} (${activeFlower.vietnameseName})`
           : moodboardNames.length > 0
             ? `Moodboard (${moodboardNames.length} mẫu)`
             : 'Thiết kế hoa Haute Couture theo yêu cầu',
-        flowerImage: selectedFlower?.image || moodboardFlowers[0]?.image || '',
+        flowerImage: activeFlower?.image || moodboardFlowers[0]?.image || '',
         moodboardItems: moodboardNames,
         occasion,
         deliveryDate: date || 'Sớm nhất',
         deliveryTimeSlot,
+        substitutionPolicy,
         district,
         budgetVnd: budget,
         notes: notes.trim(),
@@ -683,64 +700,168 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
                 </h3>
               </div>
 
-              {/* Selected Flower Capsule Banner */}
-              {selectedFlower && (
-                <div
-                  className={`flex items-center gap-3 p-3.5 rounded-[22px] border shadow-soft-1 ${
-                    isDark ? 'bg-white/5 border-white/15' : 'glass-frost-pill border-white/80'
-                  }`}
-                >
-                  <img
-                    src={selectedFlower.image}
-                    alt={selectedFlower.name}
-                    className="w-12 h-12 rounded-[16px] object-cover flex-shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <h4
-                      className={`text-xs font-bold uppercase font-serif-editorial truncate ${
-                        isDark ? 'text-white' : 'text-[#141414]'
-                      }`}
-                    >
-                      {selectedFlower.name}
-                    </h4>
-                    <p
-                      className={`text-[11px] truncate ${
-                        isDark ? 'text-[#ede9df]/70' : 'text-[#141414]/70'
-                      }`}
-                    >
-                      {lang === 'vi' ? selectedFlower.vietnameseName : selectedFlower.latinName}
-                    </p>
-                  </div>
-                  <div className="text-right space-y-1">
-                    <span
-                      className={`text-xs font-bold font-mono tabular-nums block ${
-                        isDark ? 'text-amber-300' : 'text-[#141414]'
-                      }`}
-                    >
-                      {selectedFlower.priceVnd.toLocaleString('vi-VN')} đ
-                    </span>
-                    <span
-                      className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-mono uppercase font-bold ${
-                        selectedFlower.availabilityStatus === 'seasonal_out'
-                          ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                          : selectedFlower.availabilityStatus === 'preorder_24h'
-                            ? 'bg-amber-400/20 text-amber-500 border border-amber-400/40'
-                            : 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30'
-                      }`}
-                    >
-                      {selectedFlower.availabilityStatus === 'seasonal_out'
-                        ? lang === 'vi'
-                          ? 'Hết mùa · Cần tư vấn mẫu tương đương'
-                          : 'Seasonal Out'
-                        : selectedFlower.availabilityStatus === 'preorder_24h'
+              {/* Selected Flower Capsule Banner + Smart Alternative Engine */}
+              {activeFlower && (
+                <div className="space-y-3">
+                  <div
+                    className={`flex items-center gap-3 p-3.5 rounded-[22px] border shadow-soft-1 ${
+                      isDark ? 'bg-white/5 border-white/15' : 'glass-frost-pill border-white/80'
+                    }`}
+                  >
+                    <img
+                      src={activeFlower.image}
+                      alt={activeFlower.name}
+                      className="w-12 h-12 rounded-[16px] object-cover flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h4
+                        className={`text-xs font-bold uppercase font-serif-editorial truncate ${
+                          isDark ? 'text-white' : 'text-[#141414]'
+                        }`}
+                      >
+                        {activeFlower.name}
+                      </h4>
+                      <p
+                        className={`text-[11px] truncate ${
+                          isDark ? 'text-[#ede9df]/70' : 'text-[#141414]/70'
+                        }`}
+                      >
+                        {lang === 'vi' ? activeFlower.vietnameseName : activeFlower.latinName}
+                      </p>
+                      {smartAlternatives.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAlternativesDrawer((prev) => !prev)}
+                          className="mt-1 text-[10px] font-mono underline text-amber-500 hover:opacity-80"
+                        >
+                          {shouldHighlightAlternatives
+                            ? lang === 'vi'
+                              ? 'Ẩn gợi ý mẫu thay thế'
+                              : 'Hide alternatives'
+                            : lang === 'vi'
+                              ? '↻ Xem 3 mẫu hoa tương đồng sẵn giao ngay'
+                              : '↻ View 3 ready-today alternatives'}
+                        </button>
+                      )}
+                    </div>
+                    <div className="text-right space-y-1">
+                      <span
+                        className={`text-xs font-bold font-mono tabular-nums block ${
+                          isDark ? 'text-amber-300' : 'text-[#141414]'
+                        }`}
+                      >
+                        {activeFlower.priceVnd.toLocaleString('vi-VN')} đ
+                      </span>
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-mono uppercase font-bold ${
+                          activeFlower.availabilityStatus === 'seasonal_out'
+                            ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                            : activeFlower.availabilityStatus === 'preorder_24h'
+                              ? 'bg-amber-400/20 text-amber-500 border border-amber-400/40'
+                              : 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30'
+                        }`}
+                      >
+                        {activeFlower.availabilityStatus === 'seasonal_out'
                           ? lang === 'vi'
-                            ? 'Đặt trước 24h (Haute Couture)'
-                            : '24h Pre-order'
-                          : lang === 'vi'
-                            ? 'Sẵn hoa tươi trong ngày'
-                            : 'Available Today'}
-                    </span>
+                            ? 'Hết mùa · Gợi ý mẫu thay thế bên dưới'
+                            : 'Seasonal Out'
+                          : activeFlower.availabilityStatus === 'preorder_24h'
+                            ? lang === 'vi'
+                              ? 'Đặt trước 24h (Haute Couture)'
+                              : '24h Pre-order'
+                            : lang === 'vi'
+                              ? 'Sẵn hoa tươi trong ngày'
+                              : 'Available Today'}
+                      </span>
+                    </div>
                   </div>
+
+                  {/* SMART ALTERNATIVE SUGGESTIONS PANEL */}
+                  {shouldHighlightAlternatives && smartAlternatives.length > 0 && (
+                    <div
+                      className={`p-3.5 rounded-2xl border space-y-2.5 animate-fadeIn ${
+                        activeFlower.availabilityStatus === 'seasonal_out' || isExpressConflict
+                          ? isDark
+                            ? 'bg-amber-400/10 border-amber-400/40'
+                            : 'bg-amber-500/10 border-amber-700/30'
+                          : isDark
+                            ? 'bg-white/5 border-white/15'
+                            : 'bg-white/75 border-[#141414]/15'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-mono font-bold uppercase flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                          <span>
+                            {activeFlower.availabilityStatus === 'seasonal_out'
+                              ? lang === 'vi'
+                                ? 'MẪU ĐANG TẠM HẾT MÙA — GỢI Ý 3 TÁC PHẨM TƯƠNG ĐỒNG SẴN HOA HÔM NAY:'
+                                : 'SEASONAL OUT — 3 SIMILAR SPECIMENS READY TODAY:'
+                              : isExpressConflict
+                                ? lang === 'vi'
+                                  ? 'BẠN CHỌN GIAO GẤP 2H–3H — GỢI Ý MẪU SẴN HOA TƯƠI GIAO NGAY:'
+                                  : 'EXPRESS DELIVERY — READY-TO-SHIP ALTERNATIVES:'
+                                : lang === 'vi'
+                                  ? 'GỢI Ý TÁC PHẨM CÙNG CẢM XÚC & SẴN HOA TRONG NGÀY:'
+                                  : 'CURATED SIMILAR ALTERNATIVES READY TODAY:'}
+                          </span>
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                        {smartAlternatives.map((alt) => (
+                          <div
+                            key={alt.flower.id}
+                            className={`p-2.5 rounded-xl border flex flex-col justify-between gap-2 transition-all ${
+                              isDark
+                                ? 'bg-black/45 border-white/15 hover:border-amber-400'
+                                : 'bg-white/90 border-[#141414]/15 hover:border-[#141414]'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <img
+                                src={alt.flower.image}
+                                alt={alt.flower.name}
+                                className="w-11 h-12 rounded-lg object-cover shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <span className="inline-block px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-500 font-mono text-[9px] font-bold">
+                                  Độ hợp {alt.matchScore}%
+                                </span>
+                                <h5 className="text-xs font-bold truncate mt-0.5">
+                                  {alt.flower.name}
+                                </h5>
+                                <p className="text-[10px] font-mono opacity-75">
+                                  {alt.flower.priceVnd.toLocaleString('vi-VN')} đ
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <p className="text-[10px] opacity-75 line-clamp-1">
+                                • {(lang === 'vi' ? alt.reasonsVi : alt.reasonsEn).join(' · ')}
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveFlower(alt.flower);
+                                  setBudget(alt.flower.priceVnd);
+                                  setShowAlternativesDrawer(false);
+                                }}
+                                className={`w-full py-1.5 px-2.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all ${
+                                  isDark
+                                    ? 'bg-amber-400 text-[#141414] hover:bg-amber-300'
+                                    : 'bg-[#141414] text-[#dcd8cf] hover:bg-black'
+                                }`}
+                              >
+                                {lang === 'vi' ? 'Chọn Mẫu Thay Thế Này' : 'Select This Specimen'}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -962,6 +1083,43 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
                     <span>7.5M</span>
                     <span>15.0M+</span>
                   </div>
+                </div>
+
+                {/* Florist Stem Substitution Policy Selector */}
+                <div className="space-y-1.5 sm:col-span-2">
+                  <label className="font-semibold uppercase tracking-wider block">
+                    {lang === 'vi'
+                      ? 'Chính Sách Thay Thế Hoa Theo Mùa (Đảm Bảo Độ Tươi Đẹp Nhất):'
+                      : 'Seasonal Stem Substitution Preference:'}
+                  </label>
+                  <select
+                    value={substitutionPolicy}
+                    onChange={(e) =>
+                      setSubstitutionPolicy(
+                        e.target.value as
+                          | 'allow_equivalent'
+                          | 'strict_confirm'
+                          | 'designer_choice'
+                      )
+                    }
+                    className={inputClass}
+                  >
+                    <option value="allow_equivalent" className="text-black">
+                      {lang === 'vi'
+                        ? '✓ Ưu tiên độ tươi: Cho phép Nghệ nhân thay hoa phụ tương đương cùng tông màu (Khuyên dùng)'
+                        : '✓ Freshness First: Allow equivalent seasonal secondary blooms in same palette'}
+                    </option>
+                    <option value="strict_confirm" className="text-black">
+                      {lang === 'vi'
+                        ? '☎ Giữ đúng 100% mẫu: Vui lòng gọi xác nhận trước nếu cần thay đổi bất kỳ loại hoa nào'
+                        : '☎ Strict Match: Please call to confirm before any stem substitution'}
+                    </option>
+                    <option value="designer_choice" className="text-black">
+                      {lang === 'vi'
+                        ? '✦ Trao quyền Nghệ nhân: Tự do phối các loài hoa đẹp nhất trong ngày theo cảm xúc đã chọn'
+                        : '✦ Florist Carte Blanche: Curate the finest blooms of the day matching this mood'}
+                    </option>
+                  </select>
                 </div>
               </div>
 

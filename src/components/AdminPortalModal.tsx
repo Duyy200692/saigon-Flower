@@ -68,6 +68,7 @@ import {
   formatProseNFC
 } from '../utils/textFormatter';
 import { ImageStudioModal, AspectRatioPreset } from './ImageStudioModal';
+import { AtelierInventoryAndTrendsTab } from './AtelierInventoryAndTrendsTab';
 
 interface AdminPortalModalProps {
   isOpen: boolean;
@@ -106,9 +107,11 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     changeAdminPassword,
     orders,
     workshopBookings,
+    supplies,
     updateOrderStatus,
     updateOrderWorkflow,
     deleteOrder,
+    deductOrderSupplies,
     updateWorkshopBookingStatus,
     deleteWorkshopBooking,
     isCloudConnected,
@@ -117,7 +120,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     resetAllData
   } = useAtelier();
 
-  const [activeTab, setActiveTab] = useState<'flowers' | 'workshops' | 'orders' | 'branding' | 'security'>('flowers');
+  const [activeTab, setActiveTab] = useState<'flowers' | 'workshops' | 'orders' | 'inventory_trends' | 'branding' | 'security'>('flowers');
   const [crmSubTab, setCrmSubTab] = useState<'floral_orders' | 'workshop_bookings'>('floral_orders');
   const [workflowStageFilter, setWorkflowStageFilter] = useState<'all' | OrderStatus>('all');
   const [floristTicketMode, setFloristTicketMode] = useState<boolean>(false);
@@ -928,6 +931,18 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
               <span>Đơn Hàng & Lịch Hẹn ({orders.length + workshopBookings.length})</span>
             </button>
             <button
+              onClick={() => setActiveTab('inventory_trends')}
+              className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === 'inventory_trends'
+                  ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
+                  : isDark
+                    ? 'text-white/70 hover:text-white'
+                    : 'text-[#141414]/75 hover:text-[#141414] hover:bg-white/60'
+              }`}
+            >
+              <span>Kho & Dự Báo Thị Trường ({supplies.length})</span>
+            </button>
+            <button
               onClick={() => setActiveTab('branding')}
               className={`px-4 py-1.5 rounded-lg transition-all ${
                 activeTab === 'branding'
@@ -1117,6 +1132,19 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
             }`}
           >
             Đơn Hàng ({orders.length + workshopBookings.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('inventory_trends')}
+            className={`px-3 py-2 rounded-lg transition-all text-center shrink-0 ${
+              activeTab === 'inventory_trends'
+                ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
+                : isDark
+                  ? 'text-white/80 hover:text-white bg-white/5'
+                  : 'text-[#141414]/80 hover:text-[#141414] bg-white/60'
+            }`}
+          >
+            Kho & Dự Báo ({supplies.length})
           </button>
           <button
             type="button"
@@ -3402,6 +3430,32 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                                     <strong>Khu vực giao:</strong> {ord.district} ·{' '}
                                     <strong>Dịp:</strong> {ord.occasion}
                                   </p>
+                                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                                    <span className="px-2.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] font-mono text-white/75">
+                                      Chính sách thay hoa phụ:{' '}
+                                      <strong className="text-amber-300">
+                                        {ord.substitutionPolicy === 'strict_confirm'
+                                          ? 'Gọi xác nhận trước mọi thay đổi'
+                                          : ord.substitutionPolicy === 'designer_choice'
+                                            ? 'Trao toàn quyền sáng tạo cho Nghệ nhân'
+                                            : 'Cho phép thay hoa phụ tương đương theo mùa'}
+                                      </strong>
+                                    </span>
+
+                                    {ord.suppliesDeducted ? (
+                                      <span className="px-2.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/35 text-[10px] font-mono text-emerald-300 font-bold">
+                                        ✓ Đã xuất vật tư kho (Bình/Hộp, Giấy gói, Túi ẩm)
+                                      </span>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => deductOrderSupplies(ord.id)}
+                                        className="px-2.5 py-0.5 rounded bg-amber-400/20 hover:bg-amber-400 hover:text-black border border-amber-400/40 text-[10px] font-mono text-amber-300 font-bold transition-all"
+                                      >
+                                        + Xuất Vật Tư Kho Cho Đơn Này
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
 
                                 {/* 1-Click Sequential Advance Button & Delete */}
@@ -3778,6 +3832,9 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
               )}
             </div>
           )}
+
+          {/* TAB 3.5: INVENTORY & MARKET TRENDS INTELLIGENCE */}
+          {activeTab === 'inventory_trends' && <AtelierInventoryAndTrendsTab />}
 
           {/* TAB 4: SECURITY & ADMIN PASSWORD */}
           {activeTab === 'security' && (

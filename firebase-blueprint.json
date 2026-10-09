@@ -128,11 +128,33 @@
         "finishedPhotoUrl": { "type": "string", "description": "Pre-delivery quality check photo of the finished floral piece" },
         "workflowChecklist": { "type": "object", "description": "Sequential operational checklist for florists" },
         "workflowHistory": { "type": "array", "description": "Timestamped log of sequential stage transitions" },
+        "substitutionPolicy": { "type": "string", "enum": ["allow_equivalent", "strict_confirm", "designer_choice"], "description": "Customer preference for seasonal stem substitution" },
+        "suppliesDeducted": { "type": "boolean", "description": "Whether hard goods & conditioning supplies have been deducted for this order" },
         "adminNote": { "type": "string", "description": "Internal atelier concierge note" },
         "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
         "updatedAt": { "type": "string", "format": "date-time", "description": "Last status update timestamp" }
       },
       "required": ["id", "orderCode", "customerName", "customerPhone", "status", "createdAt"]
+    },
+    "SupplyItem": {
+      "title": "SupplyItem",
+      "description": "Atelier floral supply, vessel, packaging, wax seal, or conditioning material",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the supply item" },
+        "sku": { "type": "string", "description": "Stock keeping unit code e.g. VES-01" },
+        "nameVi": { "type": "string", "description": "Supply item name in Vietnamese" },
+        "nameEn": { "type": "string", "description": "Supply item name in English" },
+        "category": { "type": "string", "enum": ["vessels", "packaging", "conditioning", "stems"], "description": "Supply group category" },
+        "unit": { "type": "string", "description": "Measurement unit e.g. Chiếc, Hộp, Cuộn" },
+        "currentStock": { "type": "number", "description": "Current quantity in stock" },
+        "minThreshold": { "type": "number", "description": "Minimum safe threshold during normal months" },
+        "unitCostVnd": { "type": "number", "description": "Estimated unit cost in VND" },
+        "peakBoostFactor": { "type": "number", "description": "Demand multiplier during peak floral months" },
+        "supplierNote": { "type": "string", "description": "Supplier or storage instruction note" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last updated timestamp" }
+      },
+      "required": ["id", "sku", "nameVi", "category", "currentStock", "minThreshold"]
     },
     "WorkshopBooking": {
       "title": "WorkshopBooking",
@@ -182,6 +204,10 @@
     "/workshop_bookings/{bookingId}": {
       "schema": { "$ref": "#/entities/WorkshopBooking" },
       "description": "Collection storing workshop registrations and corporate booking inquiries"
+    },
+    "/supplies/{supplyId}": {
+      "schema": { "$ref": "#/entities/SupplyItem" },
+      "description": "Collection storing atelier floral supplies, vessels, packaging, and conditioning tools"
     }
   }
 }

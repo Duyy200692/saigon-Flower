@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Sparkles, ChevronLeft, ChevronRight, Share2, Check, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw, Heart } from 'lucide-react';
 import { FlowerItem, FLOWERS } from '../data/flowers';
+import { getSmartAlternativeFlowers } from '../data/inventoryAndTrends';
 import { useAtelier } from '../context/AtelierContext';
 import { formatTitleCase, formatDisplayUppercase } from '../utils/textFormatter';
 import { useTrackpadGallery } from '../hooks/useTrackpadGallery';
@@ -529,13 +530,37 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
               
               {/* Header Titles in Bagerich Font */}
               <div className={`border-b pb-4 ${isDark ? 'border-white/15' : 'border-[#141414]/15'}`}>
-                <span
-                  className={`text-[11px] font-mono tracking-widest uppercase block mb-1 ${
-                    isDark ? 'text-amber-300/80' : 'text-[#141414]/60'
-                  }`}
-                >
-                  {lang === 'vi' ? flower.categoryLabelVi : flower.categoryLabelEn}
-                </span>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                  <span
+                    className={`text-[11px] font-mono tracking-widest uppercase block ${
+                      isDark ? 'text-amber-300/80' : 'text-[#141414]/60'
+                    }`}
+                  >
+                    {lang === 'vi' ? flower.categoryLabelVi : flower.categoryLabelEn}
+                  </span>
+
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase border ${
+                      flower.availabilityStatus === 'seasonal_out'
+                        ? 'bg-rose-500/20 text-rose-400 border-rose-500/35'
+                        : flower.availabilityStatus === 'preorder_24h'
+                          ? 'bg-amber-400/20 text-amber-500 border-amber-400/40'
+                          : 'bg-emerald-500/20 text-emerald-500 border-emerald-500/35'
+                    }`}
+                  >
+                    {flower.availabilityStatus === 'seasonal_out'
+                      ? lang === 'vi'
+                        ? '○ Tạm hết mùa · Xem gợi ý tương đồng'
+                        : '○ Seasonal Out'
+                      : flower.availabilityStatus === 'preorder_24h'
+                        ? lang === 'vi'
+                          ? '◐ Đặt trước 24h'
+                          : '◐ 24h Pre-order'
+                        : lang === 'vi'
+                          ? '● Sẵn hoa trong ngày'
+                          : '● Ready Today'}
+                  </span>
+                </div>
                 <h2
                   className={`text-2xl sm:text-4xl font-bagerich font-normal uppercase tracking-tight leading-[1.15] ${
                     isDark ? 'text-white' : 'text-[#141414]'
@@ -740,6 +765,73 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                   <span>{lang === 'vi' ? 'Đặt Mẫu Này' : 'Order Specimen'}</span>
                 </button>
               </div>
+
+              {/* Smart Alternative Recommendations (Especially helpful when out of season or pre-order) */}
+              {(() => {
+                const alternatives = getSmartAlternativeFlowers(flower, flowers, 3);
+                if (alternatives.length === 0) return null;
+                return (
+                  <div
+                    className={`p-3.5 rounded-2xl border space-y-2.5 ${
+                      flower.availabilityStatus === 'seasonal_out'
+                        ? isDark
+                          ? 'bg-amber-400/10 border-amber-400/35'
+                          : 'bg-amber-500/10 border-amber-700/30'
+                        : isDark
+                          ? 'bg-white/5 border-white/10'
+                          : 'bg-white/55 border-[#141414]/10'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-[10px] font-mono uppercase font-bold">
+                      <span>
+                        {flower.availabilityStatus === 'seasonal_out'
+                          ? lang === 'vi'
+                            ? '✦ MẪU ĐANG TẠM HẾT MÙA — GỢI Ý MẪU TƯƠNG ĐỒNG SẴN HOA HÔM NAY:'
+                            : '✦ SEASONAL OUT — READY-TODAY SIMILAR SPECIMENS:'
+                          : lang === 'vi'
+                            ? '✦ GỢI Ý TÁC PHẨM CÙNG CẢM XÚC SẴN HOA TRONG NGÀY:'
+                            : '✦ SIMILAR SPECIMENS AVAILABLE TODAY:'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {alternatives.map((alt) => (
+                        <button
+                          key={alt.flower.id}
+                          type="button"
+                          onClick={() => {
+                            onClose();
+                            onOrderFlower(alt.flower);
+                          }}
+                          className={`p-2 rounded-xl border text-left flex items-center gap-2 transition-all ${
+                            isDark
+                              ? 'bg-black/40 border-white/15 hover:border-amber-400'
+                              : 'bg-white/85 border-[#141414]/15 hover:border-[#141414]'
+                          }`}
+                        >
+                          <img
+                            src={alt.flower.image}
+                            alt={alt.flower.name}
+                            referrerPolicy="no-referrer"
+                            className="w-10 h-12 rounded-lg object-cover shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <span className="text-[9px] font-mono text-emerald-500 font-bold block">
+                              ● {alt.matchScore}% tương đồng
+                            </span>
+                            <span className="text-xs font-bold truncate block">
+                              {alt.flower.name}
+                            </span>
+                            <span className="text-[10px] font-mono opacity-75 block">
+                              {(alt.flower.priceVnd || 0).toLocaleString('vi-VN')} đ
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
             </div>
 

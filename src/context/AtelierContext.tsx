@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { FlowerItem, FLOWERS, ATELIER_DATA } from '../data/flowers';
 import { WorkshopItem, WORKSHOPS } from '../data/workshop';
+import { SupplyItem, DEFAULT_SUPPLIES } from '../data/inventoryAndTrends';
 import { db, handleFirestoreError, OperationType, testFirestoreConnection } from '../lib/firebase';
 import {
   formatDisplayUppercase,
@@ -148,6 +149,8 @@ export interface BespokeOrder {
   finishedPhotoUrl?: string;
   workflowChecklist?: OrderWorkflowChecklist;
   workflowHistory?: OrderWorkflowLog[];
+  substitutionPolicy?: 'allow_equivalent' | 'strict_confirm' | 'designer_choice';
+  suppliesDeducted?: boolean;
   adminNote?: string;
   createdAt: string;
   updatedAt: string;
@@ -191,6 +194,7 @@ interface AtelierContextType {
   // Real-time Orders & Workshop Bookings
   orders: BespokeOrder[];
   workshopBookings: WorkshopBooking[];
+  supplies: SupplyItem[];
   createOrder: (
     orderData: Omit<BespokeOrder, 'id' | 'orderCode' | 'status' | 'createdAt' | 'updatedAt'>
   ) => Promise<BespokeOrder>;
@@ -207,10 +211,18 @@ interface AtelierContextType {
         | 'deliveryTimeSlot'
         | 'workflowChecklist'
         | 'workflowHistory'
+        | 'substitutionPolicy'
+        | 'suppliesDeducted'
       >
     >
   ) => Promise<void>;
   deleteOrder: (orderId: string) => Promise<void>;
+  // Atelier Supply & Tool Inventory CRUD
+  addSupply: (item: Omit<SupplyItem, 'id' | 'updatedAt'>) => Promise<void>;
+  updateSupply: (id: string, updates: Partial<SupplyItem>) => Promise<void>;
+  adjustSupplyStock: (id: string, delta: number) => Promise<void>;
+  deleteSupply: (id: string) => Promise<void>;
+  deductOrderSupplies: (orderId: string) => Promise<void>;
   createWorkshopBooking: (
     bookingData: Omit<WorkshopBooking, 'id' | 'bookingCode' | 'status' | 'createdAt' | 'updatedAt'>
   ) => Promise<WorkshopBooking>;
@@ -249,7 +261,8 @@ const STORAGE_KEYS = {
   PASS: 'juet_admin_password_v2',
   WISHLIST: 'juet_moodboard_wishlist_v1',
   ORDERS: 'juet_orders_cache_v1',
-  BOOKINGS: 'juet_workshop_bookings_cache_v1'
+  BOOKINGS: 'juet_workshop_bookings_cache_v1',
+  SUPPLIES: 'juet_supplies_cache_v1'
 };
 
 // Safe localStorage helpers to prevent QuotaExceededError from crashing React
@@ -537,6 +550,19 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return [];
   });
 
+  const [supplies, setSupplies] = useState<SupplyItem[]>(() => {
+    const saved = safeGetStorage(STORAGE_KEYS.SUPPLIES);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {
+        // ignore
+      }
+    }
+    return DEFAULT_SUPPLIES;
+  });
+
   const [isCloudConnected, setIsCloudConnected] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const isInitialCloudSyncDone = useRef<boolean>(false);
@@ -592,6 +618,12 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     safeSetStorage(STORAGE_KEYS.BOOKINGS, JSON.stringify(workshopBookings));
   }, [workshopBookings]);
 
+  useEffect(() => {
+    if (supplies.length > 0) {
+      safeSetStorage(STORAGE_KEYS.SUPPLIES, JSON.stringify(supplies));
+    }
+  }, [supplies]);
+
   // Firestore Realtime Subscription
   useEffect(() => {
     let unsubscribeFlowers: (() => void) | null = null;
@@ -600,6 +632,7 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     let unsubscribeSecurity: (() => void) | null = null;
     let unsubscribeOrders: (() => void) | null = null;
     let unsubscribeBookings: (() => void) | null = null;
+    let unsubscribeSupplies: (() => void) | null = null;
 
     const setupFirestoreSync = async () => {
       try {
@@ -758,6 +791,37 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
             }
           }
         );
+
+        // 7. Listen to Atelier Supplies & Tools Inventory Collection
+        const suppliesCollectionRef = collection(db, 'supplies');
+        unsubscribeSupplies = onSnapshot(
+          suppliesCollectionRef,
+          (snapshot) => {
+            if (!snapshot.empty) {
+              const rawSupplies: SupplyItem[] = [];
+              snapshot.forEach((docSnap) => {
+                const data = docSnap.data() as SupplyItem;
+                rawSupplies.push({ ...data, id: docSnap.id });
+              });
+              rawSupplies.sort((a, b) => (a.sku || '').localeCompare(b.sku || ''));
+              setSupplies(rawSupplies);
+            } else {
+              // Auto-seed default luxury floral supplies to Firestore if empty
+              const supplyBatch = writeBatch(db);
+              DEFAULT_SUPPLIES.forEach((sup) => {
+                supplyBatch.set(doc(db, 'supplies', sup.id), stripUndefined(sup));
+              });
+              supplyBatch.commit().catch(() => {});
+            }
+          },
+          (error) => {
+            try {
+              handleFirestoreError(error, OperationType.GET, 'supplies');
+            } catch {
+              // Keep local fallback
+            }
+          }
+        );
       } catch (err) {
         console.warn('Firestore initial sync notice:', err);
       }
@@ -772,6 +836,7 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (unsubscribeSecurity) unsubscribeSecurity();
       if (unsubscribeOrders) unsubscribeOrders();
       if (unsubscribeBookings) unsubscribeBookings();
+      if (unsubscribeSupplies) unsubscribeSupplies();
     };
   }, []);
 
@@ -1261,6 +1326,8 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
         | 'deliveryTimeSlot'
         | 'workflowChecklist'
         | 'workflowHistory'
+        | 'substitutionPolicy'
+        | 'suppliesDeducted'
       >
     >
   ) => {
@@ -1432,6 +1499,127 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
+  // Atelier Supply & Tool Inventory CRUD with Real-time Firestore Persistence
+  const addSupply = async (itemData: Omit<SupplyItem, 'id' | 'updatedAt'>) => {
+    const newId = `sup-${Date.now()}`;
+    const isoNow = new Date().toISOString();
+    const newSupply: SupplyItem = stripUndefined({
+      ...itemData,
+      id: newId,
+      currentStock: Math.max(0, Number(itemData.currentStock) || 0),
+      minThreshold: Math.max(1, Number(itemData.minThreshold) || 1),
+      unitCostVnd: Math.max(0, Number(itemData.unitCostVnd) || 0),
+      peakBoostFactor: Math.max(1, Number(itemData.peakBoostFactor) || 1.5),
+      updatedAt: isoNow
+    });
+
+    setSupplies((prev) => [...prev, newSupply]);
+
+    try {
+      await setDoc(doc(db, 'supplies', newId), newSupply);
+    } catch (error) {
+      try {
+        handleFirestoreError(error, OperationType.CREATE, `supplies/${newId}`);
+      } catch {
+        // Keep optimistic state
+      }
+    }
+  };
+
+  const updateSupply = async (id: string, updates: Partial<SupplyItem>) => {
+    const isoNow = new Date().toISOString();
+    const payload = stripUndefined({
+      ...updates,
+      updatedAt: isoNow
+    });
+
+    setSupplies((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, ...payload } : s))
+    );
+
+    try {
+      await setDoc(doc(db, 'supplies', id), payload, { merge: true });
+    } catch (error) {
+      try {
+        handleFirestoreError(error, OperationType.UPDATE, `supplies/${id}`);
+      } catch {
+        // Keep optimistic state
+      }
+    }
+  };
+
+  const adjustSupplyStock = async (id: string, delta: number) => {
+    const target = supplies.find((s) => s.id === id);
+    if (!target) return;
+    const nextStock = Math.max(0, (target.currentStock || 0) + delta);
+    await updateSupply(id, { currentStock: nextStock });
+  };
+
+  const deleteSupply = async (id: string) => {
+    setSupplies((prev) => prev.filter((s) => s.id !== id));
+
+    try {
+      await deleteDoc(doc(db, 'supplies', id));
+    } catch (error) {
+      try {
+        handleFirestoreError(error, OperationType.DELETE, `supplies/${id}`);
+      } catch {
+        // Keep optimistic state
+      }
+    }
+  };
+
+  // 1-Click Deduct Consumable Supplies for an Order (Vessel/Box + Wrapping + Hydration + Wax Seal if enabled)
+  const deductOrderSupplies = async (orderId: string) => {
+    const targetOrder = orders.find((o) => o.id === orderId);
+    if (!targetOrder || targetOrder.suppliesDeducted) return;
+
+    const isoNow = new Date().toISOString();
+    // Pick 1 representative item from vessels, packaging, conditioning
+    const vesselItem = supplies.find((s) => s.category === 'vessels' && s.currentStock > 0);
+    const pkgItem = supplies.find((s) => s.category === 'packaging' && s.currentStock > 0);
+    const condItem = supplies.find((s) => s.category === 'conditioning' && s.currentStock > 0);
+    const stemItem = supplies.find((s) => s.category === 'stems' && s.currentStock > 0);
+
+    const idsToDeduct = [vesselItem?.id, pkgItem?.id, condItem?.id, stemItem?.id].filter(
+      Boolean
+    ) as string[];
+
+    setSupplies((prev) =>
+      prev.map((s) =>
+        idsToDeduct.includes(s.id)
+          ? { ...s, currentStock: Math.max(0, s.currentStock - 1), updatedAt: isoNow }
+          : s
+      )
+    );
+
+    await updateOrderWorkflow(orderId, {
+      suppliesDeducted: true,
+      workflowChecklist: {
+        ...DEFAULT_WORKFLOW_CHECKLIST,
+        ...(targetOrder.workflowChecklist || {}),
+        vesselPrepared: true
+      }
+    });
+
+    try {
+      const batch = writeBatch(db);
+      idsToDeduct.forEach((supId) => {
+        const current = supplies.find((x) => x.id === supId);
+        if (current) {
+          batch.set(
+            doc(db, 'supplies', supId),
+            { currentStock: Math.max(0, current.currentStock - 1), updatedAt: isoNow },
+            { merge: true }
+          );
+        }
+      });
+      await batch.commit();
+    } catch {
+      // Optimistic state already updated
+    }
+  };
+
   const resetAllData = async () => {
     const defaultFlowers = FLOWERS.map((item, idx) => normalizeFlower(item, idx));
     const defaultWorkshops = WORKSHOPS.map((item, idx) => normalizeWorkshop(item, idx));
@@ -1471,10 +1659,16 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
         clearWishlist,
         orders,
         workshopBookings,
+        supplies,
         createOrder,
         updateOrderStatus,
         updateOrderWorkflow,
         deleteOrder,
+        addSupply,
+        updateSupply,
+        adjustSupplyStock,
+        deleteSupply,
+        deductOrderSupplies,
         createWorkshopBooking,
         updateWorkshopBookingStatus,
         deleteWorkshopBooking,
