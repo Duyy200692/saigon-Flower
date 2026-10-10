@@ -80,8 +80,47 @@ export const ATELIER_DATA = {
 
 export const FLOWERS: FlowerItem[] = [
   {
-    id: "hyacinthus-nuptialis",
+    id: "flower-1791388842716",
     indexNumber: "01",
+    name: "THE BRIDAL VOWS",
+    vietnameseName: "Lời Thề Của Cô Dâu",
+    latinName: "The Bridal Vows",
+    category: "bridal",
+    categoryLabelEn: "Bridal Haute Couture",
+    categoryLabelVi: "Hoa Cưới Độc Bản",
+    shortDescriptionEn: "Bespoke floral creation.",
+    shortDescriptionVi: "Lưu giữ khoảnh khắc tình yêu lãng mạn nhất trong ngày trọng đại với đóa hoa mẫu đơn trắng tinh khôi đan xen chút lan ngọt ngào.",
+    storyEn: "Preserve the most romantic moments of love on your special day with a bouquet of pristine white peonies intertwined with sweet orchids. Like a prayer for a complete, peaceful happiness and a gift of youth dedicated to true love. A beauty of classic charm, elegant and captivating.\nEvery detail is thoughtfully crafted to accompany you into the most beautiful moment of your life, shining and radiant.",
+    storyVi: "Lưu giữ khoảnh khắc tình yêu lãng mạn nhất trong ngày trọng đại với đóa hoa mẫu đơn trắng tinh khôi đan xen chút lan ngọt ngào. Tựa như lời cầu mong về một hạnh phúc vẹn tròn, bình yên và cũng là món quà của thanh xuân dành riêng cho tình yêu chân thành. Một vẻ đẹp của cổ điển, vừa thanh tao vừa cuốn hút.\nTừng chi tiết được chăm chút để cùng bạn bước vào khoảnh khắc đẹp nhất cuộc đời một cách tỏa sáng và kiêu kỳ nhất.",
+    botanicalNotesEn: "Curated botanical stems and artisanal technique.",
+    botanicalNotesVi: "Chủng loại hoa nhập khẩu và kỹ nghệ cắm.",
+    materials: ["Imported Stems", "French Silk"],
+    materialsVi: ["Hoa Nhập Khẩu", "Lụa Satin Pháp"],
+    scent: {
+      top: "Hương Hoa Cỏ Tươi Mát",
+      heart: "Hương Hoa Nở Rộ Ngọt Ngào",
+      base: "Gỗ Tuyết Tùng Trầm Ấm",
+      intensity: 3,
+      mood: "Thanh Khiết, Sang Trọng"
+    },
+    anatomy: [],
+    dimensions: "30cm x 45cm",
+    seasonality: "Quanh năm (Year-Round)",
+    priceVnd: 0,
+    priceUsd: 0,
+    image: "/src/assets/images/juet_bridal_vows_1.jpg",
+    galleryImages: [
+      { url: "/src/assets/images/juet_bridal_vows_1.jpg", captionVi: "Góc nhìn toàn cảnh", captionEn: "Frontal view" },
+      { url: "/src/assets/images/juet_bridal_vows_2.jpg", captionVi: "Góc nghiêng nghệ thuật", captionEn: "Side angle" },
+      { url: "/src/assets/images/juet_bridal_vows_3.jpg", captionVi: "Cận cảnh chi tiết cánh hoa", captionEn: "Macro detail" },
+      { url: "/src/assets/images/juet_bridal_vows_4.jpg", captionVi: "Chi tiết hoàn thiện", captionEn: "Finishing detail" }
+    ],
+    audioFrequency: 528,
+    pinnedToLanding: true
+  },
+  {
+    id: "hyacinthus-nuptialis",
+    indexNumber: "02",
     name: "HYACINTHUS NUPTIALIS",
     vietnameseName: "Hoa Cưới Dạ Lan Trắng & Ngọc Trai",
     latinName: "Hyacinthus orientalis alba x Margaritifera",

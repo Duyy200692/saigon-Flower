@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { X, Search, Filter, Pin, Heart, Maximize2, Minimize2, Flame } from 'lucide-react';
-import { FlowerItem, BOTANICAL_CATEGORIES, BOTANICAL_SEASONS } from '../data/flowers';
+import { X, Search, Filter, Heart } from 'lucide-react';
+import { FlowerItem, BOTANICAL_CATEGORIES } from '../data/flowers';
 import { computeFlowerMarketTrends } from '../data/inventoryAndTrends';
 import { useAtelier } from '../context/AtelierContext';
 
@@ -23,11 +23,6 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
 }) => {
   const { atelierData, wishlistIds, orders, toggleWishlist, isInWishlist } = useAtelier();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedSeason, setSelectedSeason] = useState<string>('all');
-  const [showPinnedOnly, setShowPinnedOnly] = useState<boolean>(false);
-  const [showWishlistOnly, setShowWishlistOnly] = useState<boolean>(false);
-  const [showHotReadyOnly, setShowHotReadyOnly] = useState<boolean>(false);
-  const [gridFitMode, setGridFitMode] = useState<'cover' | 'contain'>('cover');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const isDark = theme === 'dark';
 
@@ -40,7 +35,7 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
     return map;
   }, [flowers, orders, wishlistIds]);
 
-  // Multi-tier filtering
+  // Filtering by Category & Search
   const filteredFlowers = useMemo(() => {
     return flowers.filter((flower) => {
       // 1. Category Filter
@@ -50,27 +45,7 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
         flower.categoryLabelEn.toLowerCase().includes(selectedCategory.toLowerCase()) ||
         flower.categoryLabelVi.toLowerCase().includes(selectedCategory.toLowerCase());
 
-      // 2. Season Filter
-      let matchSeason = true;
-      if (selectedSeason !== 'all') {
-        const seasonLower = (flower.seasonality || '').toLowerCase();
-        if (selectedSeason === 'spring') matchSeason = seasonLower.includes('spring') || seasonLower.includes('xuân');
-        else if (selectedSeason === 'summer') matchSeason = seasonLower.includes('summer') || seasonLower.includes('hạ');
-        else if (selectedSeason === 'autumn') matchSeason = seasonLower.includes('autumn') || seasonLower.includes('thu');
-        else if (selectedSeason === 'winter') matchSeason = seasonLower.includes('winter') || seasonLower.includes('đông');
-        else if (selectedSeason === 'year-round') matchSeason = seasonLower.includes('year-round') || seasonLower.includes('quanh năm');
-      }
-
-      // 3. Pinned, Wishlist & Hot/Ready filter
-      const matchPinned = !showPinnedOnly || flower.pinnedToLanding !== false;
-      const matchWishlist = !showWishlistOnly || wishlistIds.includes(flower.id);
-      const tMetric = trendMetricsMap[flower.id];
-      const matchHotReady =
-        !showHotReadyOnly ||
-        ((flower.availabilityStatus || 'ready_today') === 'ready_today' &&
-          (tMetric?.trendType === 'hot' || tMetric?.trendType === 'seasonal' || (tMetric?.heatScore || 0) >= 75));
-
-      // 4. Search Filter
+      // 2. Search Filter
       const q = searchQuery.toLowerCase().trim();
       const matchSearch =
         !q ||
@@ -82,9 +57,9 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
         flower.materialsVi.some((m) => m.toLowerCase().includes(q)) ||
         flower.scent.mood.toLowerCase().includes(q);
 
-      return matchCategory && matchSeason && matchPinned && matchWishlist && matchHotReady && matchSearch;
+      return matchCategory && matchSearch;
     });
-  }, [flowers, selectedCategory, selectedSeason, showPinnedOnly, showWishlistOnly, showHotReadyOnly, trendMetricsMap, wishlistIds, searchQuery]);
+  }, [flowers, selectedCategory, searchQuery]);
 
   if (!isOpen) return null;
 
@@ -95,12 +70,6 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
   const handleCategoryChange = (catId: string) => {
     setSelectedCategory(catId);
   };
-
-  const handleSeasonChange = (seasonId: string) => {
-    setSelectedSeason(seasonId);
-  };
-
-  const pinnedCount = flowers.filter((f) => f.pinnedToLanding !== false).length;
 
   return (
     <div
@@ -129,7 +98,7 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
               JU ET SAIGON · ARCHIVE
             </span>
             <span className={`text-xs font-mono hidden sm:inline-block ${isDark ? 'text-white/50' : 'text-[#141414]/60'}`}>
-              {flowers.length} Tác Phẩm Độc Bản · {pinnedCount} Ghim Landing Page
+              {flowers.length} Tác Phẩm Độc Bản
             </span>
           </div>
           <h2 className="text-lg sm:text-xl font-bagerich uppercase tracking-wider mt-0.5">
@@ -176,173 +145,70 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
 
       {/* Filter Toolbar Bar */}
       <div
-        className={`backdrop-blur-2xl border-b px-4 sm:px-8 py-3.5 flex-shrink-0 space-y-3 z-10 transition-colors ${
+        className={`backdrop-blur-2xl border-b px-4 sm:px-8 py-3 flex-shrink-0 space-y-2.5 z-10 transition-colors ${
           isDark
             ? 'bg-[#141513]/95 border-white/10 text-white'
             : 'bg-[#dcd8cf]/95 border-[#141414]/10 text-[#141414]'
         }`}
       >
-        {/* Row 1: Categories */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar overscroll-x-contain touch-pan-x py-1">
-          <span
-            className={`text-[11px] font-mono uppercase tracking-wider flex-shrink-0 flex items-center gap-1 font-bold ${
-              isDark ? 'text-amber-300' : 'text-amber-900'
-            }`}
-          >
-            <Filter className="w-3 h-3" />
-            <span>{lang === 'vi' ? 'DANH MỤC:' : 'CATEGORY:'}</span>
-          </span>
-
-          {BOTANICAL_CATEGORIES.map((cat) => {
-            const count =
-              cat.id === 'all'
-                ? flowers.length
-                : flowers.filter(
-                    (f) =>
-                      f.category === cat.id ||
-                      f.categoryLabelEn.toLowerCase().includes(cat.id.toLowerCase())
-                  ).length;
-
-            const isActive = selectedCategory === cat.id;
-
-            return (
-              <button
-                key={cat.id}
-                onClick={() => handleCategoryChange(cat.id)}
-                className={`px-4 py-1.5 rounded-[20px] text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1.5 border ${
-                  isActive
-                    ? isDark
-                      ? 'bg-amber-400 text-[#141414] font-bold border-amber-400 shadow-md'
-                      : 'bg-[#141414] text-[#dcd8cf] font-bold border-[#141414] shadow-md'
-                    : isDark
-                      ? 'bg-white/10 text-white/80 hover:bg-white/20 border-white/15 hover:text-white'
-                      : 'bg-white/70 text-[#141414]/80 hover:bg-white border-[#141414]/15 hover:text-[#141414]'
-                }`}
-              >
-                <span>{lang === 'vi' ? cat.labelVi : cat.labelEn}</span>
-                <span
-                  className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
-                    isActive
-                      ? isDark
-                        ? 'bg-black/20 text-[#141414] font-bold'
-                        : 'bg-white/20 text-[#dcd8cf] font-bold'
-                      : isDark
-                        ? 'bg-black/40 text-white/60'
-                        : 'bg-black/10 text-[#141414]/70'
-                  }`}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Row 2: Seasonality + Pinned Landing Quick Filter */}
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar overscroll-x-contain touch-pan-x py-0.5">
-            <span className={`text-[11px] font-mono uppercase tracking-wider flex-shrink-0 ${isDark ? 'text-white/50' : 'text-[#141414]/60'}`}>
-              {lang === 'vi' ? 'LỌC THEO MÙA:' : 'BY SEASON:'}
+        {/* Categories + Results Counter */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar overscroll-x-contain touch-pan-x py-1">
+            <span
+              className={`text-[11px] font-mono uppercase tracking-wider flex-shrink-0 flex items-center gap-1 font-bold ${
+                isDark ? 'text-amber-300' : 'text-amber-900'
+              }`}
+            >
+              <Filter className="w-3 h-3" />
+              <span>{lang === 'vi' ? 'DANH MỤC:' : 'CATEGORY:'}</span>
             </span>
 
-            {BOTANICAL_SEASONS.map((season) => (
-              <button
-                key={season.id}
-                onClick={() => handleSeasonChange(season.id)}
-                className={`px-3.5 py-1 rounded-[18px] text-[11px] font-mono whitespace-nowrap transition-all border ${
-                  selectedSeason === season.id
-                    ? isDark
-                      ? 'bg-white/25 text-white border-white/50 font-bold shadow-sm'
-                      : 'bg-[#141414] text-[#dcd8cf] border-[#141414] font-bold shadow-sm'
-                    : isDark
-                      ? 'bg-transparent text-white/60 hover:text-white border-white/10 hover:border-white/25'
-                      : 'bg-white/50 text-[#141414]/70 hover:text-[#141414] border-[#141414]/15'
-                }`}
-              >
-                {lang === 'vi' ? season.labelVi : season.labelEn}
-              </button>
-            ))}
+            {BOTANICAL_CATEGORIES.map((cat) => {
+              const count =
+                cat.id === 'all'
+                  ? flowers.length
+                  : flowers.filter(
+                      (f) =>
+                        f.category === cat.id ||
+                        f.categoryLabelEn.toLowerCase().includes(cat.id.toLowerCase())
+                    ).length;
 
-            {/* Quick Toggle: Ghim Landing Page */}
-            <button
-              onClick={() => setShowPinnedOnly((prev) => !prev)}
-              className={`px-3.5 py-1 rounded-[18px] text-[11px] font-mono whitespace-nowrap transition-all border flex items-center gap-1.5 ${
-                showPinnedOnly
-                  ? isDark
-                    ? 'bg-amber-400/25 text-amber-300 border-amber-400/60 font-bold shadow-sm'
-                    : 'bg-amber-500/20 text-amber-950 border-amber-700/50 font-bold shadow-sm'
-                  : isDark
-                    ? 'bg-transparent text-white/60 hover:text-amber-300 border-white/10 hover:border-amber-400/30'
-                    : 'bg-white/50 text-[#141414]/70 hover:text-amber-900 border-[#141414]/15'
-              }`}
-              title="Chỉ hiển thị các tác phẩm đang được ghim tại trang chủ"
-            >
-              <Pin className={`w-3 h-3 ${showPinnedOnly ? 'fill-current' : ''}`} />
-              <span>{lang === 'vi' ? `Ghim Trang Chủ (${pinnedCount})` : `Pinned Landing (${pinnedCount})`}</span>
-            </button>
+              const isActive = selectedCategory === cat.id;
 
-            {/* Quick Toggle: Mẫu Đang Hot & Sẵn Hoa */}
-            <button
-              onClick={() => setShowHotReadyOnly((prev) => !prev)}
-              className={`px-3.5 py-1 rounded-[18px] text-[11px] font-mono whitespace-nowrap transition-all border flex items-center gap-1.5 ${
-                showHotReadyOnly
-                  ? 'bg-amber-400 text-[#141414] border-amber-400 font-bold shadow-sm'
-                  : isDark
-                    ? 'bg-transparent text-amber-300/85 hover:text-amber-300 border-amber-400/25'
-                    : 'bg-white/50 text-amber-900 border-amber-700/25'
-              }`}
-              title="Lọc nhanh các mẫu hoa đang Hot trên thị trường và sẵn hoa giao trong ngày"
-            >
-              <Flame className="w-3 h-3" />
-              <span>{lang === 'vi' ? 'Đang Hot & Sẵn Hoa' : 'Trending & Ready'}</span>
-            </button>
-
-            {/* Quick Toggle: Moodboard Yêu Thích */}
-            <button
-              onClick={() => setShowWishlistOnly((prev) => !prev)}
-              className={`px-3.5 py-1 rounded-[18px] text-[11px] font-mono whitespace-nowrap transition-all border flex items-center gap-1.5 ${
-                showWishlistOnly
-                  ? 'bg-rose-500 text-white border-rose-500 font-bold shadow-sm'
-                  : isDark
-                    ? 'bg-transparent text-white/60 hover:text-rose-300 border-white/10 hover:border-rose-400/30'
-                    : 'bg-white/50 text-[#141414]/70 hover:text-rose-700 border-[#141414]/15'
-              }`}
-              title="Hiển thị các tác phẩm đã lưu trong Moodboard Yêu Thích"
-            >
-              <Heart className={`w-3 h-3 ${showWishlistOnly ? 'fill-current' : ''}`} />
-              <span>Moodboard ({wishlistIds.length})</span>
-            </button>
-
-            {/* Quick Toggle: Khung Hình Tỉ Lệ Gốc vs Lấp Đầy */}
-            <button
-              onClick={() => setGridFitMode((prev) => (prev === 'cover' ? 'contain' : 'cover'))}
-              className={`px-3.5 py-1 rounded-[18px] text-[11px] font-mono whitespace-nowrap transition-all border flex items-center gap-1.5 ${
-                gridFitMode === 'contain'
-                  ? isDark
-                    ? 'bg-emerald-500/25 text-emerald-300 border-emerald-400/60 font-bold shadow-sm'
-                    : 'bg-[#141414] text-[#dcd8cf] border-[#141414] font-bold shadow-sm'
-                  : isDark
-                    ? 'bg-transparent text-white/60 hover:text-white border-white/10'
-                    : 'bg-white/50 text-[#141414]/70 hover:text-[#141414] border-[#141414]/15'
-              }`}
-              title="Chuyển đổi giữa Lấp Đầy Khung 3:4 và Vừa Khung Tỉ Lệ Gốc"
-            >
-              {gridFitMode === 'cover' ? (
-                <>
-                  <Minimize2 className="w-3 h-3" />
-                  <span>{lang === 'vi' ? 'Khung: Lấp Đầy 3:4' : 'Frame: 3:4 Fill'}</span>
-                </>
-              ) : (
-                <>
-                  <Maximize2 className="w-3 h-3" />
-                  <span>{lang === 'vi' ? 'Khung: Tỉ Lệ Gốc' : 'Frame: Original Fit'}</span>
-                </>
-              )}
-            </button>
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategoryChange(cat.id)}
+                  className={`px-4 py-1.5 rounded-[20px] text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1.5 border ${
+                    isActive
+                      ? isDark
+                        ? 'bg-amber-400 text-[#141414] font-bold border-amber-400 shadow-md'
+                        : 'bg-[#141414] text-[#dcd8cf] font-bold border-[#141414] shadow-md'
+                      : isDark
+                        ? 'bg-white/10 text-white/80 hover:bg-white/20 border-white/15 hover:text-white'
+                        : 'bg-white/70 text-[#141414]/80 hover:bg-white border-[#141414]/15 hover:text-[#141414]'
+                  }`}
+                >
+                  <span>{lang === 'vi' ? cat.labelVi : cat.labelEn}</span>
+                  <span
+                    className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
+                      isActive
+                        ? isDark
+                          ? 'bg-black/20 text-[#141414] font-bold'
+                          : 'bg-white/20 text-[#dcd8cf] font-bold'
+                        : isDark
+                          ? 'bg-black/40 text-white/60'
+                          : 'bg-black/10 text-[#141414]/70'
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Results Counter */}
-          <div className={`flex items-center gap-3 text-xs font-mono ml-auto ${isDark ? 'text-white/50' : 'text-[#141414]/60'}`}>
+          <div className={`hidden lg:flex items-center gap-3 text-xs font-mono shrink-0 ml-auto ${isDark ? 'text-white/50' : 'text-[#141414]/60'}`}>
             <span>
               {lang === 'vi'
                 ? `Hiển thị ${filteredFlowers.length} / ${flowers.length} tác phẩm`
@@ -387,14 +253,12 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
             <div className="text-center py-20 space-y-3">
               <p className={`text-lg font-serif-editorial italic ${isDark ? 'text-white/60' : 'text-[#141414]/70'}`}>
                 {lang === 'vi'
-                  ? 'Không có tác phẩm hoa nào phù hợp với bộ lọc mùa & danh mục hiện tại.'
+                  ? 'Không có tác phẩm hoa nào phù hợp với danh mục hiện tại.'
                   : 'No botanical specimens match the current filter selection.'}
               </p>
               <button
                 onClick={() => {
                   setSelectedCategory('all');
-                  setSelectedSeason('all');
-                  setShowPinnedOnly(false);
                   setSearchQuery('');
                 }}
                 className="px-5 py-2.5 rounded-[18px] bg-amber-400 text-black text-xs font-mono font-bold uppercase tracking-wider"
@@ -405,8 +269,6 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-6">
               {filteredFlowers.map((flower) => {
-                const isPinned = flower.pinnedToLanding !== false;
-
                 return (
                   <div
                     key={flower.id}
@@ -423,22 +285,11 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
                         isDark ? 'bg-black' : 'bg-[#dcd8cf]'
                       }`}
                     >
-                      {isDark && gridFitMode === 'contain' && (
-                        <img
-                          src={flower.image}
-                          alt=""
-                          aria-hidden="true"
-                          referrerPolicy="no-referrer"
-                          className="absolute inset-0 w-full h-full object-cover scale-115 blur-xl opacity-45 pointer-events-none"
-                        />
-                      )}
                       <img
                         src={flower.image}
                         alt={flower.name}
                         referrerPolicy="no-referrer"
-                        className={`relative z-10 w-full h-full group-hover:scale-108 transition-transform duration-700 ease-out ${
-                          gridFitMode === 'contain' ? 'object-contain p-1.5' : 'object-cover object-center'
-                        }`}
+                        className="relative z-10 w-full h-full group-hover:scale-108 transition-transform duration-700 ease-out object-cover object-center"
                         loading="lazy"
                       />
 
@@ -466,17 +317,6 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
                       >
                         <Heart className={`w-3.5 h-3.5 ${isInWishlist(flower.id) ? 'fill-current' : ''}`} />
                       </button>
-
-                      {/* Pinned to Landing Page Badge */}
-                      {isPinned && (
-                        <div
-                          className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full bg-amber-400 text-black text-[9px] font-mono font-bold flex items-center gap-1 shadow-md"
-                          title="Tác phẩm đang được ghim tại trang chủ"
-                        >
-                          <Pin className="w-2.5 h-2.5 fill-black" />
-                          <span>GHIM LANDING</span>
-                        </div>
-                      )}
 
                       {/* Seasonality Tag bottom right */}
                       {flower.seasonality && (

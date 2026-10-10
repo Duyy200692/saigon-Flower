@@ -400,11 +400,11 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
       const exportCanvas = document.createElement('canvas');
       renderToCanvas(exportCanvas, false); // False = Do NOT draw rule-of-thirds grid on final image!
 
-      let quality = 0.84;
+      let quality = 0.8;
       let webpDataUrl = exportCanvas.toDataURL('image/webp', quality);
 
-      // Keep under ~180KB for Firestore document safety
-      while (webpDataUrl.length > 185000 && quality > 0.45) {
+      // Keep under ~115KB base64 (~85KB binary) for strict Firestore 1MB document safety
+      while (webpDataUrl.length > 115000 && quality > 0.35) {
         quality -= 0.08;
         webpDataUrl = exportCanvas.toDataURL('image/webp', quality);
       }

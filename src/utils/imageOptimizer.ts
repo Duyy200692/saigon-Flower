@@ -47,10 +47,10 @@ export async function compressAndConvertToWebP(
   options: {
     maxWidth?: number;
     maxHeight?: number;
-    quality?: number; // 0.1 to 1.0 (default 0.82)
+    quality?: number; // 0.1 to 1.0 (default 0.80)
   } = {}
 ): Promise<CompressionResult> {
-  const { maxWidth = 1100, maxHeight = 1100, quality = 0.82 } = options;
+  const { maxWidth = 960, maxHeight = 960, quality = 0.8 } = options;
 
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -100,11 +100,26 @@ export async function compressAndConvertToWebP(
         // Convert to WebP format
         let webpDataUrl = canvas.toDataURL('image/webp', quality);
 
-        // Ensure single image stays under ~140KB for Firestore 1MB safety (5 images max per doc)
+        // Strictly keep each image under ~115KB base64 (~85KB binary) so 5 images (image + 4 galleryImages)
+        // stay under ~550KB total, well below Firebase Firestore's 1,048,576 bytes (1MB) hard limit.
         let currentQuality = quality;
-        while (webpDataUrl.length > 185000 && currentQuality > 0.45) {
-          currentQuality -= 0.1;
+        while (webpDataUrl.length > 115000 && currentQuality > 0.35) {
+          currentQuality -= 0.08;
           webpDataUrl = canvas.toDataURL('image/webp', currentQuality);
+        }
+
+        // If still over 115KB on very complex floral textures, scale canvas down by 20%
+        if (webpDataUrl.length > 115000) {
+          const smallerW = Math.round(width * 0.78);
+          const smallerH = Math.round(height * 0.78);
+          canvas.width = smallerW;
+          canvas.height = smallerH;
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, smallerW, smallerH);
+          width = smallerW;
+          height = smallerH;
+          webpDataUrl = canvas.toDataURL('image/webp', 0.65);
         }
 
         // Calculate compressed size in bytes from base64

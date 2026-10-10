@@ -766,8 +766,8 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                 </button>
               </div>
 
-              {/* Smart Alternative Recommendations (Especially helpful when out of season or pre-order) */}
-              {(() => {
+              {/* Smart Alternative Recommendations (Shown when out of season or pre-order) */}
+              {(flower.availabilityStatus === 'seasonal_out' || flower.availabilityStatus === 'preorder_24h') && (() => {
                 const alternatives = getSmartAlternativeFlowers(flower, flowers, 3);
                 if (alternatives.length === 0) return null;
                 return (
@@ -789,8 +789,8 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                             ? '✦ MẪU ĐANG TẠM HẾT MÙA — GỢI Ý MẪU TƯƠNG ĐỒNG SẴN HOA HÔM NAY:'
                             : '✦ SEASONAL OUT — READY-TODAY SIMILAR SPECIMENS:'
                           : lang === 'vi'
-                            ? '✦ GỢI Ý TÁC PHẨM CÙNG CẢM XÚC SẴN HOA TRONG NGÀY:'
-                            : '✦ SIMILAR SPECIMENS AVAILABLE TODAY:'}
+                            ? '✦ MẪU ĐẶT TRƯỚC 24H — GỢI Ý TÁC PHẨM TƯƠNG ĐỒNG SẴN GIAO NGAY:'
+                            : '✦ 24H PRE-ORDER — SIMILAR SPECIMENS AVAILABLE TODAY:'}
                       </span>
                     </div>
 

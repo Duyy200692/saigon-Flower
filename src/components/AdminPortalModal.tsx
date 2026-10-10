@@ -117,7 +117,9 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     isCloudConnected,
     isSyncing,
     syncAllToCloud,
-    resetAllData
+    resetAllData,
+    exportBackupJson,
+    importBackupJson
   } = useAtelier();
 
   const [activeTab, setActiveTab] = useState<'flowers' | 'workshops' | 'orders' | 'inventory_trends' | 'branding' | 'security'>('flowers');
@@ -735,16 +737,56 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     setLastCompression(null);
   };
 
-  // Save Flower
-  const handleSaveFlower = (e: React.FormEvent) => {
+  // Save Flower (Auto-converts expiring Facebook CDN URLs to permanent WebP & awaits Firestore persistence)
+  const handleSaveFlower = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isAddingFlower) {
-      addFlower(flowerForm as Omit<FlowerItem, 'id' | 'indexNumber'>);
-    } else if (editingFlower) {
-      updateFlower(editingFlower.id, flowerForm);
+    setCompressing(true);
+    try {
+      const updatedForm: Partial<FlowerItem> = { ...flowerForm };
+      const rawGallery = Array.isArray(updatedForm.galleryImages) ? [...updatedForm.galleryImages] : [];
+
+      // If main image is empty but gallery[0] has a URL, sync it to main image
+      if ((!updatedForm.image || !updatedForm.image.trim()) && rawGallery[0]?.url?.trim()) {
+        updatedForm.image = rawGallery[0].url.trim();
+      }
+
+      // Auto-convert temporary Facebook CDN URLs (fbcdn.net) to permanent WebP so they never expire
+      if (updatedForm.image && isFacebookCdnUrl(updatedForm.image)) {
+        try {
+          const conv = await convertUrlToWebP(updatedForm.image, { maxWidth: 960, maxHeight: 960, quality: 0.8 });
+          updatedForm.image = conv.webpDataUrl;
+        } catch {
+          // Keep user's pasted URL intact if CORS blocks conversion
+        }
+      }
+
+      for (let i = 0; i < rawGallery.length; i++) {
+        const gUrl = rawGallery[i]?.url?.trim() || '';
+        if (gUrl && isFacebookCdnUrl(gUrl)) {
+          try {
+            const conv = await convertUrlToWebP(gUrl, { maxWidth: 960, maxHeight: 960, quality: 0.8 });
+            rawGallery[i] = { ...rawGallery[i], url: conv.webpDataUrl };
+            if (i === 0) {
+              updatedForm.image = conv.webpDataUrl;
+            }
+          } catch {
+            // Keep user's pasted URL intact
+          }
+        }
+      }
+
+      updatedForm.galleryImages = rawGallery;
+
+      if (isAddingFlower) {
+        await addFlower(updatedForm as Omit<FlowerItem, 'id' | 'indexNumber'>);
+      } else if (editingFlower) {
+        await updateFlower(editingFlower.id, updatedForm);
+      }
+      setEditingFlower(null);
+      setIsAddingFlower(false);
+    } finally {
+      setCompressing(false);
     }
-    setEditingFlower(null);
-    setIsAddingFlower(false);
   };
 
   // Open Workshop Editor
@@ -807,16 +849,54 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     setLastCompression(null);
   };
 
-  // Save Workshop
-  const handleSaveWorkshop = (e: React.FormEvent) => {
+  // Save Workshop (Auto-converts expiring Facebook CDN URLs to permanent WebP & awaits Firestore persistence)
+  const handleSaveWorkshop = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isAddingWorkshop) {
-      addWorkshop(workshopForm as Omit<WorkshopItem, 'id' | 'indexNumber'>);
-    } else if (editingWorkshop) {
-      updateWorkshop(editingWorkshop.id, workshopForm);
+    setCompressing(true);
+    try {
+      const updatedWs: Partial<WorkshopItem> = { ...workshopForm };
+      const rawGallery = Array.isArray(updatedWs.galleryImages) ? [...updatedWs.galleryImages] : [];
+
+      if ((!updatedWs.image || !updatedWs.image.trim()) && rawGallery[0]?.url?.trim()) {
+        updatedWs.image = rawGallery[0].url.trim();
+      }
+
+      if (updatedWs.image && isFacebookCdnUrl(updatedWs.image)) {
+        try {
+          const conv = await convertUrlToWebP(updatedWs.image, { maxWidth: 960, maxHeight: 960, quality: 0.8 });
+          updatedWs.image = conv.webpDataUrl;
+        } catch {
+          // Keep user's pasted URL intact
+        }
+      }
+
+      for (let i = 0; i < rawGallery.length; i++) {
+        const gUrl = rawGallery[i]?.url?.trim() || '';
+        if (gUrl && isFacebookCdnUrl(gUrl)) {
+          try {
+            const conv = await convertUrlToWebP(gUrl, { maxWidth: 960, maxHeight: 960, quality: 0.8 });
+            rawGallery[i] = { ...rawGallery[i], url: conv.webpDataUrl };
+            if (i === 0) {
+              updatedWs.image = conv.webpDataUrl;
+            }
+          } catch {
+            // Keep user's pasted URL intact
+          }
+        }
+      }
+
+      updatedWs.galleryImages = rawGallery;
+
+      if (isAddingWorkshop) {
+        await addWorkshop(updatedWs as Omit<WorkshopItem, 'id' | 'indexNumber'>);
+      } else if (editingWorkshop) {
+        await updateWorkshop(editingWorkshop.id, updatedWs);
+      }
+      setEditingWorkshop(null);
+      setIsAddingWorkshop(false);
+    } finally {
+      setCompressing(false);
     }
-    setEditingWorkshop(null);
-    setIsAddingWorkshop(false);
   };
 
   // Save Branding
@@ -1032,20 +1112,17 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
             </button>
 
             <button
-              onClick={() => {
-                if (window.confirm('Khôi phục toàn bộ dữ liệu mẫu gốc ban đầu của JU et Saigon?')) {
-                  resetAllData();
-                  alert('Đã khôi phục dữ liệu mặc định!');
-                }
-              }}
-              className={`p-2 text-xs font-mono rounded-lg border transition-colors ${
+              type="button"
+              onClick={exportBackupJson}
+              className={`px-2.5 py-1.5 text-xs font-mono rounded-lg border transition-colors flex items-center gap-1.5 ${
                 isDark
-                  ? 'border-white/10 hover:border-amber-400/50 text-white/60 hover:text-amber-300'
-                  : 'border-[#141414]/15 bg-white/60 hover:bg-white text-[#141414]/70 hover:text-[#141414]'
+                  ? 'border-white/10 hover:border-amber-400/50 text-white/75 hover:text-amber-300 bg-white/5'
+                  : 'border-[#141414]/15 bg-white/60 hover:bg-white text-[#141414]/80 hover:text-[#141414]'
               }`}
-              title="Khôi phục dữ liệu gốc"
+              title="Tải file sao lưu dự phòng (.JSON) về máy tính"
             >
-              <RotateCcw className="w-4 h-4" />
+              <Database className="w-3.5 h-3.5" />
+              <span className="hidden xl:inline">Sao Lưu (.JSON)</span>
             </button>
 
             <button
@@ -4015,6 +4092,108 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                     </button>
                   </div>
                 </form>
+              </div>
+
+              {/* Data Backup & Recovery Vault */}
+              <div className="bg-[#1e1f1c] rounded-2xl p-6 border border-emerald-500/30 space-y-5">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-300">
+                      <Database className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold uppercase font-mono text-emerald-300">
+                        KÉT SẮT SAO LƯU & KHÔI PHỤC DỮ LIỆU AN TOÀN (BACKUP VAULT)
+                      </h4>
+                      <p className="text-xs text-white/60">
+                        Bảo vệ 100% tác phẩm hoa tự thêm, hình ảnh, đơn hàng và cấu hình thương hiệu của bạn
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-mono">
+                    Đang lưu trữ: {flowers.length} Tác phẩm hoa · {workshops.length} Workshop · {supplies.length} Vật tư
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                  {/* 1. Export JSON Backup */}
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/10 flex flex-col justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="font-mono font-bold uppercase text-amber-300 flex items-center gap-1.5">
+                        <Database className="w-3.5 h-3.5" />
+                        <span>1. Tải Bản Sao Lưu (.JSON)</span>
+                      </div>
+                      <p className="text-white/65 leading-relaxed">
+                        Tải toàn bộ dữ liệu hiện tại (Tác phẩm hoa, ảnh, Workshop, Đơn hàng, Kho vật tư, Logo) về máy tính làm bản dự phòng vĩnh viễn.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={exportBackupJson}
+                      className="w-full py-2.5 px-3 rounded-lg bg-amber-400 hover:bg-amber-300 text-[#141414] font-mono font-bold uppercase text-[11px] transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Database className="w-3.5 h-3.5" />
+                      <span>Tải File Backup Ngay</span>
+                    </button>
+                  </div>
+
+                  {/* 2. Import JSON Backup */}
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/10 flex flex-col justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="font-mono font-bold uppercase text-emerald-300 flex items-center gap-1.5">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>2. Khôi Phục Từ File (.JSON)</span>
+                      </div>
+                      <p className="text-white/65 leading-relaxed">
+                        Chọn file <code className="text-emerald-300">.json</code> đã sao lưu trước đó để khôi phục toàn bộ dữ liệu và đồng bộ thẳng lên Firebase.
+                      </p>
+                    </div>
+                    <label className="w-full py-2.5 px-3 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-200 font-mono font-bold uppercase text-[11px] transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Chọn File JSON Khôi Phục</span>
+                      <input
+                        type="file"
+                        accept=".json,application/json"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const text = await file.text();
+                          const res = await importBackupJson(text);
+                          setPassChangeMsg({ text: res.message, isError: !res.success });
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  {/* 3. Safe Supplement Default Specimens */}
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/10 flex flex-col justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="font-mono font-bold uppercase text-white/80 flex items-center gap-1.5">
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>3. Bổ Sung Mẫu Mặc Định</span>
+                      </div>
+                      <p className="text-white/65 leading-relaxed">
+                        Khôi phục lại các mẫu hoa/workshop mặc định nếu lỡ xóa nhầm (vẫn giữ nguyên 100% các tác phẩm bạn tự tạo thêm).
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await resetAllData();
+                        setPassChangeMsg({
+                          text: 'Đã khôi phục đầy đủ danh mục hoa & giữ nguyên các tác phẩm riêng của bạn!',
+                          isError: false
+                        });
+                      }}
+                      className="w-full py-2.5 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white font-mono font-bold uppercase text-[11px] transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Khôi Phục An Toàn</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}

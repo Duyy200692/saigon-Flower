@@ -247,6 +247,8 @@ interface AtelierContextType {
   updateLogoWhiteUrl: (url: string | null) => Promise<void>;
   syncAllToCloud: () => Promise<void>;
   resetAllData: () => Promise<void>;
+  exportBackupJson: () => void;
+  importBackupJson: (jsonText: string) => Promise<{ success: boolean; message: string }>;
 }
 
 const AtelierContext = createContext<AtelierContextType | undefined>(undefined);
@@ -314,13 +316,16 @@ function stripUndefined<T>(val: T): T {
 
 // Normalize a flower item so missing fields never cause runtime crashes and all titles are synchronized
 function normalizeFlower(item: Partial<FlowerItem>, idx: number): FlowerItem {
-  const fallback = FLOWERS[idx % FLOWERS.length] || FLOWERS[0];
-  const primaryImage = (item.image && item.image.trim()) || fallback.image;
-  const rawMaterials = Array.isArray(item.materials) ? item.materials.filter(Boolean) : fallback.materials;
-  const rawMaterialsVi = Array.isArray(item.materialsVi) ? item.materialsVi.filter(Boolean) : fallback.materialsVi;
+  const fallback = FLOWERS.find((f) => f.id === item.id) || FLOWERS[idx % FLOWERS.length] || FLOWERS[0];
   const validGallery = Array.isArray(item.galleryImages)
     ? item.galleryImages.filter((g) => g && typeof g.url === 'string' && g.url.trim().length > 0)
     : [];
+  const primaryImage =
+    (item.image && item.image.trim()) ||
+    (validGallery[0]?.url && validGallery[0].url.trim()) ||
+    fallback.image;
+  const rawMaterials = Array.isArray(item.materials) ? item.materials.filter(Boolean) : fallback.materials;
+  const rawMaterialsVi = Array.isArray(item.materialsVi) ? item.materialsVi.filter(Boolean) : fallback.materialsVi;
   const rawGallery =
     validGallery.length > 0
       ? validGallery
@@ -370,7 +375,7 @@ function normalizeFlower(item: Partial<FlowerItem>, idx: number): FlowerItem {
       captionEn: formatProseNFC(g.captionEn || 'Artistic perspective')
     })),
     audioFrequency: typeof item.audioFrequency === 'number' ? item.audioFrequency : fallback.audioFrequency,
-    pinnedToLanding: item.pinnedToLanding !== undefined ? item.pinnedToLanding : idx < 12,
+    pinnedToLanding: item.pinnedToLanding !== undefined ? item.pinnedToLanding : true,
     availabilityStatus:
       item.availabilityStatus ||
       (item.category === 'bridal' || item.category === 'installation' ? 'preorder_24h' : 'ready_today'),
@@ -385,11 +390,14 @@ function normalizeFlower(item: Partial<FlowerItem>, idx: number): FlowerItem {
 
 // Normalize a workshop item so missing fields never cause runtime crashes and all titles are synchronized
 function normalizeWorkshop(item: Partial<WorkshopItem>, idx: number): WorkshopItem {
-  const fallback = WORKSHOPS[idx % WORKSHOPS.length] || WORKSHOPS[0];
-  const primaryImage = (item.image && item.image.trim()) || fallback.image;
+  const fallback = WORKSHOPS.find((w) => w.id === item.id) || WORKSHOPS[idx % WORKSHOPS.length] || WORKSHOPS[0];
   const validGallery = Array.isArray(item.galleryImages)
     ? item.galleryImages.filter((g) => g && typeof g.url === 'string' && g.url.trim().length > 0)
     : [];
+  const primaryImage =
+    (item.image && item.image.trim()) ||
+    (validGallery[0]?.url && validGallery[0].url.trim()) ||
+    fallback.image;
   const rawGallery =
     validGallery.length > 0
       ? validGallery
@@ -449,7 +457,10 @@ function normalizeWorkshop(item: Partial<WorkshopItem>, idx: number): WorkshopIt
 
 export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [flowers, setFlowers] = useState<FlowerItem[]>(() => {
-    const saved = safeGetStorage(STORAGE_KEYS.FLOWERS);
+    const saved =
+      safeGetStorage(STORAGE_KEYS.FLOWERS) ||
+      safeGetStorage('juet_flowers_data') ||
+      safeGetStorage('juet_flowers_data_v1');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -464,7 +475,10 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
   });
 
   const [workshops, setWorkshops] = useState<WorkshopItem[]>(() => {
-    const saved = safeGetStorage(STORAGE_KEYS.WORKSHOPS);
+    const saved =
+      safeGetStorage(STORAGE_KEYS.WORKSHOPS) ||
+      safeGetStorage('juet_workshops_data') ||
+      safeGetStorage('juet_workshops_data_v1');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -479,7 +493,10 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
   });
 
   const [atelierData, setAtelierData] = useState<typeof ATELIER_DATA>(() => {
-    const saved = safeGetStorage(STORAGE_KEYS.ATELIER);
+    const saved =
+      safeGetStorage(STORAGE_KEYS.ATELIER) ||
+      safeGetStorage('juet_atelier_data') ||
+      safeGetStorage('juet_atelier_data_v1');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -494,11 +511,11 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
   });
 
   const [logoUrl, setLogoUrl] = useState<string | null>(() => {
-    return safeGetStorage(STORAGE_KEYS.LOGO);
+    return safeGetStorage(STORAGE_KEYS.LOGO) || safeGetStorage('juet_logo_url');
   });
 
   const [logoWhiteUrl, setLogoWhiteUrl] = useState<string | null>(() => {
-    return safeGetStorage(STORAGE_KEYS.LOGO_WHITE);
+    return safeGetStorage(STORAGE_KEYS.LOGO_WHITE) || safeGetStorage('juet_logo_white_url');
   });
 
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
@@ -651,7 +668,13 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 const data = docSnap.data() as Partial<FlowerItem>;
                 rawFlowers.push({ ...data, id: docSnap.id });
               });
-              rawFlowers.sort((a, b) => (a.indexNumber || '').localeCompare(b.indexNumber || ''));
+              rawFlowers.sort((a, b) => {
+                const aCustom = String(a.id || '').startsWith('flower-') ? 0 : 1;
+                const bCustom = String(b.id || '').startsWith('flower-') ? 0 : 1;
+                const idxCompare = (a.indexNumber || '').localeCompare(b.indexNumber || '');
+                if (idxCompare !== 0) return idxCompare;
+                return aCustom - bCustom;
+              });
               setFlowers(rawFlowers.map((item, idx) => normalizeFlower(item, idx)));
             } else if (!isInitialCloudSyncDone.current) {
               seedInitialDataToCloud();
@@ -1021,27 +1044,39 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Flower CRUD with Firestore Persistence
   const addFlower = async (flowerData: Omit<FlowerItem, 'id' | 'indexNumber'>) => {
-    const nextIdx = String(flowers.length + 1).padStart(2, '0');
     const newId = `flower-${Date.now()}`;
     const newFlower: FlowerItem = normalizeFlower(
       {
         ...flowerData,
         id: newId,
-        indexNumber: nextIdx
+        indexNumber: '01',
+        pinnedToLanding: flowerData.pinnedToLanding !== false
       },
-      flowers.length
+      0
     );
 
-    setFlowers((prev) => [newFlower, ...prev]);
+    const updatedList = [
+      newFlower,
+      ...flowers.map((f, idx) => ({
+        ...f,
+        indexNumber: String(idx + 2).padStart(2, '0')
+      }))
+    ];
+    setFlowers(updatedList);
 
     try {
-      await setDoc(
-        doc(db, 'flowers', newId),
-        stripUndefined({
-          ...newFlower,
-          updatedAt: new Date().toISOString()
-        })
-      );
+      const batch = writeBatch(db);
+      updatedList.forEach((f) => {
+        batch.set(
+          doc(db, 'flowers', f.id),
+          stripUndefined({
+            ...f,
+            updatedAt: new Date().toISOString()
+          }),
+          { merge: true }
+        );
+      });
+      await batch.commit();
     } catch (error) {
       try {
         handleFirestoreError(error, OperationType.CREATE, `flowers/${newId}`);
@@ -1621,23 +1656,165 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const resetAllData = async () => {
-    const defaultFlowers = FLOWERS.map((item, idx) => normalizeFlower(item, idx));
-    const defaultWorkshops = WORKSHOPS.map((item, idx) => normalizeWorkshop(item, idx));
-    setFlowers(defaultFlowers);
-    setWorkshops(defaultWorkshops);
-    setAtelierData(ATELIER_DATA);
-    setLogoUrl(null);
-    setLogoWhiteUrl(null);
-    safeRemoveStorage(STORAGE_KEYS.FLOWERS);
-    safeRemoveStorage(STORAGE_KEYS.WORKSHOPS);
-    safeRemoveStorage(STORAGE_KEYS.ATELIER);
-    safeRemoveStorage(STORAGE_KEYS.LOGO);
-    safeRemoveStorage(STORAGE_KEYS.LOGO_WHITE);
+    // Preserve custom user-added flowers and workshops while restoring missing default specimens
+    const customFlowers = flowers.filter(
+      (f) => f.id.startsWith('flower-') && !FLOWERS.some((def) => def.id === f.id)
+    );
+    const defaultFlowers = FLOWERS.map((item, idx) =>
+      normalizeFlower(item, customFlowers.length + idx)
+    );
+    const mergedFlowers = [...customFlowers, ...defaultFlowers].map((item, idx) => ({
+      ...item,
+      indexNumber: String(idx + 1).padStart(2, '0'),
+      pinnedToLanding: true
+    }));
+
+    const customWorkshops = workshops.filter(
+      (w) => w.id.startsWith('workshop-') && !WORKSHOPS.some((def) => def.id === w.id)
+    );
+    const defaultWorkshops = WORKSHOPS.map((item, idx) =>
+      normalizeWorkshop(item, customWorkshops.length + idx)
+    );
+    const mergedWorkshops = [...customWorkshops, ...defaultWorkshops].map((item, idx) => ({
+      ...item,
+      indexNumber: String(idx + 1).padStart(2, '0')
+    }));
+
+    setFlowers(mergedFlowers);
+    setWorkshops(mergedWorkshops);
 
     try {
-      await syncAllToCloud();
+      const batch = writeBatch(db);
+      mergedFlowers.forEach((f) => {
+        batch.set(
+          doc(db, 'flowers', f.id),
+          stripUndefined({ ...f, updatedAt: new Date().toISOString() }),
+          { merge: true }
+        );
+      });
+      mergedWorkshops.forEach((w) => {
+        batch.set(
+          doc(db, 'workshops', w.id),
+          stripUndefined({ ...w, updatedAt: new Date().toISOString() }),
+          { merge: true }
+        );
+      });
+      await batch.commit();
     } catch (e) {
-      console.warn('Error resetting cloud data:', e);
+      console.warn('Error restoring catalog defaults:', e);
+    }
+  };
+
+  // Export Full Atelier Snapshot as JSON file for 100% safe local backup
+  const exportBackupJson = () => {
+    try {
+      const backupPayload = {
+        version: '2.0',
+        exportedAt: new Date().toISOString(),
+        flowers,
+        workshops,
+        atelierData,
+        logoUrl,
+        logoWhiteUrl,
+        orders,
+        workshopBookings,
+        supplies
+      };
+      const blob = new Blob([JSON.stringify(backupPayload, null, 2)], {
+        type: 'application/json;charset=utf-8'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const dateStr = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `juet-saigon-backup-${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Export backup error:', e);
+    }
+  };
+
+  // Import & Restore Full Atelier Snapshot from JSON file and sync to Firebase
+  const importBackupJson = async (
+    jsonText: string
+  ): Promise<{ success: boolean; message: string }> => {
+    try {
+      const parsed = JSON.parse(jsonText);
+      if (!parsed || typeof parsed !== 'object') {
+        return { success: false, message: 'File sao lưu không hợp lệ.' };
+      }
+
+      const batch = writeBatch(db);
+      const isoNow = new Date().toISOString();
+
+      if (Array.isArray(parsed.flowers) && parsed.flowers.length > 0) {
+        const normalized = parsed.flowers.map((f: Partial<FlowerItem>, i: number) =>
+          normalizeFlower({ ...f, pinnedToLanding: f.pinnedToLanding !== false }, i)
+        );
+        setFlowers(normalized);
+        normalized.forEach((f: FlowerItem) => {
+          batch.set(doc(db, 'flowers', f.id), stripUndefined({ ...f, updatedAt: isoNow }), {
+            merge: true
+          });
+        });
+      }
+
+      if (Array.isArray(parsed.workshops) && parsed.workshops.length > 0) {
+        const normalizedWs = parsed.workshops.map((w: Partial<WorkshopItem>, i: number) =>
+          normalizeWorkshop(w, i)
+        );
+        setWorkshops(normalizedWs);
+        normalizedWs.forEach((w: WorkshopItem) => {
+          batch.set(doc(db, 'workshops', w.id), stripUndefined({ ...w, updatedAt: isoNow }), {
+            merge: true
+          });
+        });
+      }
+
+      if (parsed.atelierData && typeof parsed.atelierData === 'object') {
+        const nextAtelier = { ...ATELIER_DATA, ...parsed.atelierData };
+        setAtelierData(nextAtelier);
+        const nextLogo = parsed.logoUrl !== undefined ? parsed.logoUrl : logoUrl;
+        const nextLogoWhite =
+          parsed.logoWhiteUrl !== undefined ? parsed.logoWhiteUrl : logoWhiteUrl;
+        if (parsed.logoUrl !== undefined) setLogoUrl(parsed.logoUrl);
+        if (parsed.logoWhiteUrl !== undefined) setLogoWhiteUrl(parsed.logoWhiteUrl);
+        batch.set(
+          doc(db, 'settings', 'atelier'),
+          stripUndefined({
+            ...nextAtelier,
+            logoUrl: nextLogo,
+            logoWhiteUrl: nextLogoWhite,
+            updatedAt: isoNow
+          }),
+          { merge: true }
+        );
+      }
+
+      if (Array.isArray(parsed.supplies) && parsed.supplies.length > 0) {
+        setSupplies(parsed.supplies);
+        parsed.supplies.forEach((s: SupplyItem) => {
+          if (s && s.id) {
+            batch.set(doc(db, 'supplies', s.id), stripUndefined({ ...s, updatedAt: isoNow }), {
+              merge: true
+            });
+          }
+        });
+      }
+
+      await batch.commit();
+      return {
+        success: true,
+        message: 'Đã khôi phục toàn bộ dữ liệu từ bản sao lưu và đồng bộ lên Firebase thành công!'
+      };
+    } catch (e: any) {
+      return {
+        success: false,
+        message: e?.message || 'Không thể đọc file JSON sao lưu.'
+      };
     }
   };
 
@@ -1686,7 +1863,9 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
         updateLogoUrl,
         updateLogoWhiteUrl,
         syncAllToCloud,
-        resetAllData
+        resetAllData,
+        exportBackupJson,
+        importBackupJson
       }}
     >
       {children}
