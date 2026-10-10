@@ -76,7 +76,6 @@ interface AdminPortalModalProps {
   lang: 'vi' | 'en';
   theme?: 'light' | 'dark';
   onToggleTheme?: () => void;
-  initialTab?: 'flowers' | 'workshops' | 'orders' | 'inventory_trends' | 'branding' | 'security';
 }
 
 export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
@@ -84,8 +83,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   onClose,
   lang,
   theme = 'light',
-  onToggleTheme,
-  initialTab
+  onToggleTheme
 }) => {
   const isDark = theme === 'dark';
   const {
@@ -157,11 +155,8 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setBrandingForm(atelierData);
-      if (initialTab) {
-        setActiveTab(initialTab);
-      }
     }
-  }, [isOpen, atelierData, initialTab]);
+  }, [isOpen, atelierData]);
   
   // Compression status feedback
   const [compressing, setCompressing] = useState(false);
@@ -988,97 +983,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
             </div>
           </div>
 
-          {/* Desktop Tab Navigation (lg and up) */}
-          <div
-            className={`hidden lg:flex items-center gap-1 p-1 rounded-xl border text-xs font-medium shrink-0 ${
-              isDark
-                ? 'bg-black/40 border-white/10'
-                : 'bg-[#dcd8cf] border-[#141414]/15'
-            }`}
-          >
-            <button
-              onClick={() => {
-                setActiveTab('flowers');
-                setEditingFlower(null);
-                setIsAddingFlower(false);
-              }}
-              className={`px-4 py-1.5 rounded-lg transition-all ${
-                activeTab === 'flowers'
-                  ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
-                  : isDark
-                    ? 'text-white/70 hover:text-white'
-                    : 'text-[#141414]/75 hover:text-[#141414] hover:bg-white/60'
-              }`}
-            >
-              Tác Phẩm Hoa ({flowers.length})
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('workshops');
-                setEditingWorkshop(null);
-              }}
-              className={`px-3.5 py-1.5 rounded-lg transition-all ${
-                activeTab === 'workshops'
-                  ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
-                  : isDark
-                    ? 'text-white/70 hover:text-white'
-                    : 'text-[#141414]/75 hover:text-[#141414] hover:bg-white/60'
-              }`}
-            >
-              Workshop ({workshops.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('orders')}
-              className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                activeTab === 'orders'
-                  ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
-                  : isDark
-                    ? 'text-white/70 hover:text-white'
-                    : 'text-[#141414]/75 hover:text-[#141414] hover:bg-white/60'
-              }`}
-            >
-              <span>Đơn Hàng & Lịch Hẹn ({orders.length + workshopBookings.length})</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('inventory_trends')}
-              className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                activeTab === 'inventory_trends'
-                  ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
-                  : isDark
-                    ? 'text-white/70 hover:text-white'
-                    : 'text-[#141414]/75 hover:text-[#141414] hover:bg-white/60'
-              }`}
-            >
-              <span>Kho & Dự Báo Thị Trường ({supplies.length})</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('branding')}
-              className={`px-4 py-1.5 rounded-lg transition-all ${
-                activeTab === 'branding'
-                  ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
-                  : isDark
-                    ? 'text-white/70 hover:text-white'
-                    : 'text-[#141414]/75 hover:text-[#141414] hover:bg-white/60'
-              }`}
-            >
-              Logo, Thông Tin & Social
-            </button>
-            <button
-              onClick={() => setActiveTab('security')}
-              className={`px-4 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                activeTab === 'security'
-                  ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
-                  : isDark
-                    ? 'text-white/70 hover:text-white'
-                    : 'text-[#141414]/75 hover:text-[#141414] hover:bg-white/60'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Bảo Mật & Mật Khẩu</span>
-            </button>
-          </div>
-
-          {/* Actions (Includes Light/Dark Mode Toggle, Cloud Sync, Reset, Logout, Close) */}
+          {/* Actions (Includes Light/Dark Mode Toggle, Cloud Sync, Backup, Logout, Close) */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Light / Dark Mode Switcher inside Admin */}
             {onToggleTheme && (
@@ -1155,6 +1060,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
             </button>
 
             <button
+              type="button"
               onClick={() => {
                 logout();
                 onClose();
@@ -1171,6 +1077,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
             </button>
 
             <button
+              type="button"
               onClick={onClose}
               className={`p-2 rounded-lg transition-colors ${
                 isDark
@@ -1184,9 +1091,9 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           </div>
         </div>
 
-        {/* Mobile & Tablet Tab Navigation Bar (Visible on screens < lg so mobile & tablet users see all 5 tabs cleanly) */}
+        {/* Full-Width Responsive 6-Tab Navigation Bar — 100% Visible & Clickable on All Screens (Never Clipped) */}
         <div
-          className={`lg:hidden flex items-center gap-1.5 p-1.5 rounded-xl border overflow-x-auto no-scrollbar whitespace-nowrap text-xs font-medium ${
+          className={`w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 p-1.5 rounded-xl border text-xs font-medium relative z-20 ${
             isDark
               ? 'bg-black/50 border-white/15'
               : 'bg-[#dcd8cf] border-[#141414]/15'
@@ -1199,12 +1106,12 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
               setEditingFlower(null);
               setIsAddingFlower(false);
             }}
-            className={`px-3 py-2 rounded-lg transition-all text-center shrink-0 ${
+            className={`px-3 py-2 rounded-lg transition-all text-center cursor-pointer truncate ${
               activeTab === 'flowers'
                 ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
                 : isDark
-                  ? 'text-white/80 hover:text-white bg-white/5'
-                  : 'text-[#141414]/80 hover:text-[#141414] bg-white/60'
+                  ? 'text-white/80 hover:text-white bg-white/5 hover:bg-white/10'
+                  : 'text-[#141414]/85 hover:text-[#141414] bg-white/65 hover:bg-white'
             }`}
           >
             Tác Phẩm Hoa ({flowers.length})
@@ -1216,12 +1123,12 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
               setEditingWorkshop(null);
               setIsAddingWorkshop(false);
             }}
-            className={`px-3 py-2 rounded-lg transition-all text-center shrink-0 ${
+            className={`px-3 py-2 rounded-lg transition-all text-center cursor-pointer truncate ${
               activeTab === 'workshops'
                 ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
                 : isDark
-                  ? 'text-white/80 hover:text-white bg-white/5'
-                  : 'text-[#141414]/80 hover:text-[#141414] bg-white/60'
+                  ? 'text-white/80 hover:text-white bg-white/5 hover:bg-white/10'
+                  : 'text-[#141414]/85 hover:text-[#141414] bg-white/65 hover:bg-white'
             }`}
           >
             Workshop ({workshops.length})
@@ -1229,12 +1136,12 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('orders')}
-            className={`px-3 py-2 rounded-lg transition-all text-center shrink-0 ${
+            className={`px-3 py-2 rounded-lg transition-all text-center cursor-pointer truncate ${
               activeTab === 'orders'
                 ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
                 : isDark
-                  ? 'text-white/80 hover:text-white bg-white/5'
-                  : 'text-[#141414]/80 hover:text-[#141414] bg-white/60'
+                  ? 'text-white/80 hover:text-white bg-white/5 hover:bg-white/10'
+                  : 'text-[#141414]/85 hover:text-[#141414] bg-white/65 hover:bg-white'
             }`}
           >
             Đơn Hàng ({orders.length + workshopBookings.length})
@@ -1242,12 +1149,12 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('inventory_trends')}
-            className={`px-3 py-2 rounded-lg transition-all text-center shrink-0 ${
+            className={`px-3 py-2 rounded-lg transition-all text-center cursor-pointer truncate ${
               activeTab === 'inventory_trends'
                 ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
                 : isDark
-                  ? 'text-white/80 hover:text-white bg-white/5'
-                  : 'text-[#141414]/80 hover:text-[#141414] bg-white/60'
+                  ? 'text-white/80 hover:text-white bg-white/5 hover:bg-white/10'
+                  : 'text-[#141414]/85 hover:text-[#141414] bg-white/65 hover:bg-white'
             }`}
           >
             Kho & Dự Báo ({supplies.length})
@@ -1255,12 +1162,12 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('branding')}
-            className={`px-3 py-2 rounded-lg transition-all text-center shrink-0 ${
+            className={`px-3 py-2 rounded-lg transition-all text-center cursor-pointer truncate ${
               activeTab === 'branding'
                 ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
                 : isDark
-                  ? 'text-white/80 hover:text-white bg-white/5'
-                  : 'text-[#141414]/80 hover:text-[#141414] bg-white/60'
+                  ? 'text-white/80 hover:text-white bg-white/5 hover:bg-white/10'
+                  : 'text-[#141414]/85 hover:text-[#141414] bg-white/65 hover:bg-white'
             }`}
           >
             Logo & Thương Hiệu
@@ -1268,16 +1175,16 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('security')}
-            className={`px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-1 shrink-0 ${
+            className={`px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer truncate ${
               activeTab === 'security'
                 ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
                 : isDark
-                  ? 'text-white/80 hover:text-white bg-white/5'
-                  : 'text-[#141414]/80 hover:text-[#141414] bg-white/60'
+                  ? 'text-white/80 hover:text-white bg-white/5 hover:bg-white/10'
+                  : 'text-[#141414]/85 hover:text-[#141414] bg-white/65 hover:bg-white'
             }`}
           >
             <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-            <span>Bảo Mật & Mật Khẩu</span>
+            <span className="truncate">Bảo Mật & Mật Khẩu</span>
           </button>
         </div>
       </header>

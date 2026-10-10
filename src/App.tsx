@@ -68,7 +68,6 @@ function AtelierApp() {
   const [isMoodboardOpen, setIsMoodboardOpen] = useState(false);
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [isAdminPortalOpen, setIsAdminPortalOpen] = useState(false);
-  const [adminInitialTab, setAdminInitialTab] = useState<'flowers' | 'workshops' | 'orders' | 'inventory_trends' | 'branding' | 'security'>('flowers');
   
   const [inspectedFlower, setInspectedFlower] = useState<FlowerItem | null>(null);
   const [orderFlower, setOrderFlower] = useState<FlowerItem | null>(null);
@@ -132,8 +131,7 @@ function AtelierApp() {
     setIsOrderOpen(true);
   };
 
-  const handleOpenAdminTrigger = (tab: 'flowers' | 'workshops' | 'orders' | 'inventory_trends' | 'branding' | 'security' = 'flowers') => {
-    setAdminInitialTab(tab);
+  const handleOpenAdminTrigger = () => {
     if (isAdmin) {
       setIsAdminPortalOpen(true);
     } else {
@@ -341,7 +339,6 @@ function AtelierApp() {
         lang={lang}
         theme={theme}
         onToggleTheme={handleToggleTheme}
-        initialTab={adminInitialTab}
       />
     </div>
   );
