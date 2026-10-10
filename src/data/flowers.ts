@@ -1,3 +1,27 @@
+const LOCAL_ASSET_MODULES = import.meta.glob('/src/assets/images/*.{jpg,jpeg,png,webp}', {
+  eager: true,
+  import: 'default'
+}) as Record<string, string>;
+
+export function resolveAssetUrl(url: string | undefined | null): string {
+  if (!url) return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  if (LOCAL_ASSET_MODULES[trimmed]) {
+    return LOCAL_ASSET_MODULES[trimmed];
+  }
+  if (trimmed.startsWith('/src/assets/images/') || trimmed.startsWith('src/assets/images/') || trimmed.startsWith('/images/')) {
+    const fileName = trimmed.split('/').pop();
+    if (fileName) {
+      const key = `/src/assets/images/${fileName}`;
+      if (LOCAL_ASSET_MODULES[key]) {
+        return LOCAL_ASSET_MODULES[key];
+      }
+    }
+  }
+  return trimmed;
+}
+
 export interface ScentProfile {
   top: string;
   heart: string;
@@ -54,6 +78,18 @@ export interface FlowerItem {
   prepLeadTimeHours?: number;
 }
 
+export interface HeroCoverSlide {
+  id: string;
+  badgeVi: string;
+  badgeEn: string;
+  titleVi: string;
+  titleEn: string;
+  subtitleVi: string;
+  subtitleEn: string;
+  image: string;
+  linkedFlowerId?: string;
+}
+
 export const ATELIER_DATA = {
   name: "JU et Saigon",
   tagline: "Flower your heart, Flower your soul",
@@ -76,9 +112,44 @@ export const ATELIER_DATA = {
   hoursEn: "Monday – Sunday: 08:30 AM – 08:30 PM",
   consultationNoticeVi: "Vui lòng đặt lịch hẹn trước 24h đối với hoa cưới Haute Couture và thiết kế không gian sự kiện riêng.",
   consultationNoticeEn: "Please book 24 hours in advance for Haute Couture bridal bouquets and bespoke spatial installations.",
+  heroSlides: [
+    {
+      id: "cover-bridal-vows",
+      badgeVi: "TÂM ĐIỂM MÙA CƯỚI · BRIDAL HAUTE COUTURE",
+      badgeEn: "BRIDAL SEASON HIGHLIGHT · HAUTE COUTURE",
+      titleVi: "THE BRIDAL VOWS — LỜI THỀ CỦA CÔ DÂU",
+      titleEn: "THE BRIDAL VOWS — BESPOKE BRIDAL BOUQUET",
+      subtitleVi: "Lưu giữ khoảnh khắc tình yêu lãng mạn nhất trong ngày trọng đại với đóa mẫu đơn trắng tinh khôi đan xen chút lan ngọt ngào.",
+      subtitleEn: "Preserve the most romantic moments of love on your special day with pristine white peonies intertwined with sweet orchids.",
+      image: resolveAssetUrl("/src/assets/images/juet_bridal_vows_1.jpg"),
+      linkedFlowerId: "flower-1791388842716"
+    },
+    {
+      id: "cover-october-peony",
+      badgeVi: "BỘ SƯU TẬP THÁNG 10 · TÔN VINH PHÁI ĐẸP 20/10",
+      badgeEn: "OCTOBER COLLECTION · VIETNAMESE WOMEN'S DAY",
+      titleVi: "PEONIA BLUSH ROYALE — MẪU ĐƠN HỒNG PHẤN",
+      titleEn: "PEONIA BLUSH ROYALE — IMPERIAL BLUSH PEONY",
+      subtitleVi: "Tuyệt tác mẫu đơn Coral Charm & Sarah Bernhardt nhập khẩu Hà Lan — món quà kiêu sa và nồng nàn dành tặng người phụ nữ trân quý.",
+      subtitleEn: "Dutch-imported Coral Charm and Sarah Bernhardt peonies crafted into a sculptural tribute of grace and devotion.",
+      image: resolveAssetUrl("/src/assets/images/juet_blush_peony_1790840758164.jpg"),
+      linkedFlowerId: "peonia-blush-royale"
+    },
+    {
+      id: "cover-seasonal-lotus",
+      badgeVi: "ẤN PHẨM THEO MÙA · ĐƯƠNG ĐẠI Á ĐÔNG",
+      badgeEn: "SEASONAL EDITION · ORIENTAL SCULPTURE",
+      titleVi: "LOTUS SACRA SAIGON — BẠCH SEN ĐƯƠNG ĐẠI",
+      titleEn: "LOTUS SACRA SAIGON — SACRED WHITE LOTUS",
+      subtitleVi: "Sự giao thoa thanh khiết giữa hoa sen trắng truyền thống và nghệ thuật gấp cánh thủ công đương đại tại Atelier Quận 1.",
+      subtitleEn: "A serene dialogue between traditional white lotus stems and contemporary hand-folded petal architecture.",
+      image: resolveAssetUrl("/src/assets/images/juet_sacred_lotus_1790840770921.jpg"),
+      linkedFlowerId: "lotus-sacra-saigon"
+    }
+  ] as HeroCoverSlide[]
 };
 
-export const FLOWERS: FlowerItem[] = [
+const RAW_FLOWERS: FlowerItem[] = [
   {
     id: "flower-1791388842716",
     indexNumber: "01",
@@ -937,6 +1008,16 @@ export const FLOWERS: FlowerItem[] = [
     audioFrequency: 432
   }
 ];
+
+export const FLOWERS: FlowerItem[] = RAW_FLOWERS.map((f, idx) => ({
+  ...f,
+  indexNumber: String(idx + 1).padStart(2, '0'),
+  image: resolveAssetUrl(f.image),
+  galleryImages: f.galleryImages.map((g) => ({
+    ...g,
+    url: resolveAssetUrl(g.url)
+  }))
+}));
 
 export const BOTANICAL_CATEGORIES = [
   { id: 'all', labelEn: 'All Creations', labelVi: 'Tất Cả Tác Phẩm' },

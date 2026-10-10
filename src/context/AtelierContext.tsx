@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { FlowerItem, FLOWERS, ATELIER_DATA } from '../data/flowers';
+import { FlowerItem, FLOWERS, ATELIER_DATA, resolveAssetUrl } from '../data/flowers';
 import { WorkshopItem, WORKSHOPS } from '../data/workshop';
 import { SupplyItem, DEFAULT_SUPPLIES } from '../data/inventoryAndTrends';
 import { db, handleFirestoreError, OperationType, testFirestoreConnection } from '../lib/firebase';
@@ -368,9 +368,9 @@ function normalizeFlower(item: Partial<FlowerItem>, idx: number): FlowerItem {
     seasonality: normalizeUnicodeNFC(item.seasonality || fallback.seasonality),
     priceVnd: typeof item.priceVnd === 'number' && !Number.isNaN(item.priceVnd) ? item.priceVnd : fallback.priceVnd,
     priceUsd: typeof item.priceUsd === 'number' && !Number.isNaN(item.priceUsd) ? item.priceUsd : fallback.priceUsd,
-    image: primaryImage,
+    image: resolveAssetUrl(primaryImage),
     galleryImages: rawGallery.map((g) => ({
-      url: g.url || primaryImage,
+      url: resolveAssetUrl(g.url || primaryImage),
       captionVi: formatProseNFC(g.captionVi || 'Góc nhìn nghệ thuật'),
       captionEn: formatProseNFC(g.captionEn || 'Artistic perspective')
     })),
@@ -446,9 +446,9 @@ function normalizeWorkshop(item: Partial<WorkshopItem>, idx: number): WorkshopIt
         : fallback.pricePerPaxUsd,
     zaloCommunityUrl: item.zaloCommunityUrl || fallback.zaloCommunityUrl,
     hotline: item.hotline || fallback.hotline,
-    image: primaryImage,
+    image: resolveAssetUrl(primaryImage),
     galleryImages: rawGallery.map((g) => ({
-      url: g.url || primaryImage,
+      url: resolveAssetUrl(g.url || primaryImage),
       captionVi: formatProseNFC(g.captionVi || 'Không gian Workshop'),
       captionEn: formatProseNFC(g.captionEn || 'Workshop moment')
     }))
@@ -721,6 +721,12 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
             if (docSnap.exists()) {
               const data = docSnap.data();
               const { logoUrl: cloudLogo, logoWhiteUrl: cloudLogoWhite, ...restSettings } = data;
+              if (Array.isArray(restSettings.heroSlides)) {
+                restSettings.heroSlides = restSettings.heroSlides.map((s: Record<string, unknown>) => ({
+                  ...s,
+                  image: resolveAssetUrl(String(s.image || ''))
+                }));
+              }
               setAtelierData((prev) => ({ ...ATELIER_DATA, ...prev, ...restSettings }));
               if (cloudLogo !== undefined) {
                 setLogoUrl(cloudLogo);

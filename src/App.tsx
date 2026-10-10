@@ -68,6 +68,7 @@ function AtelierApp() {
   const [isMoodboardOpen, setIsMoodboardOpen] = useState(false);
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [isAdminPortalOpen, setIsAdminPortalOpen] = useState(false);
+  const [adminInitialTab, setAdminInitialTab] = useState<'flowers' | 'workshops' | 'orders' | 'inventory_trends' | 'branding' | 'security'>('flowers');
   
   const [inspectedFlower, setInspectedFlower] = useState<FlowerItem | null>(null);
   const [orderFlower, setOrderFlower] = useState<FlowerItem | null>(null);
@@ -131,7 +132,8 @@ function AtelierApp() {
     setIsOrderOpen(true);
   };
 
-  const handleOpenAdminTrigger = () => {
+  const handleOpenAdminTrigger = (tab: 'flowers' | 'workshops' | 'orders' | 'inventory_trends' | 'branding' | 'security' = 'flowers') => {
+    setAdminInitialTab(tab);
     if (isAdmin) {
       setIsAdminPortalOpen(true);
     } else {
@@ -166,12 +168,14 @@ function AtelierApp() {
       {/* Main Content Flow */}
       <main className="flex-1 w-full pb-16">
         
-        {/* Monumental Hero Section */}
+        {/* Monumental Hero Section with Seasonal/Monthly Cover Showcase */}
         <HeroSection
           lang={lang}
           theme={theme}
           onOpenIndex={() => setIsIndexOpen(true)}
           onOpenCredits={() => setIsCreditsOpen(true)}
+          onSelectFlower={handleSelectFlower}
+          onOrderFlower={handleOrderFlower}
         />
 
         {/* 3-Column Botanical Matrix Gallery */}
@@ -337,6 +341,7 @@ function AtelierApp() {
         lang={lang}
         theme={theme}
         onToggleTheme={handleToggleTheme}
+        initialTab={adminInitialTab}
       />
     </div>
   );

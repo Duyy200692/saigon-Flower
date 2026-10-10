@@ -51,7 +51,7 @@ import {
   OrderStatus,
   OrderWorkflowChecklist
 } from '../context/AtelierContext';
-import { FlowerItem } from '../data/flowers';
+import { FlowerItem, ATELIER_DATA, HeroCoverSlide } from '../data/flowers';
 import { WorkshopItem } from '../data/workshop';
 import {
   compressAndConvertToWebP,
@@ -76,6 +76,7 @@ interface AdminPortalModalProps {
   lang: 'vi' | 'en';
   theme?: 'light' | 'dark';
   onToggleTheme?: () => void;
+  initialTab?: 'flowers' | 'workshops' | 'orders' | 'inventory_trends' | 'branding' | 'security';
 }
 
 export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
@@ -83,7 +84,8 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   onClose,
   lang,
   theme = 'light',
-  onToggleTheme
+  onToggleTheme,
+  initialTab
 }) => {
   const isDark = theme === 'dark';
   const {
@@ -155,8 +157,11 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setBrandingForm(atelierData);
+      if (initialTab) {
+        setActiveTab(initialTab);
+      }
     }
-  }, [isOpen, atelierData]);
+  }, [isOpen, atelierData, initialTab]);
   
   // Compression status feedback
   const [compressing, setCompressing] = useState(false);
@@ -899,10 +904,34 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     }
   };
 
-  // Save Branding
-  const handleSaveBranding = (e: React.FormEvent) => {
+  // Save Branding (Auto-converts any temporary Facebook CDN URLs in heroSlides to permanent WebP)
+  const handleSaveBranding = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateAtelierData(brandingForm);
+    setCompressing(true);
+    try {
+      const currentSlides: HeroCoverSlide[] = Array.isArray(brandingForm.heroSlides)
+        ? [...brandingForm.heroSlides]
+        : [...ATELIER_DATA.heroSlides];
+
+      for (let i = 0; i < currentSlides.length; i++) {
+        const sUrl = currentSlides[i]?.image?.trim() || '';
+        if (sUrl && isFacebookCdnUrl(sUrl)) {
+          try {
+            const conv = await convertUrlToWebP(sUrl, { maxWidth: 960, maxHeight: 960, quality: 0.8 });
+            currentSlides[i] = { ...currentSlides[i], image: conv.webpDataUrl };
+          } catch {
+            // Keep URL intact
+          }
+        }
+      }
+
+      await updateAtelierData({
+        ...brandingForm,
+        heroSlides: currentSlides
+      });
+    } finally {
+      setCompressing(false);
+    }
   };
 
   const filteredFlowers = flowers.filter(
@@ -2858,6 +2887,176 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
               {/* Form Body */}
               <form onSubmit={handleSaveBranding} className="space-y-8 text-xs font-sans">
+
+                {/* 1B. HERO COVER SHOWCASE — KHUNG HÌNH POSTER COVER THUẦN TÚY (KHÔNG CHỮ ĐÈ) */}
+                <div className="p-5 bg-gradient-to-br from-[#23211d] to-[#171815] rounded-xl border border-amber-400/35 shadow-lg space-y-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
+                    <div>
+                      <label className="font-mono uppercase text-[12px] font-bold text-amber-300 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-amber-300" />
+                        <span>QUẢN LÝ HÌNH POSTER COVER ĐẦU TRANG — KHUNG NGANG CỐ ĐỊNH 16:9 CHUẨN ĐA NỀN TẢNG</span>
+                      </label>
+                      <p className="text-[11px] text-white/65 mt-0.5">
+                        Khung Cover cố định tỉ lệ <strong>Ngang 16:9 (Chuẩn 1920×1080px / 1600×900px)</strong> đồng nhất trên mọi thiết bị Điện thoại, Tablet và Máy tính.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentSlides = Array.isArray(brandingForm.heroSlides)
+                          ? [...brandingForm.heroSlides]
+                          : [...ATELIER_DATA.heroSlides];
+                        const firstFlower = flowers[0];
+                        currentSlides.push({
+                          id: `cover-${Date.now()}`,
+                          badgeVi: '',
+                          badgeEn: '',
+                          titleVi: `Poster #${currentSlides.length + 1}`,
+                          titleEn: `Poster #${currentSlides.length + 1}`,
+                          subtitleVi: '',
+                          subtitleEn: '',
+                          image: firstFlower ? firstFlower.image : '/src/assets/images/juet_bridal_vows_1.jpg',
+                          linkedFlowerId: ''
+                        });
+                        setBrandingForm((prev) => ({ ...prev, heroSlides: currentSlides }));
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-[#141414] font-mono text-[11px] font-bold uppercase flex items-center gap-1.5 shadow"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Thêm Hình Poster Cover (16:9)</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(Array.isArray(brandingForm.heroSlides) && brandingForm.heroSlides.length > 0
+                      ? brandingForm.heroSlides
+                      : ATELIER_DATA.heroSlides
+                    ).map((slide, sIdx, allSlides) => {
+                      const updateSlideField = (updates: Partial<HeroCoverSlide>) => {
+                        const nextSlides = [...allSlides];
+                        nextSlides[sIdx] = { ...nextSlides[sIdx], ...updates };
+                        setBrandingForm((prev) => ({ ...prev, heroSlides: nextSlides }));
+                      };
+
+                      return (
+                        <div
+                          key={slide.id || sIdx}
+                          className="p-4 rounded-xl bg-black/45 border border-white/15 space-y-3 flex flex-col justify-between"
+                        >
+                          <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-xs font-bold text-amber-300 uppercase">
+                                POSTER COVER #0{sIdx + 1}
+                              </span>
+                              <span className="px-2 py-0.5 rounded bg-white/10 text-white/75 font-mono text-[10px]">
+                                Khung 16:9 Cố Định
+                              </span>
+                            </div>
+                            {allSlides.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const filtered = allSlides.filter((_, i) => i !== sIdx);
+                                  setBrandingForm((prev) => ({ ...prev, heroSlides: filtered }));
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-red-950/60 hover:bg-red-800 text-red-200 border border-red-500/30 font-mono text-[10px]"
+                              >
+                                Xóa Poster
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Pure Poster Image Preview — Strictly Fixed 16:9 Horizontal Ratio */}
+                          <div className="w-full aspect-[16/9] rounded-xl overflow-hidden bg-black border border-white/15 relative group">
+                            <img
+                              src={slide.image}
+                              alt={`Poster Cover #${sIdx + 1}`}
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full object-cover object-center block"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openImageStudio(
+                                  slide.image,
+                                  `Căn Chỉnh Khung Ngang 16:9: Poster Cover #0${sIdx + 1}`,
+                                  (res) => updateSlideField({ image: res.webpDataUrl }),
+                                  '16:9'
+                                )
+                              }
+                              className="absolute bottom-2 right-2 px-2.5 py-1 rounded-md bg-amber-400 hover:bg-amber-300 text-[#141414] font-mono text-[10px] font-bold uppercase flex items-center gap-1 shadow"
+                            >
+                              <Crop className="w-3 h-3" />
+                              <span>Căn Khung 16:9</span>
+                            </button>
+                          </div>
+
+                          {/* Upload File or Paste URL */}
+                          <div className="space-y-2">
+                            <label className="block w-full py-2 px-3 rounded-lg bg-amber-400 hover:bg-amber-300 text-[#141414] font-mono text-[11px] font-bold uppercase text-center cursor-pointer transition-colors shadow">
+                              + Tải Hình Poster Từ Máy Tính (Tự căn 16:9)
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  setCompressing(true);
+                                  try {
+                                    const res = await compressAndConvertToWebP(file, {
+                                      maxWidth: 1200,
+                                      maxHeight: 900,
+                                      quality: 0.8
+                                    });
+                                    updateSlideField({ image: res.webpDataUrl });
+                                    if (autoOpenStudioOnUpload) {
+                                      openImageStudio(
+                                        res.webpDataUrl,
+                                        `Căn Chỉnh Khung Ngang 16:9: Poster Cover #0${sIdx + 1}`,
+                                        (cropped) => updateSlideField({ image: cropped.webpDataUrl }),
+                                        '16:9'
+                                      );
+                                    }
+                                  } finally {
+                                    setCompressing(false);
+                                  }
+                                }}
+                              />
+                            </label>
+
+                            <input
+                              type="text"
+                              value={slide.image || ''}
+                              onChange={(e) => updateSlideField({ image: e.target.value })}
+                              placeholder="Hoặc dán đường dẫn ảnh Poster (URL)..."
+                              className="w-full px-2.5 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white font-mono text-[10px] focus:border-amber-400 focus:outline-none"
+                            />
+
+                            {/* Optional click-through link to a catalog flower */}
+                            <div className="pt-1">
+                              <label className="text-[10px] font-mono text-white/55 block mb-1">
+                                Tùy chọn: Khi khách bấm vào Poster sẽ mở xem tác phẩm:
+                              </label>
+                              <select
+                                value={slide.linkedFlowerId || ''}
+                                onChange={(e) => updateSlideField({ linkedFlowerId: e.target.value })}
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-black/70 border border-white/15 text-white/85 font-mono text-[11px] focus:border-amber-400 focus:outline-none"
+                              >
+                                <option value="">-- Chỉ hiển thị Poster (Không mở tác phẩm khi bấm) --</option>
+                                {flowers.map((f) => (
+                                  <option key={f.id} value={f.id}>
+                                    Mở tác phẩm #{f.indexNumber} · {f.name} ({f.vietnameseName})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
 
                 {/* 2. General Brand & Atelier Info */}
                 <div className="p-5 bg-black/40 rounded-xl border border-white/10 space-y-4">

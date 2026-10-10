@@ -50,37 +50,6 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
       >
         <span>COLLECTION ARCHIVE · NỔI BẬT ({displayFlowers.length} SPECIMENS)</span>
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setGridFitMode((prev) => (prev === 'cover' ? 'contain' : 'cover'))}
-            className={`px-2.5 py-1 rounded-full border text-[10px] font-mono uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer ${
-              gridFitMode === 'contain'
-                ? isDark
-                  ? 'bg-amber-400/20 border-amber-400/50 text-amber-300 font-bold'
-                  : 'bg-[#141414] border-[#141414] text-[#dcd8cf] font-bold'
-                : isDark
-                  ? 'border-white/15 hover:border-white/35 text-[#ede9df]/75'
-                  : 'border-[#141414]/20 hover:border-[#141414]/45 text-[#141414]/75'
-            }`}
-            title={
-              gridFitMode === 'cover'
-                ? 'Chuyển sang hiển thị Vừa Khung Gốc (giữ nguyên tỉ lệ ảnh gốc bên ngoài)'
-                : 'Chuyển sang Lấp Đầy Khung 3:4 đồng bộ'
-            }
-          >
-            {gridFitMode === 'cover' ? (
-              <>
-                <Minimize2 className="w-3 h-3" />
-                <span>{lang === 'vi' ? 'Tỉ Lệ: Lấp Đầy 3:4' : 'Frame: 3:4 Fill'}</span>
-              </>
-            ) : (
-              <>
-                <Maximize2 className="w-3 h-3" />
-                <span>{lang === 'vi' ? 'Tỉ Lệ: Nguyên Bản' : 'Frame: Original Fit'}</span>
-              </>
-            )}
-          </button>
-
           {onOpenCollection && (
             <button
               onClick={onOpenCollection}

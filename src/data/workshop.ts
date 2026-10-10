@@ -1,4 +1,4 @@
-import { BUNDLED_ASSETS } from '../utils/assetResolver';
+import { resolveAssetUrl } from './flowers';
 
 export interface WorkshopItem {
   id: string;
@@ -33,7 +33,7 @@ export interface WorkshopItem {
   }[];
 }
 
-export const WORKSHOPS: WorkshopItem[] = [
+const RAW_WORKSHOPS: WorkshopItem[] = [
   {
     id: "corporate-year-end-workshop",
     indexNumber: "01",
@@ -79,25 +79,25 @@ export const WORKSHOPS: WorkshopItem[] = [
     pricePerPaxUsd: 35,
     zaloCommunityUrl: "https://zalo.me/g/lbzvqb973",
     hotline: "090 936 80 80",
-    image: BUNDLED_ASSETS.workshopOfficeTerracotta,
+    image: "/src/assets/images/juet_workshop_office_terracotta_1790851072206.jpg",
     galleryImages: [
       {
-        url: BUNDLED_ASSETS.workshopOfficeTerracotta,
+        url: "/src/assets/images/juet_workshop_office_terracotta_1790851072206.jpg",
         captionVi: "Bó hoa tông màu cam đất ấm áp đặc quyền cuối năm",
         captionEn: "Official workshop visual: Warm terracotta & caramel rose bouquet"
       },
       {
-        url: BUNDLED_ASSETS.workshopTableFlatlay,
+        url: "/src/assets/images/juet_workshop_table_flatlay_1790851084638.jpg",
         captionVi: "Bàn chuẩn bị dụng cụ, hoa tươi nhập khẩu & bình gốm nghệ thuật",
         captionEn: "Artisanal workshop workstation setup with shears and ceramic vases"
       },
       {
-        url: BUNDLED_ASSETS.workshopTeamBonding,
+        url: "/src/assets/images/juet_workshop_team_bonding_1790851105708.jpg",
         captionVi: "Khoảnh khắc nhân sự thả lỏng và gắn kết trong không gian hoa",
         captionEn: "Mindful corporate team bonding moment creating sculptural arrangements"
       },
       {
-        url: BUNDLED_ASSETS.workshopMaterialsStems,
+        url: "/src/assets/images/juet_workshop_materials_stems_1790851117842.jpg",
         captionVi: "Chủng loại hoa tuyển chọn: Hồng Cappuccino, Mao Lương, Cành khô uốn lượn",
         captionEn: "Curated botanical ingredients: Cappuccino roses, ranunculus, curly branches"
       }
@@ -142,25 +142,25 @@ export const WORKSHOPS: WorkshopItem[] = [
     pricePerPaxUsd: 35,
     zaloCommunityUrl: "https://zalo.me/g/lbzvqb973",
     hotline: "090 936 80 80",
-    image: BUNDLED_ASSETS.workshopTableFlatlay,
+    image: "/src/assets/images/juet_workshop_table_flatlay_1790851084638.jpg",
     galleryImages: [
       {
-        url: BUNDLED_ASSETS.workshopTableFlatlay,
+        url: "/src/assets/images/juet_workshop_table_flatlay_1790851084638.jpg",
         captionVi: "Bàn chuẩn bị dụng cụ, hoa tươi nhập khẩu & bình gốm nghệ thuật",
         captionEn: "Artisanal workshop workstation setup with shears and ceramic vases"
       },
       {
-        url: BUNDLED_ASSETS.workshopOfficeTerracotta,
+        url: "/src/assets/images/juet_workshop_office_terracotta_1790851072206.jpg",
         captionVi: "Bó hoa tông màu cam đất ấm áp đặc quyền cuối năm",
         captionEn: "Official workshop visual: Warm terracotta & caramel rose bouquet"
       },
       {
-        url: BUNDLED_ASSETS.workshopMaterialsStems,
+        url: "/src/assets/images/juet_workshop_materials_stems_1790851117842.jpg",
         captionVi: "Chủng loại hoa tuyển chọn: Hồng Cappuccino, Mao Lương, Cành khô uốn lượn",
         captionEn: "Curated botanical ingredients: Cappuccino roses, ranunculus, curly branches"
       },
       {
-        url: BUNDLED_ASSETS.workshopTeamBonding,
+        url: "/src/assets/images/juet_workshop_team_bonding_1790851105708.jpg",
         captionVi: "Khoảnh khắc nhân sự thả lỏng và gắn kết trong không gian hoa",
         captionEn: "Mindful corporate team bonding moment creating sculptural arrangements"
       }
@@ -205,28 +205,37 @@ export const WORKSHOPS: WorkshopItem[] = [
     pricePerPaxUsd: 48,
     zaloCommunityUrl: "https://zalo.me/g/lbzvqb973",
     hotline: "090 936 80 80",
-    image: BUNDLED_ASSETS.workshopTeamBonding,
+    image: "/src/assets/images/juet_workshop_team_bonding_1790851105708.jpg",
     galleryImages: [
       {
-        url: BUNDLED_ASSETS.workshopTeamBonding,
+        url: "/src/assets/images/juet_workshop_team_bonding_1790851105708.jpg",
         captionVi: "Khoảnh khắc nhân sự thả lỏng và gắn kết trong không gian hoa",
         captionEn: "Mindful corporate team bonding moment creating sculptural arrangements"
       },
       {
-        url: BUNDLED_ASSETS.workshopTableFlatlay,
+        url: "/src/assets/images/juet_workshop_table_flatlay_1790851084638.jpg",
         captionVi: "Bàn chuẩn bị dụng cụ, hoa tươi nhập khẩu & bình gốm nghệ thuật",
         captionEn: "Artisanal workshop workstation setup with shears and ceramic vases"
       },
       {
-        url: BUNDLED_ASSETS.workshopOfficeTerracotta,
+        url: "/src/assets/images/juet_workshop_office_terracotta_1790851072206.jpg",
         captionVi: "Bó hoa tông màu cam đất ấm áp đặc quyền cuối năm",
         captionEn: "Official workshop visual: Warm terracotta & caramel rose bouquet"
       },
       {
-        url: BUNDLED_ASSETS.workshopMaterialsStems,
+        url: "/src/assets/images/juet_workshop_materials_stems_1790851117842.jpg",
         captionVi: "Chủng loại hoa tuyển chọn: Hồng Cappuccino, Mao Lương, Cành khô uốn lượn",
         captionEn: "Curated botanical ingredients: Cappuccino roses, ranunculus, curly branches"
       }
     ]
   }
 ];
+
+export const WORKSHOPS: WorkshopItem[] = RAW_WORKSHOPS.map((w) => ({
+  ...w,
+  image: resolveAssetUrl(w.image),
+  galleryImages: w.galleryImages.map((g) => ({
+    ...g,
+    url: resolveAssetUrl(g.url)
+  }))
+}));
