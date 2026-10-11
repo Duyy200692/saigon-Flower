@@ -1688,8 +1688,12 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                           }
                           className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
                         >
-                          <option value="bridal">Hoa Cưới Độc Bản (Bridal)</option>
-                          <option value="sculptural">Điêu Khắc Nghệ Thuật (Sculptural)</option>
+                          <option value="lan-ho-diep">Lan Hồ Điệp Hoàng Gia (Orchids)</option>
+                          <option value="hoa-bo">Hoa Bó Thiết Kế (Signature Bouquets)</option>
+                          <option value="chau-hoa">Chậu & Bình Hoa (Luxury Vase & Pot)</option>
+                          <option value="gio-hop-hoa">Giỏ Hoa & Hộp Mica (Baskets & Acrylic Boxes)</option>
+                          <option value="bridal">Hoa Cưới Độc Bản (Bridal Haute Couture)</option>
+                          <option value="sculptural">Điêu Khắc Không Gian (Sculptural)</option>
                           <option value="rare-stems">Cành Hoa Quý Hiếm (Rare Stems)</option>
                           <option value="seasonal">Bộ Sưu Tập Mùa (Seasonal)</option>
                         </select>

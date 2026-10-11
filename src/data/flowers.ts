@@ -46,13 +46,25 @@ export interface GalleryImage {
   captionEn: string;
 }
 
+export type BotanicalCategoryId =
+  | 'bridal'
+  | 'sculptural'
+  | 'rare-stems'
+  | 'seasonal'
+  | 'installation'
+  | 'lan-ho-diep'
+  | 'hoa-bo'
+  | 'chau-hoa'
+  | 'gio-hop-hoa';
+
 export interface FlowerItem {
   id: string;
   indexNumber: string;
+  sku?: string;
   name: string;
   vietnameseName: string;
   latinName: string;
-  category: 'bridal' | 'sculptural' | 'rare-stems' | 'seasonal' | 'installation';
+  category: BotanicalCategoryId;
   categoryLabelEn: string;
   categoryLabelVi: string;
   shortDescriptionEn: string;
@@ -114,37 +126,48 @@ export const ATELIER_DATA = {
   consultationNoticeEn: "Please book 24 hours in advance for Haute Couture bridal bouquets and bespoke spatial installations.",
   heroSlides: [
     {
-      id: "cover-bridal-vows",
-      badgeVi: "TÂM ĐIỂM MÙA CƯỚI · BRIDAL HAUTE COUTURE",
-      badgeEn: "BRIDAL SEASON HIGHLIGHT · HAUTE COUTURE",
-      titleVi: "THE BRIDAL VOWS — LỜI THỀ CỦA CÔ DÂU",
-      titleEn: "THE BRIDAL VOWS — BESPOKE BRIDAL BOUQUET",
-      subtitleVi: "Lưu giữ khoảnh khắc tình yêu lãng mạn nhất trong ngày trọng đại với đóa mẫu đơn trắng tinh khôi đan xen chút lan ngọt ngào.",
-      subtitleEn: "Preserve the most romantic moments of love on your special day with pristine white peonies intertwined with sweet orchids.",
-      image: resolveAssetUrl("/src/assets/images/juet_bridal_vows_1.jpg"),
-      linkedFlowerId: "flower-1791388842716"
+      id: "ju-cover-1",
+      badgeVi: "",
+      badgeEn: "",
+      titleVi: "Poster Cover #1",
+      titleEn: "Poster Cover #1",
+      subtitleVi: "",
+      subtitleEn: "",
+      image: "https://theme.hstatic.net/200000933631/1001314473/14/home_slider_item_image_desktop_1.jpg?v=286",
+      linkedFlowerId: ""
     },
     {
-      id: "cover-october-peony",
-      badgeVi: "BỘ SƯU TẬP THÁNG 10 · TÔN VINH PHÁI ĐẸP 20/10",
-      badgeEn: "OCTOBER COLLECTION · VIETNAMESE WOMEN'S DAY",
-      titleVi: "PEONIA BLUSH ROYALE — MẪU ĐƠN HỒNG PHẤN",
-      titleEn: "PEONIA BLUSH ROYALE — IMPERIAL BLUSH PEONY",
-      subtitleVi: "Tuyệt tác mẫu đơn Coral Charm & Sarah Bernhardt nhập khẩu Hà Lan — món quà kiêu sa và nồng nàn dành tặng người phụ nữ trân quý.",
-      subtitleEn: "Dutch-imported Coral Charm and Sarah Bernhardt peonies crafted into a sculptural tribute of grace and devotion.",
-      image: resolveAssetUrl("/src/assets/images/juet_blush_peony_1790840758164.jpg"),
-      linkedFlowerId: "peonia-blush-royale"
+      id: "ju-cover-2",
+      badgeVi: "",
+      badgeEn: "",
+      titleVi: "Poster Cover #2",
+      titleEn: "Poster Cover #2",
+      subtitleVi: "",
+      subtitleEn: "",
+      image: "https://theme.hstatic.net/200000933631/1001314473/14/home_slider_item_image_desktop_2.jpg?v=286",
+      linkedFlowerId: ""
     },
     {
-      id: "cover-seasonal-lotus",
-      badgeVi: "ẤN PHẨM THEO MÙA · ĐƯƠNG ĐẠI Á ĐÔNG",
-      badgeEn: "SEASONAL EDITION · ORIENTAL SCULPTURE",
-      titleVi: "LOTUS SACRA SAIGON — BẠCH SEN ĐƯƠNG ĐẠI",
-      titleEn: "LOTUS SACRA SAIGON — SACRED WHITE LOTUS",
-      subtitleVi: "Sự giao thoa thanh khiết giữa hoa sen trắng truyền thống và nghệ thuật gấp cánh thủ công đương đại tại Atelier Quận 1.",
-      subtitleEn: "A serene dialogue between traditional white lotus stems and contemporary hand-folded petal architecture.",
-      image: resolveAssetUrl("/src/assets/images/juet_sacred_lotus_1790840770921.jpg"),
-      linkedFlowerId: "lotus-sacra-saigon"
+      id: "ju-cover-4",
+      badgeVi: "",
+      badgeEn: "",
+      titleVi: "Poster Cover #3",
+      titleEn: "Poster Cover #3",
+      subtitleVi: "",
+      subtitleEn: "",
+      image: "https://theme.hstatic.net/200000933631/1001314473/14/home_slider_item_image_desktop_4.jpg?v=286",
+      linkedFlowerId: ""
+    },
+    {
+      id: "ju-cover-5",
+      badgeVi: "",
+      badgeEn: "",
+      titleVi: "Poster Cover #4",
+      titleEn: "Poster Cover #4",
+      subtitleVi: "",
+      subtitleEn: "",
+      image: "https://theme.hstatic.net/200000933631/1001314473/14/home_slider_item_image_desktop_5.jpg?v=286",
+      linkedFlowerId: ""
     }
   ] as HeroCoverSlide[]
 };
@@ -1006,12 +1029,294 @@ const RAW_FLOWERS: FlowerItem[] = [
       }
     ],
     audioFrequency: 432
+  },
+  {
+    id: "ju-lan001",
+    indexNumber: "13",
+    sku: "LAN001",
+    name: "PHALAENOPSIS IMPERIAL · LAN001",
+    vietnameseName: "Chậu Lan Hồ Điệp Hoàng Gia (LAN001)",
+    latinName: "Phalaenopsis Aphrodite Imperialis",
+    category: "lan-ho-diep",
+    categoryLabelEn: "Phalaenopsis Orchids",
+    categoryLabelVi: "Lan Hồ Điệp Hoàng Gia",
+    shortDescriptionEn: "Architectural cascade of premium grade-A Phalaenopsis orchids styled in a bespoke sculptural vessel.",
+    shortDescriptionVi: "Tuyệt tác Lan Hồ Điệp tuyển chọn cành loại A dáng thác đổ uy quyền, biểu trưng cho vượng khí, tài lộc và thịnh vượng.",
+    storyEn: "Curated from the finest highland orchid nurseries, LAN001 presents an opulent cascade of velvety Phalaenopsis blooms. Each stem is hand-arched to create a harmonious sense of upward prosperity and enduring grace—an unmistakable statement piece for grand openings, executive suites, and festive celebrations.",
+    storyVi: "Được tuyển chọn từ những cành Lan Hồ Điệp loại A cánh dày ánh lụa, tác phẩm LAN001 uốn lượn kiêu hãnh trên nền chậu gốm nghệ thuật của JU et Saigon. Mỗi cành lan mang theo lời chúc phú quý, hưng thịnh bền vững — món quà thượng hạng dành tặng đối tác VIP, lễ khai trương và dịp trọng đại.",
+    botanicalNotesEn: "Grade-A Phalaenopsis orchid stems, organic forest moss, sculpted ceramic planter, gold-leaf botanical accents.",
+    botanicalNotesVi: "Cành Lan Hồ Điệp chuẩn hạng A, rêu rừng tự nhiên giữ ẩm, chậu gốm cao cấp và phụ kiện decor thủ công.",
+    materials: ["Grade-A Phalaenopsis Orchids", "Organic Forest Moss", "Artisanal Ceramic Planter"],
+    materialsVi: ["Lan Hồ Điệp Tuyển Chọn Hạng A", "Rêu Rừng Tự Nhiên", "Chậu Gốm Nghệ Thuật"],
+    scent: {
+      top: "Morning Dew, Crisp Green Leaf",
+      heart: "Subtle White Orchid Nectar",
+      base: "Clean Moss, Mineral Clay",
+      intensity: 2,
+      mood: "Regal, Prosperous & Serene"
+    },
+    anatomy: [],
+    dimensions: "55cm (W) x 75cm (H)",
+    seasonality: "Year-Round (Quanh năm)",
+    priceVnd: 5800000,
+    priceUsd: 232,
+    image: "https://cdn.hstatic.net/products/200000933631/558198641_122165417354781635_7440172252574049783_n_d2bd1bfcb5684295a5905ae2621627ba_large.jpg",
+    galleryImages: [
+      {
+        url: "https://cdn.hstatic.net/products/200000933631/558198641_122165417354781635_7440172252574049783_n_d2bd1bfcb5684295a5905ae2621627ba_large.jpg",
+        captionVi: "Toàn cảnh chậu Lan Hồ Điệp LAN001 tại Atelier",
+        captionEn: "Full view of LAN001 Phalaenopsis arrangement"
+      },
+      {
+        url: "https://cdn.hstatic.net/products/200000933631/dsc07637_1cb98f18222b4c11948d837479de6b5b_large.jpg",
+        captionVi: "Phiên bản phối sắc thanh lịch (LAN002)",
+        captionEn: "Complementary orchid styling perspective"
+      }
+    ],
+    audioFrequency: 528,
+    pinnedToLanding: true
+  },
+  {
+    id: "ju-chau002",
+    indexNumber: "14",
+    sku: "CHAU002",
+    name: "JARDIN DE SAIGON VASE · CHAU002",
+    vietnameseName: "Chậu Hoa Nghệ Thuật Jardin De Saigon (CHAU002)",
+    latinName: "Rosa Damascena x Hydrangea Macrophylla",
+    category: "chau-hoa",
+    categoryLabelEn: "Luxury Vase & Pot",
+    categoryLabelVi: "Chậu & Bình Hoa",
+    shortDescriptionEn: "Volumetric garden-style floral vessel overflowing with imported roses, hydrangeas, and seasonal botanicals.",
+    shortDescriptionVi: "Chậu hoa thiết kế dáng vườn châu Âu đầy đặn, quy tụ các dòng hoa nhập khẩu sắc màu trang nhã cho không gian sang trọng.",
+    storyEn: "Designed to transform any reception hall or living sanctuary into a blooming conservatory, CHAU002 balances lush garden roses with airy delphiniums and textured foliage. Every stem is angled to offer a 270-degree visual embrace.",
+    storyVi: "Lấy cảm hứng từ những khu vườn cổ điển Pháp, tác phẩm CHAU002 kết hợp hài hòa các giống hồng nhập khẩu nở bung cùng cẩm tú cầu và lá bạc thanh thoát. Phom dáng bề thế, sang trọng, lý tưởng để trưng bày sảnh đón khách hoặc mừng khai trương, kỷ niệm.",
+    botanicalNotesEn: "Imported garden roses, Dutch hydrangea, eucalyptus cinerea, structural ceramic vessel.",
+    botanicalNotesVi: "Hoa hồng ngoại nhập khẩu, cẩm tú cầu Hà Lan, lá khuynh diệp thơm và bình gốm cao cấp.",
+    materials: ["Imported Garden Roses", "Dutch Hydrangea", "Eucalyptus Cinerea", "Ceramic Vessel"],
+    materialsVi: ["Hồng Ngoại Nhập Khẩu", "Cẩm Tú Cầu Hà Lan", "Lá Khuynh Diệp", "Bình Gốm Cao Cấp"],
+    scent: {
+      top: "Eucalyptus Leaf, Bergamot",
+      heart: "Blooming Garden Rose, Peony",
+      base: "Soft Cedar, Green Sap",
+      intensity: 4,
+      mood: "Opulent, Welcoming & Refined"
+    },
+    anatomy: [],
+    dimensions: "50cm (W) x 65cm (H)",
+    seasonality: "Year-Round (Quanh năm)",
+    priceVnd: 5030000,
+    priceUsd: 201,
+    image: "https://cdn.hstatic.net/products/200000933631/gen-h-z6852268737698_650b59ec4c4b5a9663882fad405f1b94_abe8f15b1b584cfe894f022404e7f4ed_large.jpg",
+    galleryImages: [
+      {
+        url: "https://cdn.hstatic.net/products/200000933631/gen-h-z6852268737698_650b59ec4c4b5a9663882fad405f1b94_abe8f15b1b584cfe894f022404e7f4ed_large.jpg",
+        captionVi: "Góc nhìn chính diện chậu hoa CHAU002",
+        captionEn: "Frontal portrait of CHAU002 luxury vessel"
+      },
+      {
+        url: "https://cdn.hstatic.net/products/200000933631/gen-h-z6852271485659_e52260d27549bc6b2510a36e9cae7280_5b9057c8952840c9ab92fc4e3e29a9bf_large.jpg",
+        captionVi: "Phối cảnh chậu hoa đại sảnh (CHAU005)",
+        captionEn: "Grand statement ceramic vessel variation"
+      }
+    ],
+    audioFrequency: 432,
+    pinnedToLanding: true
+  },
+  {
+    id: "ju-bo001",
+    indexNumber: "15",
+    sku: "BO001",
+    name: "COUTURE SILK BOUQUET · BO001",
+    vietnameseName: "Bó Hoa Thiết Kế Couture Silk (BO001)",
+    latinName: "Paeonia Lactiflora x Rosa Centifolia",
+    category: "hoa-bo",
+    categoryLabelEn: "Signature Bouquets",
+    categoryLabelVi: "Hoa Bó Thiết Kế",
+    shortDescriptionEn: "Hand-tied couture bouquet wrapped in layered matte Korean silk paper and trailing satin ribbons.",
+    shortDescriptionVi: "Bó hoa thiết kế độc bản phối giấy lụa mờ cao cấp và ruy băng satin thướt tha, gửi trọn tâm ý tinh tế đến người nhận.",
+    storyEn: "Signature bouquet BO001 exemplifies JU et Saigon's modern editorial wrapping technique. Lush focal blooms are cushioned within cloud-like layers of matte silk paper, creating a dramatic yet tender silhouette for birthdays, anniversaries, and romantic confessions.",
+    storyVi: "Mang đậm dấu ấn thẩm mỹ của JU et Saigon, bó hoa BO001 tôn vinh vẻ đẹp tự nhiên của từng đóa hoa nhập khẩu trong lớp giấy gói lụa mờ xếp nếp thủ công. Món quà hoàn hảo cho dịp sinh nhật, kỷ niệm và những lời yêu thương chân thành.",
+    botanicalNotesEn: "Premium imported roses, seasonal lisianthus, dusty miller, waterproof matte Korean silk wrap.",
+    botanicalNotesVi: "Hoa hồng ngoại tuyển chọn, cát tường kép, lá bạc và giấy lụa mờ Hàn Quốc chống nước.",
+    materials: ["Imported Couture Roses", "Double Lisianthus", "Matte Korean Silk Wrap"],
+    materialsVi: ["Hồng Ngoại Tuyển Chọn", "Cát Tường Kép", "Giấy Lụa Mờ Hàn Quốc"],
+    scent: {
+      top: "Pink Grapefruit, Dewy Petals",
+      heart: "Damask Rose, Sweet Pea",
+      base: "White Musk, Powdery Iris",
+      intensity: 3,
+      mood: "Romantic, Poetic & Graceful"
+    },
+    anatomy: [],
+    dimensions: "42cm (W) x 58cm (H)",
+    seasonality: "Year-Round (Quanh năm)",
+    priceVnd: 3480000,
+    priceUsd: 139,
+    image: "https://cdn.hstatic.net/products/200000933631/dsc08140_10c276bd0de947cb9ce5eec9c2f9c409_large.jpg",
+    galleryImages: [
+      {
+        url: "https://cdn.hstatic.net/products/200000933631/dsc08140_10c276bd0de947cb9ce5eec9c2f9c409_large.jpg",
+        captionVi: "Bó hoa thiết kế BO001 chính diện",
+        captionEn: "BO001 signature hand-tied bouquet"
+      },
+      {
+        url: "https://cdn.hstatic.net/products/200000933631/dsc08534__1__091557c4962e4bc8aba312543233c6f7_large.jpg",
+        captionVi: "Phối sắc pastel thanh lịch (BO005)",
+        captionEn: "Pastel couture wrapping variation"
+      }
+    ],
+    audioFrequency: 528,
+    pinnedToLanding: true
+  },
+  {
+    id: "ju-mica003",
+    indexNumber: "16",
+    sku: "MICA003",
+    name: "CRISTAL ACRYLIC ATELIER BOX · MICA003",
+    vietnameseName: "Hộp Hoa Mica Trong Suốt Nghệ Thuật (MICA003)",
+    latinName: "Rosa Hybrid x Eustoma Grandiflorum",
+    category: "gio-hop-hoa",
+    categoryLabelEn: "Baskets & Acrylic Boxes",
+    categoryLabelVi: "Giỏ Hoa & Hộp Mica",
+    shortDescriptionEn: "Crystal-clear museum acrylic trunk showcasing a floating botanical garden within.",
+    shortDescriptionVi: "Hộp hoa Mica trong suốt tựa tủ kính triển lãm thu nhỏ, khoe trọn vẻ đẹp 360 độ của khu vườn hoa tươi bên trong.",
+    storyEn: "Presented like a jewel inside a transparent gallery case, MICA003 protects delicate blooms during transit while offering an unforgettable unboxing experience. Ideal for modern luxury gifting, hospital congratulations, or stylish desk display.",
+    storyVi: "Tựa như một tác phẩm trưng bày trong lồng kính pha lê, hộp hoa MICA003 vừa bảo vệ từng cánh hoa mỏng manh tuyệt đối khi di chuyển, vừa tạo hiệu ứng thị giác hiện đại và sang trọng. Rất được ưa chuộng để tặng sinh nhật, chúc mừng và trưng bày bàn làm việc.",
+    botanicalNotesEn: "Crystal acrylic display trunk, hydrated floral foam base, imported pastel roses, satin carry handle.",
+    botanicalNotesVi: "Hộp Mica trong suốt cao cấp, đế giữ ẩm chuyên dụng, hoa hồng pastel nhập khẩu và dây lụa xách tay.",
+    materials: ["Crystal Acrylic Trunk", "Pastel Imported Roses", "Lisianthus", "Satin Ribbon"],
+    materialsVi: ["Hộp Mica Trong Suốt", "Hồng Pastel Nhập Khẩu", "Hoa Cát Tường", "Dây Lụa Satin"],
+    scent: {
+      top: "Fresh Pear, Green Stem",
+      heart: "Soft Tea Rose, Freesia",
+      base: "Sheer Amber",
+      intensity: 3,
+      mood: "Modern, Crystalline & Chic"
+    },
+    anatomy: [],
+    dimensions: "30cm (W) x 38cm (H)",
+    seasonality: "Year-Round (Quanh năm)",
+    priceVnd: 2110000,
+    priceUsd: 85,
+    image: "https://cdn.hstatic.net/products/200000933631/gen-h-z6863482974726_63a7c45f0f856a3ac2f4917120b825b5_f74513e63e8040309aef060d5a4db7f5_large.jpg",
+    galleryImages: [
+      {
+        url: "https://cdn.hstatic.net/products/200000933631/gen-h-z6863482974726_63a7c45f0f856a3ac2f4917120b825b5_f74513e63e8040309aef060d5a4db7f5_large.jpg",
+        captionVi: "Hộp hoa Mica trong suốt MICA003",
+        captionEn: "MICA003 transparent acrylic floral box"
+      }
+    ],
+    audioFrequency: 528,
+    pinnedToLanding: true
+  },
+  {
+    id: "ju-gio004",
+    indexNumber: "17",
+    sku: "GIO004",
+    name: "CORBEILLE ROYALE BASKET · GIO004",
+    vietnameseName: "Giỏ Hoa Nghệ Thuật Corbeille Royale (GIO004)",
+    latinName: "Paeonia x Rosa x Delphinium",
+    category: "gio-hop-hoa",
+    categoryLabelEn: "Baskets & Acrylic Boxes",
+    categoryLabelVi: "Giỏ Hoa & Hộp Mica",
+    shortDescriptionEn: "Lavish artisanal floral basket bursting with imported peonies, garden roses, and seasonal stems.",
+    shortDescriptionVi: "Giỏ hoa cao cấp cỡ lớn kết hợp các dòng hoa nhập khẩu quý phái, trao gửi thông điệp trân trọng và đẳng cấp.",
+    storyEn: "Crafted for milestone celebrations and VIP appreciation, GIO004 overflows with layers of imported blooms arranged in an airy, asymmetrical garden arc.",
+    storyVi: "Được thiết kế dành riêng cho những dịp chúc mừng trọng đại và tri ân đối tác quan trọng, giỏ hoa GIO004 gây ấn tượng mạnh mẽ bởi bố cục bất đối xứng phóng khoáng cùng sắc hoa nhập khẩu rực rỡ, sang trọng.",
+    botanicalNotesEn: "Woven artisanal basket, imported garden roses, seasonal accent stems, oasis hydration core.",
+    botanicalNotesVi: "Giỏ đan thủ công cao cấp, hoa hồng ngoại, hoa nhập khẩu theo mùa và lõi giữ ẩm tự nhiên.",
+    materials: ["Artisanal Basket", "Imported Garden Roses", "Seasonal Botanicals"],
+    materialsVi: ["Giỏ Thủ Công Cao Cấp", "Hồng Ngoại Nhập Khẩu", "Hoa Lá Theo Mùa"],
+    scent: {
+      top: "Mandarin Blossom, Green Tea",
+      heart: "Peony, English Rose",
+      base: "Warm Sandalwood",
+      intensity: 4,
+      mood: "Abundant, Celebratory & Noble"
+    },
+    anatomy: [],
+    dimensions: "55cm (W) x 60cm (H)",
+    seasonality: "Year-Round (Quanh năm)",
+    priceVnd: 6900000,
+    priceUsd: 276,
+    image: "https://cdn.hstatic.net/products/200000933631/dsc00623_acdaa21efef447b7a1df70c239c3ff90_large.jpg",
+    galleryImages: [
+      {
+        url: "https://cdn.hstatic.net/products/200000933631/dsc00623_acdaa21efef447b7a1df70c239c3ff90_large.jpg",
+        captionVi: "Giỏ hoa cao cấp GIO004 tại JU et Saigon",
+        captionEn: "GIO004 luxury floral basket"
+      }
+    ],
+    audioFrequency: 432,
+    pinnedToLanding: true
+  },
+  {
+    id: "ju-lan008",
+    indexNumber: "18",
+    sku: "LAN008",
+    name: "GRAND PALAIS ORCHID GALLERY · LAN008",
+    vietnameseName: "Đại Chậu Lan Hồ Điệp Tuyệt Tác (LAN008)",
+    latinName: "Phalaenopsis Grandiflora Magnifica",
+    category: "lan-ho-diep",
+    categoryLabelEn: "Phalaenopsis Orchids",
+    categoryLabelVi: "Lan Hồ Điệp Hoàng Gia",
+    shortDescriptionEn: "Monumental multi-stem Phalaenopsis masterpiece crafted for grand lobbies, penthouses, and gala inaugurations.",
+    shortDescriptionVi: "Đại tác phẩm Lan Hồ Điệp đa tầng bề thế dành cho đại sảnh, biệt thự và lễ khánh thành quy mô lớn.",
+    storyEn: "Standing as the crown jewel of the JU et Saigon orchid collection, LAN008 unites dozens of pristine Phalaenopsis cascades into a single architectural monument of prosperity and prestige.",
+    storyVi: "Là tuyệt tác bề thế bậc nhất trong bộ sưu tập Lan Hồ Điệp của JU et Saigon, LAN008 quy tụ hàng chục cành lan tuyển chọn vươn cao kiêu hãnh — biểu tượng đỉnh cao của tài lộc, quyền uy và sự thịnh vượng viên mãn.",
+    botanicalNotesEn: "Master-grade multi-branch Phalaenopsis orchids, bespoke statement planter, natural moss & driftwood.",
+    botanicalNotesVi: "Lan Hồ Điệp đại cành tuyển chọn, chậu sứ điêu khắc cỡ lớn, lũa gỗ và rêu rừng tự nhiên.",
+    materials: ["Master-Grade Phalaenopsis", "Sculptural Statement Planter", "Natural Driftwood & Moss"],
+    materialsVi: ["Lan Hồ Điệp Đại Cành", "Chậu Điêu Khắc Cỡ Lớn", "Lũa Gỗ & Rêu Tự Nhiên"],
+    scent: {
+      top: "Rainwater, Fresh Fern",
+      heart: "Velvet White Orchid",
+      base: "Aged Driftwood, Earthy Moss",
+      intensity: 3,
+      mood: "Majestic, Sovereign & Timeless"
+    },
+    anatomy: [],
+    dimensions: "80cm (W) x 110cm (H)",
+    seasonality: "Year-Round (Quanh năm)",
+    priceVnd: 15300000,
+    priceUsd: 612,
+    image: "https://cdn.hstatic.net/products/200000933631/dsc09267_5b483cd4f9cb4ada883cceeef1c34821_large.jpg",
+    galleryImages: [
+      {
+        url: "https://cdn.hstatic.net/products/200000933631/dsc09267_5b483cd4f9cb4ada883cceeef1c34821_large.jpg",
+        captionVi: "Đại chậu Lan Hồ Điệp LAN008 bề thế",
+        captionEn: "LAN008 monumental Phalaenopsis masterpiece"
+      },
+      {
+        url: "https://cdn.hstatic.net/products/200000933631/dsc09287_d4d7d3ff156d44a086d6cf063f5e4de2_large.jpg",
+        captionVi: "Phiên bản đại sảnh LAN007",
+        captionEn: "LAN007 grand lobby orchid installation"
+      }
+    ],
+    audioFrequency: 528,
+    pinnedToLanding: true
   }
+];
+
+const DEFAULT_SKU_BY_INDEX = [
+  'CUOI001',
+  'CUOI002',
+  'BO005',
+  'CHAU001',
+  'LAN003',
+  'BO007',
+  'CHAU003',
+  'BO009',
+  'CUOI006',
+  'CHAU014',
+  'BO012',
+  'BO015'
 ];
 
 export const FLOWERS: FlowerItem[] = RAW_FLOWERS.map((f, idx) => ({
   ...f,
   indexNumber: String(idx + 1).padStart(2, '0'),
+  sku: f.sku || DEFAULT_SKU_BY_INDEX[idx] || `JU${String(idx + 1).padStart(3, '0')}`,
   image: resolveAssetUrl(f.image),
   galleryImages: f.galleryImages.map((g) => ({
     ...g,
@@ -1021,11 +1326,37 @@ export const FLOWERS: FlowerItem[] = RAW_FLOWERS.map((f, idx) => ({
 
 export const BOTANICAL_CATEGORIES = [
   { id: 'all', labelEn: 'All Creations', labelVi: 'Tất Cả Tác Phẩm' },
-  { id: 'bridal', labelEn: 'Bridal Haute Couture', labelVi: 'Hoa Cưới Độc Bản' },
-  { id: 'sculptural', labelEn: 'Artistic Installations', labelVi: 'Điêu Khắc Không Gian' },
-  { id: 'rare-stems', labelEn: 'Rare Stems Archive', labelVi: 'Cành Hoa Quý Hiếm' },
-  { id: 'seasonal', labelEn: 'Seasonal Collections', labelVi: 'Bộ Sưu Tập Mùa' }
+  { id: 'lan-ho-diep', labelEn: 'Phalaenopsis Orchids', labelVi: 'Lan Hồ Điệp' },
+  { id: 'hoa-bo', labelEn: 'Signature Bouquets', labelVi: 'Hoa Bó Thiết Kế' },
+  { id: 'chau-hoa', labelEn: 'Luxury Vase & Pot', labelVi: 'Chậu & Bình Hoa' },
+  { id: 'gio-hop-hoa', labelEn: 'Baskets & Acrylic Boxes', labelVi: 'Giỏ Hoa & Hộp Mica' },
+  { id: 'bridal', labelEn: 'Bridal Haute Couture', labelVi: 'Hoa Cưới (Bridal)' }
 ];
+
+export function matchesBotanicalCategory(flower: FlowerItem, selectedCategory: string): boolean {
+  if (!selectedCategory || selectedCategory === 'all') return true;
+  const cat = flower.category;
+  const text = `${flower.name} ${flower.vietnameseName} ${flower.latinName} ${flower.sku || ''} ${flower.categoryLabelVi} ${flower.categoryLabelEn}`.toLowerCase();
+
+  switch (selectedCategory) {
+    case 'lan-ho-diep':
+      return cat === 'lan-ho-diep' || text.includes('lan hồ điệp') || text.includes('phalaenopsis') || text.includes('orchid') || (flower.sku || '').startsWith('LAN');
+    case 'hoa-bo':
+      return cat === 'hoa-bo' || cat === 'seasonal' || cat === 'rare-stems' || (flower.sku || '').startsWith('BO');
+    case 'chau-hoa':
+      return cat === 'chau-hoa' || cat === 'sculptural' || cat === 'installation' || (flower.sku || '').startsWith('CHAU');
+    case 'gio-hop-hoa':
+      return cat === 'gio-hop-hoa' || (flower.sku || '').startsWith('GIO') || (flower.sku || '').startsWith('MICA');
+    case 'bridal':
+      return cat === 'bridal' || (flower.sku || '').startsWith('CUOI');
+    default:
+      return (
+        cat === selectedCategory ||
+        flower.categoryLabelEn.toLowerCase().includes(selectedCategory.toLowerCase()) ||
+        flower.categoryLabelVi.toLowerCase().includes(selectedCategory.toLowerCase())
+      );
+  }
+}
 
 export const BOTANICAL_SEASONS = [
   { id: 'all', labelEn: 'All Seasons', labelVi: 'Tất Cả Các Mùa' },

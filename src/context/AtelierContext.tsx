@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { FlowerItem, FLOWERS, ATELIER_DATA, resolveAssetUrl } from '../data/flowers';
+import { FlowerItem, FLOWERS, ATELIER_DATA, HeroCoverSlide, resolveAssetUrl } from '../data/flowers';
 import { WorkshopItem, WORKSHOPS } from '../data/workshop';
 import { SupplyItem, DEFAULT_SUPPLIES } from '../data/inventoryAndTrends';
 import { db, handleFirestoreError, OperationType, testFirestoreConnection } from '../lib/firebase';
@@ -338,6 +338,7 @@ function normalizeFlower(item: Partial<FlowerItem>, idx: number): FlowerItem {
     ...item,
     id: item.id || fallback.id || `flower-${idx + 1}`,
     indexNumber: item.indexNumber || String(idx + 1).padStart(2, '0'),
+    sku: item.sku || fallback.sku || `JU${String(idx + 1).padStart(3, '0')}`,
     name: formatDisplayUppercase(item.name || fallback.name),
     vietnameseName: formatTitleCase(item.vietnameseName || item.name || fallback.vietnameseName),
     latinName: formatBotanicalLatin(item.latinName || fallback.latinName),
@@ -664,16 +665,30 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
             setIsCloudConnected(true);
             if (!snapshot.empty) {
               const rawFlowers: Partial<FlowerItem>[] = [];
+              const existingIds = new Set<string>();
               snapshot.forEach((docSnap) => {
                 const data = docSnap.data() as Partial<FlowerItem>;
+                existingIds.add(docSnap.id);
                 rawFlowers.push({ ...data, id: docSnap.id });
               });
+
+              // Auto-merge newly synced flagship products from juinternational.com if not yet in Firestore
+              const missingJuProducts = FLOWERS.filter(
+                (f) => f.id.startsWith('ju-') && !existingIds.has(f.id)
+              );
+              if (missingJuProducts.length > 0 && safeGetStorage('juet_juinternational_synced_v1') !== 'true') {
+                safeSetStorage('juet_juinternational_synced_v1', 'true');
+                missingJuProducts.forEach((juItem) => {
+                  rawFlowers.unshift(juItem);
+                  setDoc(doc(db, 'flowers', juItem.id), stripUndefined(juItem), { merge: true }).catch(() => {});
+                });
+              }
+
               rawFlowers.sort((a, b) => {
-                const aCustom = String(a.id || '').startsWith('flower-') ? 0 : 1;
-                const bCustom = String(b.id || '').startsWith('flower-') ? 0 : 1;
-                const idxCompare = (a.indexNumber || '').localeCompare(b.indexNumber || '');
-                if (idxCompare !== 0) return idxCompare;
-                return aCustom - bCustom;
+                const aJu = String(a.id || '').startsWith('ju-') ? 0 : String(a.id || '').startsWith('flower-') ? 1 : 2;
+                const bJu = String(b.id || '').startsWith('ju-') ? 0 : String(b.id || '').startsWith('flower-') ? 1 : 2;
+                if (aJu !== bJu) return aJu - bJu;
+                return (a.indexNumber || '').localeCompare(b.indexNumber || '');
               });
               setFlowers(rawFlowers.map((item, idx) => normalizeFlower(item, idx)));
             } else if (!isInitialCloudSyncDone.current) {
@@ -722,10 +737,24 @@ export const AtelierProvider: React.FC<{ children: React.ReactNode }> = ({ child
               const data = docSnap.data();
               const { logoUrl: cloudLogo, logoWhiteUrl: cloudLogoWhite, ...restSettings } = data;
               if (Array.isArray(restSettings.heroSlides)) {
-                restSettings.heroSlides = restSettings.heroSlides.map((s: Record<string, unknown>) => ({
-                  ...s,
+                let slidesList = restSettings.heroSlides.map((s: Record<string, unknown>) => ({
+                  ...(s as unknown as HeroCoverSlide),
                   image: resolveAssetUrl(String(s.image || ''))
                 }));
+                const legacyIds = new Set(['cover-bridal-vows', 'cover-october-peony', 'cover-seasonal-lotus']);
+                const isOnlyLegacySlides =
+                  slidesList.length > 0 &&
+                  slidesList.every((s) => legacyIds.has(String(s.id || '')));
+                if (isOnlyLegacySlides && safeGetStorage('juet_juinternational_covers_v1') !== 'true') {
+                  safeSetStorage('juet_juinternational_covers_v1', 'true');
+                  slidesList = [...ATELIER_DATA.heroSlides];
+                  setDoc(
+                    settingsDocRef,
+                    stripUndefined({ heroSlides: slidesList }),
+                    { merge: true }
+                  ).catch(() => {});
+                }
+                restSettings.heroSlides = slidesList;
               }
               setAtelierData((prev) => ({ ...ATELIER_DATA, ...prev, ...restSettings }));
               if (cloudLogo !== undefined) {

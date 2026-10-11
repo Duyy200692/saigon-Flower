@@ -135,7 +135,7 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
                   }`}
                 >
                   <span className="text-[10px] font-mono tracking-widest text-amber-300 uppercase mb-1 drop-shadow">
-                    #{flower.indexNumber}
+                    #{flower.indexNumber}{flower.sku ? ` · ${flower.sku}` : ''}
                   </span>
 
                   <h3 className="text-base sm:text-xl font-bagerich font-medium text-white tracking-wide leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
@@ -153,7 +153,7 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
                     isHovered ? 'opacity-0' : 'opacity-90'
                   }`}
                 >
-                  {flower.indexNumber}
+                  {flower.sku ? `${flower.indexNumber} · ${flower.sku}` : flower.indexNumber}
                 </div>
 
                 {/* Quick Wishlist Heart button top-right */}

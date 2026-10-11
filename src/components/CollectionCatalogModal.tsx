@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { X, Search, Filter, Pin, Heart, Maximize2, Minimize2, Flame } from 'lucide-react';
-import { FlowerItem, BOTANICAL_CATEGORIES, BOTANICAL_SEASONS } from '../data/flowers';
+import { FlowerItem, BOTANICAL_CATEGORIES, BOTANICAL_SEASONS, matchesBotanicalCategory } from '../data/flowers';
 import { computeFlowerMarketTrends } from '../data/inventoryAndTrends';
 import { useAtelier } from '../context/AtelierContext';
 
@@ -44,11 +44,7 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
   const filteredFlowers = useMemo(() => {
     return flowers.filter((flower) => {
       // 1. Category Filter
-      const matchCategory =
-        selectedCategory === 'all' ||
-        flower.category === selectedCategory ||
-        flower.categoryLabelEn.toLowerCase().includes(selectedCategory.toLowerCase()) ||
-        flower.categoryLabelVi.toLowerCase().includes(selectedCategory.toLowerCase());
+      const matchCategory = matchesBotanicalCategory(flower, selectedCategory);
 
       // 2. Season Filter
       let matchSeason = true;
@@ -74,6 +70,7 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
       const q = searchQuery.toLowerCase().trim();
       const matchSearch =
         !q ||
+        (flower.sku && flower.sku.toLowerCase().includes(q)) ||
         flower.name.toLowerCase().includes(q) ||
         flower.vietnameseName.toLowerCase().includes(q) ||
         flower.latinName.toLowerCase().includes(q) ||
@@ -197,11 +194,7 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
             const count =
               cat.id === 'all'
                 ? flowers.length
-                : flowers.filter(
-                    (f) =>
-                      f.category === cat.id ||
-                      f.categoryLabelEn.toLowerCase().includes(cat.id.toLowerCase())
-                  ).length;
+                : flowers.filter((f) => matchesBotanicalCategory(f, cat.id)).length;
 
             const isActive = selectedCategory === cat.id;
 
@@ -418,9 +411,9 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
                       {/* Vignette */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 opacity-70 group-hover:opacity-40 transition-opacity" />
 
-                      {/* Specimen Index Badge */}
+                      {/* Specimen Index & SKU Badge */}
                       <div className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full backdrop-blur-xl bg-black/60 border border-white/20 text-[10px] font-mono text-white/95 shadow-sm">
-                        #{flower.indexNumber}
+                        #{flower.indexNumber}{flower.sku ? ` · ${flower.sku}` : ''}
                       </div>
 
                       {/* Moodboard Heart Toggle Button */}

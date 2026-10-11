@@ -266,6 +266,11 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
               }`}
             >
               SPECIMEN <span className={`font-bold ${isDark ? 'text-white' : 'text-[#141414]'}`}>{flower.indexNumber}</span> / {totalCount}
+              {flower.sku ? (
+                <span className={`ml-1.5 font-bold ${isDark ? 'text-amber-300' : 'text-amber-900'}`}>
+                  · {flower.sku}
+                </span>
+              ) : null}
             </div>
 
             {onNext && (
