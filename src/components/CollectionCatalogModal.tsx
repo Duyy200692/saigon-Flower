@@ -3,6 +3,7 @@ import { X, Search, Filter, Pin, Heart, Maximize2, Minimize2, Flame } from 'luci
 import { FlowerItem, BOTANICAL_CATEGORIES, BOTANICAL_SEASONS, matchesBotanicalCategory } from '../data/flowers';
 import { computeFlowerMarketTrends } from '../data/inventoryAndTrends';
 import { useAtelier } from '../context/AtelierContext';
+import { resolveFlowerUsd } from '../utils/currency';
 
 interface CollectionCatalogModalProps {
   isOpen: boolean;
@@ -136,24 +137,48 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
 
         <div className="flex items-center gap-3">
           {/* Quick Search */}
-          <div className="relative hidden md:block w-64">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (document.activeElement instanceof HTMLElement) {
+                document.activeElement.blur();
+              }
+            }}
+            className="relative hidden md:block w-64"
+          >
             <Search
-              className={`w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 ${
+              className={`w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
                 isDark ? 'text-white/40' : 'text-[#141414]/50'
               }`}
             />
             <input
-              type="text"
+              type="search"
+              enterKeyHint="search"
               placeholder={lang === 'vi' ? 'Tìm hoa, mùa, nốt hương...' : 'Search species, season...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full pl-8 pr-4 py-1.5 border rounded-[20px] text-xs font-mono focus:outline-none backdrop-blur-xl ${
+              onBlur={() => {
+                window.scrollTo({ left: 0, top: window.scrollY, behavior: 'instant' as ScrollBehavior });
+              }}
+              className={`w-full pl-8 pr-7 py-1.5 border rounded-[20px] text-base sm:text-xs font-mono focus:outline-none backdrop-blur-xl ${
                 isDark
                   ? 'bg-black/40 border-white/20 text-white placeholder-white/40 focus:border-amber-400'
                   : 'bg-white/70 border-[#141414]/20 text-[#141414] placeholder-[#141414]/45 focus:border-[#141414]'
               }`}
             />
-          </div>
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className={`absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full ${
+                  isDark ? 'text-white/50 hover:text-white' : 'text-[#141414]/50 hover:text-[#141414]'
+                }`}
+                aria-label="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </form>
 
           {/* Close button */}
           <button
@@ -317,32 +342,64 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
           </div>
         </div>
 
-        {/* Mobile Search input */}
-        <div className="md:hidden pt-1">
+        {/* Mobile Search input (16px text-base prevents iOS/Android auto-zoom on focus) */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (document.activeElement instanceof HTMLElement) {
+              document.activeElement.blur();
+            }
+          }}
+          className="md:hidden pt-1"
+        >
           <div className="relative w-full">
             <Search
-              className={`w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 ${
+              className={`w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none ${
                 isDark ? 'text-white/40' : 'text-[#141414]/50'
               }`}
             />
             <input
-              type="text"
+              type="search"
+              enterKeyHint="search"
               placeholder={lang === 'vi' ? 'Tìm hoa, mùi hương, mùa...' : 'Search species, season...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full pl-8 pr-4 py-2 border rounded-[22px] text-xs font-mono focus:outline-none backdrop-blur-xl ${
+              onBlur={() => {
+                window.scrollTo({ left: 0, top: window.scrollY, behavior: 'instant' as ScrollBehavior });
+              }}
+              className={`w-full pl-9 pr-9 py-2 border rounded-[22px] text-base font-mono focus:outline-none backdrop-blur-xl ${
                 isDark
                   ? 'bg-black/50 border-white/20 text-white placeholder-white/40 focus:border-amber-400'
                   : 'bg-white/80 border-[#141414]/20 text-[#141414] placeholder-[#141414]/45 focus:border-[#141414]'
               }`}
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full ${
+                  isDark ? 'text-white/60 hover:text-white' : 'text-[#141414]/60 hover:text-[#141414]'
+                }`}
+                aria-label="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
-        </div>
+        </form>
 
       </div>
 
       {/* Main Content Area (Visual Grid of Floral Specimens) */}
       <main
+        onTouchStart={() => {
+          if (
+            document.activeElement instanceof HTMLInputElement ||
+            document.activeElement instanceof HTMLTextAreaElement
+          ) {
+            document.activeElement.blur();
+          }
+        }}
         className={`flex-1 overflow-y-auto p-4 sm:p-8 transition-colors ${
           isDark ? 'bg-[#0e0f0d]' : 'bg-[#dcd8cf]'
         }`}
@@ -497,6 +554,9 @@ export const CollectionCatalogModal: React.FC<CollectionCatalogModalProps> = ({
                         </span>
                         <span className={`font-bold flex-shrink-0 ${isDark ? 'text-amber-300' : 'text-[#141414]'}`}>
                           {(flower.priceVnd / 1000000).toFixed(1)}M
+                          <span className="font-normal opacity-65 ml-1 text-[10px]">
+                            (${resolveFlowerUsd(flower.priceVnd, flower.priceUsd)})
+                          </span>
                         </span>
                       </div>
                     </div>

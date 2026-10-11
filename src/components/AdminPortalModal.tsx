@@ -67,6 +67,13 @@ import {
   formatBotanicalLatin,
   formatProseNFC
 } from '../utils/textFormatter';
+import {
+  getUsdExchangeRate,
+  setUsdExchangeRate,
+  convertVndToUsd,
+  parseVndString,
+  syncLiveUsdExchangeRate
+} from '../utils/currency';
 import { ImageStudioModal, AspectRatioPreset } from './ImageStudioModal';
 import { AtelierInventoryAndTrendsTab } from './AtelierInventoryAndTrendsTab';
 
@@ -151,10 +158,12 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   
   // Branding Form State
   const [brandingForm, setBrandingForm] = useState(atelierData);
+  const [usdRate, setUsdRate] = useState<number>(() => getUsdExchangeRate());
 
   useEffect(() => {
     if (isOpen) {
       setBrandingForm(atelierData);
+      syncLiveUsdExchangeRate().then((rate) => setUsdRate(rate));
     }
   }, [isOpen, atelierData]);
   
@@ -776,6 +785,11 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       }
 
       updatedForm.galleryImages = rawGallery;
+
+      // Ensure USD price is always synced if VND price is set
+      if (updatedForm.priceVnd && (!updatedForm.priceUsd || updatedForm.priceUsd <= 0)) {
+        updatedForm.priceUsd = convertVndToUsd(updatedForm.priceVnd, usdRate);
+      }
 
       if (isAddingFlower) {
         await addFlower(updatedForm as Omit<FlowerItem, 'id' | 'indexNumber'>);
@@ -1711,28 +1725,83 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       </div>
 
                       <div>
-                        <label className="font-bold text-white block mb-1">Giá Tiền (VND) *</label>
+                        <label className="font-bold text-white block mb-1">
+                          Giá Tiền (VND) *
+                        </label>
                         <input
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
                           required
-                          value={flowerForm.priceVnd || 0}
-                          onChange={(e) =>
-                            setFlowerForm((prev) => ({ ...prev, priceVnd: Number(e.target.value) }))
+                          placeholder="VD: 3.500.000"
+                          value={
+                            flowerForm.priceVnd
+                              ? Number(flowerForm.priceVnd).toLocaleString('vi-VN')
+                              : ''
                           }
-                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
+                          onChange={(e) => {
+                            const nextVnd = parseVndString(e.target.value);
+                            const autoUsd = convertVndToUsd(nextVnd, usdRate);
+                            setFlowerForm((prev) => ({
+                              ...prev,
+                              priceVnd: nextVnd,
+                              priceUsd: autoUsd
+                            }));
+                          }}
+                          className="w-full px-3 py-2 bg-black/50 border border-amber-400/40 rounded-lg text-amber-300 font-mono font-bold focus:border-amber-400 focus:outline-none"
                         />
+                        <span className="text-[10px] font-mono text-white/55 block mt-1">
+                          Gõ số tiền VND → Tự động tính sang USD
+                        </span>
                       </div>
 
                       <div>
-                        <label className="font-bold text-white block mb-1">Giá Quy Đổi (USD)</label>
-                        <input
-                          type="number"
-                          value={flowerForm.priceUsd || 0}
-                          onChange={(e) =>
-                            setFlowerForm((prev) => ({ ...prev, priceUsd: Number(e.target.value) }))
-                          }
-                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
-                        />
+                        <div className="flex items-center justify-between mb-1 gap-1">
+                          <label className="font-bold text-emerald-300 block truncate">
+                            Giá Quy Đổi (USD) ⚡
+                          </label>
+                          <div className="flex items-center gap-1 text-[9px] font-mono text-amber-300/90 shrink-0" title="Tỷ giá quy đổi 1 USD sang VND">
+                            <span>1$=</span>
+                            <input
+                              type="number"
+                              value={usdRate}
+                              onChange={(e) => {
+                                const nextRate = Number(e.target.value) || 25000;
+                                setUsdRate(nextRate);
+                                if (nextRate >= 15000 && nextRate <= 40000) {
+                                  setUsdExchangeRate(nextRate);
+                                  setFlowerForm((prev) => ({
+                                    ...prev,
+                                    priceUsd: convertVndToUsd(prev.priceVnd, nextRate)
+                                  }));
+                                }
+                              }}
+                              className="w-14 px-1 py-0.5 bg-black/60 border border-amber-400/40 rounded text-amber-300 text-center font-mono text-[9px] focus:outline-none"
+                            />
+                            <span>đ</span>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400 font-mono font-bold">
+                            $
+                          </span>
+                          <input
+                            type="number"
+                            value={
+                              flowerForm.priceUsd ??
+                              convertVndToUsd(flowerForm.priceVnd, usdRate)
+                            }
+                            onChange={(e) =>
+                              setFlowerForm((prev) => ({ ...prev, priceUsd: Number(e.target.value) }))
+                            }
+                            className="w-full pl-7 pr-12 py-2 bg-black/50 border border-emerald-400/35 rounded-lg text-emerald-300 font-mono font-bold focus:border-emerald-400 focus:outline-none"
+                          />
+                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-emerald-400/70">
+                            USD
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-mono text-emerald-300/80 block mt-1">
+                          ✓ Tự động đổi từ {(flowerForm.priceVnd || 0).toLocaleString('vi-VN')} ₫
+                        </span>
                       </div>
 
                       <div>
@@ -2412,11 +2481,24 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                       <div>
                         <label className="font-bold text-white block mb-1">Chi Phí Dự Kiến / Pax (VND)</label>
                         <input
-                          type="number"
-                          value={workshopForm.pricePerPaxVnd || 750000}
-                          onChange={(e) => setWorkshopForm((prev) => ({ ...prev, pricePerPaxVnd: Number(e.target.value) }))}
-                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
+                          type="text"
+                          inputMode="numeric"
+                          value={
+                            workshopForm.pricePerPaxVnd
+                              ? Number(workshopForm.pricePerPaxVnd).toLocaleString('vi-VN')
+                              : ''
+                          }
+                          onChange={(e) =>
+                            setWorkshopForm((prev) => ({
+                              ...prev,
+                              pricePerPaxVnd: parseVndString(e.target.value)
+                            }))
+                          }
+                          className="w-full px-3 py-2 bg-black/50 border border-amber-400/40 rounded-lg text-amber-300 font-mono font-bold focus:border-amber-400 focus:outline-none"
                         />
+                        <span className="text-[10px] font-mono text-emerald-300/85 block mt-1">
+                          ⚡ Quy đổi tự động: ~${convertVndToUsd(workshopForm.pricePerPaxVnd || 750000, usdRate)} USD / pax
+                        </span>
                       </div>
 
                       <div>

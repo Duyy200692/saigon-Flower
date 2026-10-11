@@ -42,6 +42,15 @@
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
   }
+
+  /* Prevent iOS Safari & Mobile Browser Auto-Zoom on Input Focus (requires >= 16px) */
+  @media screen and (max-width: 768px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
 }
 
 /* Primary Luxury Editorial Display Font with 100% Vietnamese Diacritic Support */

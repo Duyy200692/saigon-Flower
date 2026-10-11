@@ -1064,6 +1064,9 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
                     >
                       {budget.toLocaleString('vi-VN')} đ
                     </span>
+                    <span className="font-mono text-[11px] opacity-70 ml-1.5">
+                      (~${Math.max(1, Math.round(budget / 25000))} USD)
+                    </span>
                   </label>
                   <input
                     type="range"

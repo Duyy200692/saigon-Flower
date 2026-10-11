@@ -84,16 +84,38 @@ export const IndexSlideOver: React.FC<IndexSlideOverProps> = ({
 
           {/* Search Bar */}
           <div className="p-4 border-b border-[#141414]/10 bg-[#dcd8cf]/50">
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#141414]/50" />
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (document.activeElement instanceof HTMLElement) {
+                  document.activeElement.blur();
+                }
+              }}
+              className="relative"
+            >
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#141414]/50 pointer-events-none" />
               <input
-                type="text"
+                type="search"
+                enterKeyHint="search"
                 placeholder={lang === 'vi' ? 'Tìm theo tên hoa, mùi hương, nguyên liệu...' : 'Search species, scent, stems...'}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-white/70 border border-[#141414]/20 rounded-lg text-xs font-sans placeholder-[#141414]/40 focus:outline-none focus:border-[#141414] transition-colors"
+                onBlur={() => {
+                  window.scrollTo({ left: 0, top: window.scrollY, behavior: 'instant' as ScrollBehavior });
+                }}
+                className="w-full pl-9 pr-8 py-2 bg-white/70 border border-[#141414]/20 rounded-lg text-base sm:text-xs font-sans placeholder-[#141414]/40 focus:outline-none focus:border-[#141414] transition-colors"
               />
-            </div>
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-[#141414]/50 hover:text-[#141414]"
+                  aria-label="Clear search"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </form>
 
             {/* Category Filter Pills (Functional interactive buttons) */}
             <div className="flex items-center gap-1.5 overflow-x-auto py-3 no-scrollbar">

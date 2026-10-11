@@ -4,6 +4,7 @@ import { FlowerItem, FLOWERS } from '../data/flowers';
 import { getSmartAlternativeFlowers } from '../data/inventoryAndTrends';
 import { useAtelier } from '../context/AtelierContext';
 import { formatTitleCase, formatDisplayUppercase } from '../utils/textFormatter';
+import { resolveFlowerUsd } from '../utils/currency';
 import { useTrackpadGallery } from '../hooks/useTrackpadGallery';
 
 interface FlowerDetailModalProps {
@@ -749,8 +750,8 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                   </span>
                   <div className={`text-lg sm:text-xl font-bold font-mono tabular-nums ${isDark ? 'text-white' : 'text-[#141414]'}`}>
                     {(flower.priceVnd || 0).toLocaleString('vi-VN')} VND
-                    <span className={`text-xs font-normal ml-1.5 hidden sm:inline ${isDark ? 'text-white/60' : 'text-[#141414]/65'}`}>
-                      (~${flower.priceUsd || 0} USD)
+                    <span className={`text-xs font-normal ml-1.5 inline-block ${isDark ? 'text-amber-300/85' : 'text-[#141414]/70'}`}>
+                      (~${resolveFlowerUsd(flower.priceVnd, flower.priceUsd)} USD)
                     </span>
                   </div>
                 </div>
