@@ -2939,25 +2939,6 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                               placeholder="Hoặc dán đường dẫn ảnh Poster (URL)..."
                               className="w-full px-2.5 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white font-mono text-[10px] focus:border-amber-400 focus:outline-none"
                             />
-
-                            {/* Optional click-through link to a catalog flower */}
-                            <div className="pt-1">
-                              <label className="text-[10px] font-mono text-white/55 block mb-1">
-                                Tùy chọn: Khi khách bấm vào Poster sẽ mở xem tác phẩm:
-                              </label>
-                              <select
-                                value={slide.linkedFlowerId || ''}
-                                onChange={(e) => updateSlideField({ linkedFlowerId: e.target.value })}
-                                className="w-full px-2.5 py-1.5 rounded-lg bg-black/70 border border-white/15 text-white/85 font-mono text-[11px] focus:border-amber-400 focus:outline-none"
-                              >
-                                <option value="">-- Chỉ hiển thị Poster (Không mở tác phẩm khi bấm) --</option>
-                                {flowers.map((f) => (
-                                  <option key={f.id} value={f.id}>
-                                    Mở tác phẩm #{f.indexNumber} · {f.name} ({f.vietnameseName})
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
                           </div>
                         </div>
                       );

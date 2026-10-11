@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAtelier } from '../context/AtelierContext';
 import { ATELIER_DATA, FlowerItem, HeroCoverSlide } from '../data/flowers';
@@ -14,11 +14,10 @@ interface HeroSectionProps {
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
   lang,
-  theme = 'light',
-  onSelectFlower
+  theme = 'light'
 }) => {
   const isDark = theme === 'dark';
-  const { atelierData, flowers } = useAtelier();
+  const { atelierData } = useAtelier();
 
   const slides: HeroCoverSlide[] =
     Array.isArray(atelierData.heroSlides) && atelierData.heroSlides.length > 0
@@ -28,28 +27,92 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   const [activeSlideIdx, setActiveSlideIdx] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
+  // Smooth horizontal touch & mouse drag swipe state
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffsetPx, setDragOffsetPx] = useState(0);
+  const dragStartXRef = useRef<number | null>(null);
+  const coverFrameRef = useRef<HTMLDivElement | null>(null);
+  const wheelCooldownRef = useRef<number>(0);
+
   const safeIdx = activeSlideIdx < slides.length ? activeSlideIdx : 0;
-  const currentSlide = slides[safeIdx] || slides[0];
 
-  const linkedFlower = flowers.find((f) => f.id === currentSlide?.linkedFlowerId);
-
-  // Auto-advance slides every 6s unless hovered
+  // Auto-advance slides every 6s unless hovered or dragging
   useEffect(() => {
-    if (slides.length <= 1 || isPaused) return;
+    if (slides.length <= 1 || isPaused || isDragging) return;
     const timer = setInterval(() => {
       setActiveSlideIdx((prev) => (prev + 1) % slides.length);
     }, 6000);
     return () => clearInterval(timer);
-  }, [slides.length, isPaused]);
+  }, [slides.length, isPaused, isDragging]);
+
+  // Support MacBook / laptop trackpad 2-finger horizontal swipe
+  useEffect(() => {
+    const el = coverFrameRef.current;
+    if (!el || slides.length <= 1) return;
+
+    const onWheel = (e: WheelEvent) => {
+      const absX = Math.abs(e.deltaX);
+      const absY = Math.abs(e.deltaY);
+      if (absX > absY && absX > 18) {
+        e.preventDefault();
+        const now = Date.now();
+        if (now - wheelCooldownRef.current < 420) return;
+        wheelCooldownRef.current = now;
+        setDragOffsetPx(0);
+        if (e.deltaX > 0) {
+          setActiveSlideIdx((prev) => (prev + 1) % slides.length);
+        } else {
+          setActiveSlideIdx((prev) => (prev - 1 + slides.length) % slides.length);
+        }
+      }
+    };
+
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [slides.length]);
 
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
+    setDragOffsetPx(0);
     setActiveSlideIdx((prev) => (prev - 1 + slides.length) % slides.length);
   };
 
   const handleNext = (e: React.MouseEvent) => {
     e.stopPropagation();
+    setDragOffsetPx(0);
     setActiveSlideIdx((prev) => (prev + 1) % slides.length);
+  };
+
+  const handleSwipeStart = (clientX: number) => {
+    dragStartXRef.current = clientX;
+    setIsDragging(true);
+    setDragOffsetPx(0);
+  };
+
+  const handleSwipeMove = (clientX: number) => {
+    if (!isDragging || dragStartXRef.current === null) return;
+    const deltaX = clientX - dragStartXRef.current;
+    // Subtle rubber-band resistance if dragging past first or last slide
+    const isAtEdge =
+      slides.length <= 1 ||
+      (safeIdx === 0 && deltaX > 0) ||
+      (safeIdx === slides.length - 1 && deltaX < 0);
+    setDragOffsetPx(isAtEdge ? deltaX * 0.28 : deltaX);
+  };
+
+  const handleSwipeEnd = () => {
+    if (!isDragging) return;
+    const threshold = 40;
+    if (slides.length > 1) {
+      if (dragOffsetPx <= -threshold) {
+        setActiveSlideIdx((prev) => (prev + 1) % slides.length);
+      } else if (dragOffsetPx >= threshold) {
+        setActiveSlideIdx((prev) => (prev - 1 + slides.length) % slides.length);
+      }
+    }
+    setIsDragging(false);
+    setDragOffsetPx(0);
+    dragStartXRef.current = null;
   };
 
   return (
@@ -61,7 +124,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             isDark ? 'text-[#ede9df]' : 'text-[#141414]'
           }`}
         >
-          JU ET SAIGON
+          {atelierData.name || 'JU ET SAIGON'}
         </h1>
         <p
           className={`text-sm sm:text-lg font-editorial-serif italic tracking-wide transition-colors ${
@@ -72,39 +135,64 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         </p>
       </div>
 
-      {/* Pure Poster Cover Frame — Fixed 16:9 Standard Horizontal Aspect Ratio */}
-      {currentSlide && (
+      {/* Pure Poster Cover Frame — Fixed 16:9 Horizontal Aspect Ratio & Smooth Horizontal Swipe Track */}
+      {slides.length > 0 && (
         <div
+          ref={coverFrameRef}
           onMouseEnter={() => setIsPaused(true)}
-          onMouseLeave={() => setIsPaused(false)}
-          onClick={() => {
-            if (linkedFlower && onSelectFlower) {
-              onSelectFlower(linkedFlower);
-            }
+          onMouseLeave={() => {
+            setIsPaused(false);
+            if (isDragging) handleSwipeEnd();
           }}
-          className={`w-full aspect-[16/9] rounded-2xl sm:rounded-3xl overflow-hidden border shadow-2xl relative group transition-all duration-500 ${
-            linkedFlower ? 'cursor-pointer' : ''
+          onTouchStart={(e) => handleSwipeStart(e.touches[0].clientX)}
+          onTouchMove={(e) => handleSwipeMove(e.touches[0].clientX)}
+          onTouchEnd={handleSwipeEnd}
+          onTouchCancel={handleSwipeEnd}
+          onMouseDown={(e) => handleSwipeStart(e.clientX)}
+          onMouseMove={(e) => handleSwipeMove(e.clientX)}
+          onMouseUp={handleSwipeEnd}
+          className={`w-full aspect-[16/9] rounded-2xl sm:rounded-3xl overflow-hidden border shadow-2xl relative group select-none touch-pan-y ${
+            isDragging ? 'cursor-grabbing' : 'cursor-grab'
           } ${
             isDark
               ? 'bg-[#171815] border-white/15'
               : 'bg-[#dcd8cf] border-[#141414]/15'
           }`}
         >
-          <img
-            key={currentSlide.id + currentSlide.image}
-            src={currentSlide.image}
-            alt="JU et Saigon Seasonal Poster Cover"
-            referrerPolicy="no-referrer"
-            className="w-full h-full object-cover object-center block animate-fadeIn"
-          />
+          {/* Hardware-Accelerated Horizontal Glide Track */}
+          <div
+            className="flex w-full h-full will-change-transform"
+            style={{
+              transform: `translate3d(calc(-${safeIdx * 100}% + ${dragOffsetPx}px), 0, 0)`,
+              transition: isDragging
+                ? 'none'
+                : 'transform 650ms cubic-bezier(0.22, 1, 0.36, 1)'
+            }}
+          >
+            {slides.map((slide, idx) => (
+              <div
+                key={slide.id || idx}
+                className="w-full h-full shrink-0 grow-0 basis-full overflow-hidden"
+              >
+                <img
+                  src={slide.image}
+                  alt={`JU et Saigon Seasonal Poster Cover ${idx + 1}`}
+                  referrerPolicy="no-referrer"
+                  draggable={false}
+                  className="w-full h-full object-cover object-center block select-none pointer-events-none"
+                />
+              </div>
+            ))}
+          </div>
 
-          {/* Subtle Left/Right Arrows & Dots ONLY on hover when multiple poster slides exist */}
+          {/* Subtle Left/Right Arrows & Dots when multiple poster slides exist */}
           {slides.length > 1 && (
             <>
               <button
                 type="button"
                 onClick={handlePrev}
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/45 hover:bg-black/75 text-white backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                onMouseDown={(e) => e.stopPropagation()}
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/45 hover:bg-black/75 text-white backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                 aria-label="Poster trước"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -112,7 +200,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <button
                 type="button"
                 onClick={handleNext}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/45 hover:bg-black/75 text-white backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                onMouseDown={(e) => e.stopPropagation()}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/45 hover:bg-black/75 text-white backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                 aria-label="Poster tiếp theo"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -120,14 +209,18 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
               <div
                 onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
                 className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/35 backdrop-blur-sm"
               >
                 {slides.map((s, idx) => (
                   <button
                     key={s.id || idx}
                     type="button"
-                    onClick={() => setActiveSlideIdx(idx)}
-                    className={`h-1.5 rounded-full transition-all ${
+                    onClick={() => {
+                      setDragOffsetPx(0);
+                      setActiveSlideIdx(idx);
+                    }}
+                    className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
                       idx === safeIdx ? 'w-5 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/80'
                     }`}
                     aria-label={`Poster ${idx + 1}`}

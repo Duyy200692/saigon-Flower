@@ -67,7 +67,7 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
       {/* 3-column mosaic grid matching classic editorial atelier */}
       <div
         ref={gridRef}
-        className={`grid grid-cols-3 gap-2 sm:gap-3 p-2.5 sm:p-4 rounded-2xl sm:rounded-3xl border shadow-2xl relative overflow-visible transition-colors duration-300 ${
+        className={`grid grid-cols-3 gap-2.5 sm:gap-4 p-2.5 sm:p-4 rounded-2xl sm:rounded-3xl border shadow-2xl relative overflow-hidden transition-colors duration-300 ${
           isDark
             ? 'bg-[#171815] border-white/15'
             : 'bg-[#dcd8cf] border-[#141414]/15'
@@ -83,26 +83,14 @@ export const BotanicalMatrix: React.FC<BotanicalMatrixProps> = ({
               onClick={() => handleTileClick(flower)}
               onMouseEnter={() => handleMouseEnter(flower)}
               onMouseLeave={handleMouseLeave}
-              className={`group relative aspect-[3/4] cursor-pointer transition-all duration-300 ease-out select-none active:scale-95 will-change-transform ${
-                isHovered
-                  ? isDark
-                    ? 'z-30 scale-110 sm:scale-120 rounded-xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.95)] ring-1 ring-white/50'
-                    : 'z-30 scale-110 sm:scale-120 rounded-xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.35)] ring-1 ring-[#141414]/30'
-                  : 'z-10 scale-100 rounded-lg hover:z-20'
+              className={`group relative aspect-[3/4] cursor-pointer rounded-xl sm:rounded-2xl overflow-hidden border transition-all duration-300 ease-out select-none active:scale-[0.98] ${
+                isDark
+                  ? 'bg-[#1f1e1c] border-white/10 hover:border-amber-300/50 hover:shadow-xl'
+                  : 'bg-[#dcd8cf] border-[#141414]/10 hover:border-[#141414]/40 hover:shadow-xl'
               }`}
-              style={{
-                transformOrigin: 'center center',
-                transform: 'translate3d(0,0,0)'
-              }}
             >
               {/* Inner card container for clipping image */}
-              <div
-                className={`relative w-full h-full overflow-hidden transition-all duration-300 ${
-                  isDark ? 'bg-[#1f1e1c]' : 'bg-[#dcd8cf]'
-                } ${
-                  isHovered ? 'rounded-xl' : 'rounded-lg'
-                }`}
-              >
+              <div className="relative w-full h-full overflow-hidden">
                 {/* Ambient Blur Backdrop when viewing uncropped external aspect ratios in Dark Mode */}
                 {isDark && gridFitMode === 'contain' && (
                   <img
