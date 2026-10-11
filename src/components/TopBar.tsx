@@ -54,10 +54,10 @@ export const TopBar: React.FC<TopBarProps> = ({
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
         
         {/* Zone 1: Custom Logo or Brand Wordmark in display face (Auto switches between Black Logo & White Logo by theme) */}
-        <div className="flex items-center gap-3 min-w-0 flex-1 sm:flex-initial pr-2">
+        <div className="flex items-center min-w-0 flex-1 sm:flex-initial pr-2">
           <a
             href="#"
-            className="flex items-center gap-2 hover:opacity-85 transition-opacity min-w-0"
+            className="flex items-center hover:opacity-85 transition-opacity min-w-0"
           >
             {activeLogoSrc ? (
               <img
@@ -81,24 +81,17 @@ export const TopBar: React.FC<TopBarProps> = ({
               </span>
             )}
           </a>
-          <span
-            className={`hidden lg:inline-block text-[11px] tracking-widest uppercase font-mono shrink-0 ${
-              isDark ? 'text-[#ede9df]/55' : 'text-[#141414]/60'
-            }`}
-          >
-            {lang === 'vi' ? 'Sài Gòn' : 'Saigon'}
-          </span>
         </div>
 
         {/* Zone 2: Clean Text Navigation Links */}
         <nav
-          className={`hidden md:flex items-center gap-3.5 lg:gap-7 text-xs font-semibold tracking-widest uppercase ${
+          className={`hidden md:flex items-center gap-3.5 lg:gap-6 text-xs font-semibold tracking-widest uppercase whitespace-nowrap ${
             isDark ? 'text-[#ede9df]/75' : 'text-[#141414]/75'
           }`}
         >
           <button
             onClick={onOpenIndex}
-            className={`transition-colors text-left ${
+            className={`transition-colors text-left whitespace-nowrap ${
               isDark ? 'hover:text-white' : 'hover:text-[#141414]'
             }`}
           >
@@ -107,7 +100,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           {onOpenWorkshop ? (
             <button
               onClick={onOpenWorkshop}
-              className={`transition-colors font-bold ${
+              className={`transition-colors font-bold whitespace-nowrap ${
                 isDark ? 'text-amber-300 hover:text-amber-200' : 'text-amber-900 hover:text-[#141414]'
               }`}
             >
@@ -116,7 +109,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           ) : (
             <a
               href="#workshop"
-              className={`transition-colors font-bold ${
+              className={`transition-colors font-bold whitespace-nowrap ${
                 isDark ? 'text-amber-300 hover:text-amber-200' : 'text-amber-900 hover:text-[#141414]'
               }`}
             >
@@ -126,17 +119,17 @@ export const TopBar: React.FC<TopBarProps> = ({
           {onOpenSommelier && (
             <button
               onClick={onOpenSommelier}
-              className={`transition-colors flex items-center gap-1 ${
+              className={`transition-colors flex items-center gap-1 whitespace-nowrap ${
                 isDark ? 'hover:text-amber-300' : 'hover:text-[#141414]'
               }`}
             >
-              <Compass className="w-3.5 h-3.5" />
+              <Compass className="w-3.5 h-3.5 shrink-0" />
               <span>{lang === 'vi' ? 'Cố Vấn Hoa (Sommelier)' : 'Sommelier'}</span>
             </button>
           )}
           <a
             href="#philosophy"
-            className={`transition-colors ${
+            className={`transition-colors whitespace-nowrap ${
               isDark ? 'hover:text-white' : 'hover:text-[#141414]'
             }`}
           >
