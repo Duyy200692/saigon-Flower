@@ -16,10 +16,23 @@ import {
   Heart,
   Droplets,
   Camera,
-  ShieldCheck
+  ShieldCheck,
+  Copy,
+  Download,
+  FileText,
+  Check
 } from 'lucide-react';
 import { FlowerItem } from '../data/flowers';
 import { getSmartAlternativeFlowers } from '../data/inventoryAndTrends';
+import { convertVndToUsd } from '../utils/currency';
+import {
+  buildOrderSummaryText,
+  copyTextToClipboard,
+  downloadOrderBillPng,
+  generateOrderBillDataUrl,
+  formatOccasionLabel,
+  formatSubstitutionPolicy
+} from '../utils/orderInvoice';
 import {
   useAtelier,
   WaxSealGiftCard,
@@ -108,6 +121,9 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<BespokeOrder | null>(null);
   const [trackQuery, setTrackQuery] = useState('');
+  const [copiedOrderNotice, setCopiedOrderNotice] = useState<string | null>(null);
+  const [downloadingBillId, setDownloadingBillId] = useState<string | null>(null);
+  const [previewBillDataUrl, setPreviewBillDataUrl] = useState<string | null>(null);
 
   useEffect(() => {
     setActiveFlower(selectedFlower);
@@ -176,27 +192,115 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
         giftCard: giftCard.enabled ? giftCard : undefined
       });
       setCreatedOrder(savedOrder);
+      setPreviewBillDataUrl(null);
+
+      // Automatically copy the formatted order bill text into clipboard immediately on confirm
+      const summaryText = buildOrderSummaryText(savedOrder, {
+        atelierName: atelierData.name,
+        phone: atelierData.phoneFormatted || atelierData.phone,
+        address: atelierData.addressVi
+      });
+      const copied = await copyTextToClipboard(summaryText);
+      if (copied) {
+        setCopiedOrderNotice(
+          lang === 'vi'
+            ? '✓ Đã tự động sao chép nội dung đơn hàng vào bộ nhớ tạm! Khi mở Zalo, bạn chỉ cần chạm Dán (Paste) & Gửi.'
+            : '✓ Order summary automatically copied to clipboard! Simply Paste in Zalo chat.'
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleSendZalo = (orderRef?: BespokeOrder | null) => {
-    const targetOrder = orderRef || liveOrder;
-    const flowerText = selectedFlower
-      ? `Mẫu: ${selectedFlower.name} (${selectedFlower.vietnameseName})`
-      : moodboardFlowers.length > 0
-        ? `Moodboard yêu thích: ${moodboardFlowers.map((f) => f.name).join(', ')}`
-        : 'Thiết kế hoa may đo riêng';
-    const cardSummary =
-      giftCard.enabled && giftCard.message
-        ? `\n- Thiệp đóng dấu sáp gửi "${giftCard.recipient || 'Người thương'}": "${giftCard.message}" (Ký tên: ${giftCard.sender || name})`
-        : '';
-    const codeText = targetOrder ? `\n- Mã đơn hệ thống: ${targetOrder.orderCode}` : '';
+  const handleCopyOrderText = async (orderTarget: BespokeOrder) => {
+    const summaryText = buildOrderSummaryText(orderTarget, {
+      atelierName: atelierData.name,
+      phone: atelierData.phoneFormatted || atelierData.phone,
+      address: atelierData.addressVi
+    });
+    const ok = await copyTextToClipboard(summaryText);
+    if (ok) {
+      setCopiedOrderNotice(
+        lang === 'vi'
+          ? `✓ Đã sao chép phiếu đơn ${orderTarget.orderCode} vào bộ nhớ tạm!`
+          : `✓ Copied order ${orderTarget.orderCode} to clipboard!`
+      );
+    }
+  };
 
-    const message = encodeURIComponent(
-      `Chào ${atelierData.name || 'JU et Saigon'}! Tôi muốn xác nhận tư vấn đặt hoa:${codeText}\n- Khách hàng: ${name || targetOrder?.customerName || 'Quý khách'}\n- Số điện thoại: ${phone || targetOrder?.customerPhone}\n- ${flowerText}\n- Dịp: ${occasion}\n- Ngày giao: ${date || targetOrder?.deliveryDate || 'Sớm nhất'} (${deliveryTimeSlot || targetOrder?.deliveryTimeSlot || 'Theo lịch hẹn'})\n- Khu vực: ${district}, TP.HCM\n- Ngân sách: ${budget.toLocaleString('vi-VN')} VND${cardSummary}\n- Ghi chú: ${notes}`
-    );
+  const handleDownloadBillImage = async (orderTarget: BespokeOrder) => {
+    try {
+      setDownloadingBillId(orderTarget.id);
+      const dataUrl = await downloadOrderBillPng(orderTarget, {
+        atelierName: atelierData.name,
+        phone: atelierData.phoneFormatted || atelierData.phone,
+        address: atelierData.addressVi,
+        email: atelierData.email,
+        website: atelierData.website,
+        lang
+      });
+      setPreviewBillDataUrl(dataUrl);
+    } finally {
+      setDownloadingBillId(null);
+    }
+  };
+
+  const handlePreviewBillImage = async (orderTarget: BespokeOrder) => {
+    if (previewBillDataUrl) {
+      setPreviewBillDataUrl(null);
+      return;
+    }
+    try {
+      setDownloadingBillId(orderTarget.id);
+      const dataUrl = await generateOrderBillDataUrl(orderTarget, {
+        atelierName: atelierData.name,
+        phone: atelierData.phoneFormatted || atelierData.phone,
+        address: atelierData.addressVi,
+        email: atelierData.email,
+        website: atelierData.website,
+        lang
+      });
+      setPreviewBillDataUrl(dataUrl);
+    } finally {
+      setDownloadingBillId(null);
+    }
+  };
+
+  const handleSendZalo = async (orderRef?: BespokeOrder | null) => {
+    const targetOrder = orderRef || liveOrder;
+    let plainSummary = '';
+
+    if (targetOrder) {
+      plainSummary = buildOrderSummaryText(targetOrder, {
+        atelierName: atelierData.name,
+        phone: atelierData.phoneFormatted || atelierData.phone,
+        address: atelierData.addressVi
+      });
+    } else {
+      const flowerText = selectedFlower
+        ? `Mẫu: ${selectedFlower.name} (${selectedFlower.vietnameseName})`
+        : moodboardFlowers.length > 0
+          ? `Moodboard yêu thích: ${moodboardFlowers.map((f) => f.name).join(', ')}`
+          : 'Thiết kế hoa may đo riêng';
+      const cardSummary =
+        giftCard.enabled && giftCard.message
+          ? `\n- Thiệp đóng dấu sáp gửi "${giftCard.recipient || 'Người thương'}": "${giftCard.message}" (Ký tên: ${giftCard.sender || name})`
+          : '';
+      plainSummary = `Chào ${atelierData.name || 'JU et Saigon'}! Tôi muốn xác nhận tư vấn đặt hoa:\n- Khách hàng: ${name || 'Quý khách'}\n- Số điện thoại: ${phone}\n- ${flowerText}\n- Dịp: ${occasion}\n- Ngày giao: ${date || 'Sớm nhất'} (${deliveryTimeSlot || 'Theo lịch hẹn'})\n- Khu vực: ${district}, TP.HCM\n- Ngân sách: ${budget.toLocaleString('vi-VN')} VND${cardSummary}\n- Ghi chú: ${notes}`;
+    }
+
+    // Automatically copy to clipboard before opening Zalo so the user can always Paste in 1 tap
+    const copied = await copyTextToClipboard(plainSummary);
+    if (copied) {
+      setCopiedOrderNotice(
+        lang === 'vi'
+          ? '✓ Đã tự động sao chép nội dung đơn vào bộ nhớ tạm! Bạn chỉ cần chạm "Dán (Paste)" trong khung chat Zalo.'
+          : '✓ Order summary copied to clipboard! Simply Paste into the Zalo chat window.'
+      );
+    }
+
+    const message = encodeURIComponent(plainSummary);
     const link = document.createElement('a');
     link.href = `https://zalo.me/${cleanPhone}?text=${message}`;
     link.target = '_blank';
@@ -564,6 +668,47 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
                           <p>{ord.adminNote}</p>
                         </div>
                       )}
+
+                      {/* Quick Actions for Tracked Order: Download Bill & Copy to Zalo */}
+                      <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-current/10">
+                        <button
+                          type="button"
+                          onClick={() => handleCopyOrderText(ord)}
+                          className={`px-3 py-1.5 rounded-lg text-[11px] font-mono border flex items-center gap-1.5 transition-colors ${
+                            isDark
+                              ? 'bg-white/5 hover:bg-white/15 border-white/15 text-white'
+                              : 'bg-[#141414]/5 hover:bg-[#141414]/10 border-[#141414]/15 text-[#141414]'
+                          }`}
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>{lang === 'vi' ? 'Sao Chép Đơn' : 'Copy Text'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadBillImage(ord)}
+                          disabled={downloadingBillId === ord.id}
+                          className="px-3 py-1.5 rounded-lg text-[11px] font-mono font-bold bg-amber-400 hover:bg-amber-300 text-[#141414] flex items-center gap-1.5 transition-colors"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>
+                            {downloadingBillId === ord.id
+                              ? lang === 'vi'
+                                ? 'Đang tạo Bill...'
+                                : 'Generating...'
+                              : lang === 'vi'
+                                ? 'Tải Phiếu Bill (.PNG)'
+                                : 'Download Bill (.PNG)'}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSendZalo(ord)}
+                          className="px-3 py-1.5 rounded-lg text-[11px] font-mono font-bold bg-[#0068FF] hover:opacity-90 text-white flex items-center gap-1.5 transition-opacity"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>{lang === 'vi' ? 'Copy & Mở Zalo' : 'Copy & Open Zalo'}</span>
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -571,14 +716,14 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
             </div>
           ) : liveOrder ? (
             /* CONFIRMATION & LIVE RECEIPT STATE */
-            <div className="p-6 sm:p-10 space-y-6 animate-fadeIn">
+            <div className="p-5 sm:p-9 space-y-5 animate-fadeIn">
               <div className="text-center space-y-2">
                 <div
-                  className={`w-14 h-14 rounded-full mx-auto flex items-center justify-center shadow-lg ${
+                  className={`w-12 h-12 rounded-full mx-auto flex items-center justify-center shadow-lg ${
                     isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#141414] text-emerald-400'
                   }`}
                 >
-                  <CheckCircle2 className="w-7 h-7" />
+                  <CheckCircle2 className="w-6 h-6" />
                 </div>
 
                 <span className="inline-block px-3 py-1 rounded-full bg-amber-400/20 border border-amber-400/40 font-mono text-xs font-bold">
@@ -587,8 +732,8 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
 
                 <h3 className="text-2xl sm:text-3xl font-fleur-title uppercase tracking-wide">
                   {lang === 'vi'
-                    ? 'ĐÃ LƯU ĐƠN HÀNG LÊN HỆ THỐNG ATELIER'
-                    : 'BESPOKE ORDER CONFIRMED & SYNCED'}
+                    ? 'PHIẾU XÁC NHẬN ĐẶT HOA ATELIER'
+                    : 'BESPOKE ORDER INVOICE & RECEIPT'}
                 </h3>
                 <p
                   className={`text-xs sm:text-sm font-sans max-w-lg mx-auto ${
@@ -596,12 +741,198 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
                   }`}
                 >
                   {lang === 'vi'
-                    ? `Cảm ơn ${liveOrder.customerName}! Yêu cầu đặt hoa của bạn đã được đồng bộ trực tiếp tới Bảng Quản Trị của ${atelierData.name || 'JU et Saigon'}. Nghệ nhân sẽ liên hệ qua số ${liveOrder.customerPhone} trong 15–30 phút.`
-                    : `Thank you ${liveOrder.customerName}! Your bespoke request (${liveOrder.orderCode}) is now live with our florists.`}
+                    ? `Cảm ơn ${liveOrder.customerName}! Đơn hàng đã tự động lưu lên Bảng Quản Trị của ${atelierData.name || 'JU et Saigon'} và sao chép sẵn vào bộ nhớ tạm của bạn.`
+                    : `Thank you ${liveOrder.customerName}! Your bespoke request (${liveOrder.orderCode}) is synced with our florists and copied to your clipboard.`}
                 </p>
               </div>
 
-              {/* Live 4-step Order Tracker */}
+              {/* Automatic Clipboard Copy Confirmation Banner */}
+              {copiedOrderNotice && (
+                <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/35 text-emerald-500 dark:text-emerald-300 text-xs font-mono flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Check className="w-4 h-4 shrink-0" />
+                    <span className="font-bold">{copiedOrderNotice}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Primary Zalo Auto-Copy & Direct Call CTA */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => handleSendZalo(liveOrder)}
+                  className="w-full sm:flex-1 min-h-[46px] px-5 py-3 rounded-xl bg-[#0068FF] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 transition-opacity flex items-center justify-center gap-2 shadow-md"
+                >
+                  <MessageSquare className="w-4 h-4 shrink-0" />
+                  <span>
+                    {lang === 'vi'
+                      ? `Tự Động Copy Đơn & Mở Zalo (${atelierData.phoneFormatted || atelierData.phone})`
+                      : 'Auto-Copy Order & Open Zalo'}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleDownloadBillImage(liveOrder)}
+                  disabled={downloadingBillId === liveOrder.id}
+                  className="w-full sm:w-auto min-h-[46px] px-5 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#141414] text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 shadow-md"
+                >
+                  <Download className="w-4 h-4 shrink-0" />
+                  <span>
+                    {downloadingBillId === liveOrder.id
+                      ? lang === 'vi'
+                        ? 'Đang Xuất Bill...'
+                        : 'Exporting Bill...'
+                      : lang === 'vi'
+                        ? 'Tải Ảnh Phiếu Bill (.PNG)'
+                        : 'Download Bill Image (.PNG)'}
+                  </span>
+                </button>
+
+                <a
+                  href={`tel:${cleanPhone}`}
+                  className={`w-full sm:w-auto min-h-[46px] px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-md ${
+                    isDark
+                      ? 'bg-[#ede9df] text-[#141414] hover:bg-white'
+                      : 'bg-[#141414] text-[#dcd8cf] hover:bg-[#2c2a27]'
+                  }`}
+                >
+                  <PhoneCall className="w-4 h-4 shrink-0" />
+                  <span>{lang === 'vi' ? 'Gọi Hotline' : 'Call Hotline'}</span>
+                </a>
+              </div>
+
+              {/* PRINTABLE / VISUAL ORDER BILL CARD ("TỜ BILL ĐƠN HÀNG") */}
+              <div className="p-5 sm:p-6 rounded-2xl bg-[#f6f2e9] text-[#141414] border-2 border-[#141414] shadow-lg space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-[#141414] pb-3">
+                  <div>
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-[#141414]/60 block">
+                      ATELIER BOTANIQUE · OFFICIAL ORDER BILL
+                    </span>
+                    <h4 className="text-lg sm:text-xl font-fleur-title font-bold uppercase text-[#141414]">
+                      {atelierData.name || 'JU ET SAIGON'} — PHIẾU ĐẶT HOA
+                    </h4>
+                  </div>
+                  <div className="text-right font-mono">
+                    <span className="inline-block px-2.5 py-0.5 rounded bg-[#141414] text-amber-300 text-xs font-bold">
+                      #{liveOrder.orderCode}
+                    </span>
+                    <span className="block text-[10px] text-[#141414]/65 mt-1">
+                      {new Date(liveOrder.createdAt || Date.now()).toLocaleString('vi-VN')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bill Specifications Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 text-xs border-b border-[#141414]/20 pb-4">
+                  <div className="flex justify-between sm:block">
+                    <span className="text-[#141414]/60 font-mono text-[10px] uppercase block">
+                      {lang === 'vi' ? 'Khách hàng:' : 'Client:'}
+                    </span>
+                    <span className="font-bold text-[#141414]">{liveOrder.customerName}</span>
+                  </div>
+                  <div className="flex justify-between sm:block">
+                    <span className="text-[#141414]/60 font-mono text-[10px] uppercase block">
+                      {lang === 'vi' ? 'Số điện thoại:' : 'Phone:'}
+                    </span>
+                    <span className="font-bold font-mono text-[#141414]">
+                      {liveOrder.customerPhone}
+                    </span>
+                  </div>
+                  <div className="flex justify-between sm:block">
+                    <span className="text-[#141414]/60 font-mono text-[10px] uppercase block">
+                      {lang === 'vi' ? 'Khu vực & Lịch giao:' : 'Delivery Area & Time:'}
+                    </span>
+                    <span className="font-semibold text-[#141414]">
+                      {liveOrder.district}, TP.HCM · {liveOrder.deliveryDate} (
+                      {liveOrder.deliveryTimeSlot || 'Theo lịch hẹn'})
+                    </span>
+                  </div>
+                  <div className="flex justify-between sm:block">
+                    <span className="text-[#141414]/60 font-mono text-[10px] uppercase block">
+                      {lang === 'vi' ? 'Dịp tặng & Chính sách hoa:' : 'Occasion & Policy:'}
+                    </span>
+                    <span className="font-semibold text-[#141414]">
+                      {formatOccasionLabel(liveOrder.occasion, lang)} ·{' '}
+                      {formatSubstitutionPolicy(liveOrder.substitutionPolicy, lang)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Item & Total Price Row */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 rounded-xl bg-[#141414]/5 border border-[#141414]/15">
+                  <div>
+                    <span className="text-[10px] font-mono uppercase text-[#141414]/60 block">
+                      {lang === 'vi' ? 'Tác phẩm hoa đã chọn:' : 'Selected Floral Piece:'}
+                    </span>
+                    <span className="text-sm font-bold text-[#141414]">{liveOrder.flowerName}</span>
+                  </div>
+                  <div className="sm:text-right font-mono">
+                    <span className="text-[10px] uppercase text-[#141414]/60 block">
+                      {lang === 'vi' ? 'Tổng ngân sách:' : 'Total Budget:'}
+                    </span>
+                    <span className="text-base font-bold text-[#141414]">
+                      {liveOrder.budgetVnd.toLocaleString('vi-VN')} VND{' '}
+                      <span className="text-xs font-normal text-[#141414]/70">
+                        (~${convertVndToUsd(liveOrder.budgetVnd).toLocaleString('en-US')} USD)
+                      </span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bill Action Footer: Copy Text vs Preview PNG Bill */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                  <span className="text-[11px] font-mono text-[#141414]/65">
+                    {lang === 'vi'
+                      ? '💡 Tải ảnh Bill (.PNG) hoặc dán văn bản đã copy sẵn vào khung chat Zalo.'
+                      : '💡 Download Bill (.PNG) or paste the auto-copied text into Zalo.'}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleCopyOrderText(liveOrder)}
+                      className="px-3 py-1.5 rounded-lg bg-[#141414]/10 hover:bg-[#141414]/20 text-[#141414] font-mono text-[11px] font-bold flex items-center gap-1.5 transition-colors"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>{lang === 'vi' ? 'Copy Lại Văn Bản' : 'Copy Text'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handlePreviewBillImage(liveOrder)}
+                      className="px-3 py-1.5 rounded-lg bg-[#141414] hover:bg-[#2c2a27] text-[#f6f2e9] font-mono text-[11px] font-bold flex items-center gap-1.5 transition-colors"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>
+                        {previewBillDataUrl
+                          ? lang === 'vi'
+                            ? 'Ẩn Ảnh Phiếu Bill'
+                            : 'Hide Bill Image'
+                          : lang === 'vi'
+                            ? 'Xem Ảnh Bill Để Lưu'
+                            : 'Preview Bill Image'}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Rendered PNG Image Preview (for mobile long-press save/share to Zalo) */}
+                {previewBillDataUrl && (
+                  <div className="pt-3 border-t border-[#141414]/15 space-y-2 animate-fadeIn">
+                    <p className="text-[11px] font-mono text-center text-[#141414]/70">
+                      {lang === 'vi'
+                        ? '📱 Trên điện thoại: Bạn có thể chạm giữ vào ảnh Phiếu Bill bên dưới để "Lưu hình ảnh" hoặc "Chia sẻ qua Zalo".'
+                        : '📱 On mobile: Long-press the Bill image below to Save to Photos or Share via Zalo.'}
+                    </p>
+                    <img
+                      src={previewBillDataUrl}
+                      alt={`Order Bill ${liveOrder.orderCode}`}
+                      className="w-full max-w-md mx-auto rounded-lg border border-[#141414]/25 shadow-md"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Live 6-step Order Tracker */}
               <div
                 className={`p-4 rounded-2xl border space-y-3 ${
                   isDark ? 'bg-white/5 border-white/15' : 'bg-white/75 border-[#141414]/15'
@@ -650,37 +981,6 @@ export const BespokeOrderModal: React.FC<BespokeOrderModalProps> = ({
                   </div>
                 </div>
               )}
-
-              {/* Quick action buttons */}
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-                <button
-                  onClick={() => handleSendZalo(liveOrder)}
-                  className="w-full sm:w-auto min-h-[44px] px-6 py-3 rounded-full bg-[#0068FF] text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-md"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  <span>
-                    {lang === 'vi'
-                      ? `Gửi Kèm Qua Zalo (${atelierData.phoneFormatted || atelierData.phone})`
-                      : 'Connect via Zalo'}
-                  </span>
-                </button>
-
-                <a
-                  href={`tel:${cleanPhone}`}
-                  className={`w-full sm:w-auto min-h-[44px] px-6 py-3 rounded-full text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-md ${
-                    isDark
-                      ? 'bg-[#ede9df] text-[#141414] hover:bg-white'
-                      : 'bg-[#141414] text-[#dcd8cf] hover:bg-[#2c2a27]'
-                  }`}
-                >
-                  <PhoneCall className="w-4 h-4" />
-                  <span>
-                    {lang === 'vi'
-                      ? `Gọi Hotline: ${atelierData.phoneFormatted || atelierData.phone}`
-                      : 'Call Atelier Directly'}
-                  </span>
-                </a>
-              </div>
             </div>
           ) : (
             /* BESPOKE ORDER + WAX-SEAL CARD STUDIO FORM */

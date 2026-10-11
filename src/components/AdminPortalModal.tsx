@@ -42,7 +42,9 @@ import {
   ArrowRight,
   Clock,
   Camera,
-  CheckSquare
+  CheckSquare,
+  Copy,
+  Download
 } from 'lucide-react';
 import {
   useAtelier,
@@ -74,6 +76,14 @@ import {
   parseVndString,
   syncLiveUsdExchangeRate
 } from '../utils/currency';
+import {
+  buildOrderSummaryText,
+  buildQcApprovalMessageText,
+  copyTextToClipboard,
+  copyDataUrlImageToClipboard,
+  downloadDataUrlImage,
+  downloadOrderBillPng
+} from '../utils/orderInvoice';
 import { ImageStudioModal, AspectRatioPreset } from './ImageStudioModal';
 import { AtelierInventoryAndTrendsTab } from './AtelierInventoryAndTrendsTab';
 
@@ -134,6 +144,9 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   const [workflowStageFilter, setWorkflowStageFilter] = useState<'all' | OrderStatus>('all');
   const [floristTicketMode, setFloristTicketMode] = useState<boolean>(false);
   const [uploadingQcOrderId, setUploadingQcOrderId] = useState<string | null>(null);
+  const [copiedAdminOrderId, setCopiedAdminOrderId] = useState<string | null>(null);
+  const [copiedQcMsgOrderId, setCopiedQcMsgOrderId] = useState<string | null>(null);
+  const [copiedQcImgOrderId, setCopiedQcImgOrderId] = useState<string | null>(null);
   const [adminNoteDrafts, setAdminNoteDrafts] = useState<Record<string, string>>({});
   const [floristDrafts, setFloristDrafts] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState('');
@@ -3708,8 +3721,54 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                                   </div>
                                 </div>
 
-                                {/* 1-Click Sequential Advance Button & Delete */}
+                                {/* 1-Click Sequential Advance Button, Bill Export & Delete */}
                                 <div className="flex flex-wrap items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      const txt = buildOrderSummaryText(ord, {
+                                        atelierName: atelierData.name,
+                                        phone: atelierData.phoneFormatted || atelierData.phone,
+                                        address: atelierData.addressVi
+                                      });
+                                      await copyTextToClipboard(txt);
+                                      setCopiedAdminOrderId(ord.id);
+                                      setTimeout(() => setCopiedAdminOrderId(null), 2500);
+                                    }}
+                                    className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/15 font-mono text-xs flex items-center gap-1.5 transition-colors"
+                                    title="Sao chép văn bản đơn hàng"
+                                  >
+                                    {copiedAdminOrderId === ord.id ? (
+                                      <>
+                                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                        <span className="text-emerald-300 font-bold">Đã Copy!</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Copy className="w-3.5 h-3.5" />
+                                        <span>Copy Đơn</span>
+                                      </>
+                                    )}
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      downloadOrderBillPng(ord, {
+                                        atelierName: atelierData.name,
+                                        phone: atelierData.phoneFormatted || atelierData.phone,
+                                        address: atelierData.addressVi,
+                                        email: atelierData.email,
+                                        website: atelierData.website
+                                      })
+                                    }
+                                    className="px-3 py-2 rounded-xl bg-amber-400/20 hover:bg-amber-400 text-amber-300 hover:text-[#141414] border border-amber-400/40 font-mono text-xs font-bold flex items-center gap-1.5 transition-all"
+                                    title="Tải ảnh Phiếu Bill (.PNG)"
+                                  >
+                                    <Download className="w-3.5 h-3.5" />
+                                    <span>Xuất Bill (.PNG)</span>
+                                  </button>
+
                                   {nextStage && ord.status !== 'cancelled' && (
                                     <button
                                       type="button"
@@ -3844,6 +3903,10 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                                               );
                                               await updateOrderWorkflow(ord.id, {
                                                 finishedPhotoUrl: compressed.webpDataUrl,
+                                                workflowChecklist: {
+                                                  ...checklist,
+                                                  qcPhotoUploaded: true
+                                                },
                                                 status:
                                                   ord.status === 'pending' ||
                                                   ord.status === 'conditioning' ||
@@ -3860,26 +3923,117 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                                     </div>
 
                                     {ord.finishedPhotoUrl ? (
-                                      <div className="relative h-28 rounded-lg overflow-hidden bg-black border border-emerald-400/40 flex items-center justify-center">
-                                        <img
-                                          src={ord.finishedPhotoUrl}
-                                          alt="QC Finished Piece"
-                                          className="max-h-full max-w-full object-contain"
-                                        />
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            updateOrderWorkflow(ord.id, { finishedPhotoUrl: '' })
-                                          }
-                                          className="absolute top-1.5 right-1.5 px-2 py-0.5 rounded bg-black/80 text-red-300 text-[10px] font-mono hover:bg-red-900"
-                                        >
-                                          Xóa ảnh
-                                        </button>
+                                      <div className="space-y-1.5">
+                                        <div className="relative h-28 rounded-lg overflow-hidden bg-black border border-emerald-400/40 flex items-center justify-center">
+                                          <img
+                                            src={ord.finishedPhotoUrl}
+                                            alt="QC Finished Piece"
+                                            className="max-h-full max-w-full object-contain"
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              updateOrderWorkflow(ord.id, { finishedPhotoUrl: '' })
+                                            }
+                                            className="absolute top-1.5 right-1.5 px-2 py-0.5 rounded bg-black/80 text-red-300 text-[10px] font-mono hover:bg-red-900"
+                                          >
+                                            Xóa ảnh
+                                          </button>
+                                        </div>
+
+                                        {/* Quick Copy / Download QC Photo for Zalo */}
+                                        <div className="grid grid-cols-2 gap-1.5">
+                                          <button
+                                            type="button"
+                                            onClick={async () => {
+                                              const ok = await copyDataUrlImageToClipboard(
+                                                ord.finishedPhotoUrl!
+                                              );
+                                              if (!ok) {
+                                                downloadDataUrlImage(
+                                                  ord.finishedPhotoUrl!,
+                                                  `Anh-Nghiem-Thu-${ord.orderCode}.webp`
+                                                );
+                                              }
+                                              setCopiedQcImgOrderId(ord.id);
+                                              setTimeout(() => setCopiedQcImgOrderId(null), 2500);
+                                            }}
+                                            className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-[11px] font-mono font-bold text-white flex items-center justify-center gap-1.5 transition-colors"
+                                            title="Sao chép ảnh nghiệm thu vào bộ nhớ tạm để dán (Ctrl+V) vào Zalo"
+                                          >
+                                            {copiedQcImgOrderId === ord.id ? (
+                                              <>
+                                                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                                <span className="text-emerald-300">Đã Copy Ảnh!</span>
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Copy className="w-3.5 h-3.5" />
+                                                <span>Copy Ảnh QC</span>
+                                              </>
+                                            )}
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              downloadDataUrlImage(
+                                                ord.finishedPhotoUrl!,
+                                                `Anh-Nghiem-Thu-${ord.orderCode}.webp`
+                                              )
+                                            }
+                                            className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-[11px] font-mono font-bold text-white flex items-center justify-center gap-1.5 transition-colors"
+                                            title="Tải ảnh nghiệm thu về máy để gửi qua Zalo"
+                                          >
+                                            <Download className="w-3.5 h-3.5" />
+                                            <span>Tải Ảnh QC</span>
+                                          </button>
+                                        </div>
                                       </div>
                                     ) : (
                                       <div className="h-20 rounded-lg border border-dashed border-white/15 bg-black/30 flex items-center justify-center text-[11px] text-white/45 font-mono text-center px-3">
-                                        Chưa có ảnh nghiệm thu. Tải ảnh hoa hoàn thiện để khách xem khi tra cứu đơn.
+                                        Chưa có ảnh nghiệm thu. Tải ảnh hoa hoàn thiện để lưu hồ sơ & gửi khách duyệt.
                                       </div>
+                                    )}
+
+                                    {/* 1-Click Copy QC Approval Message & Open Customer Zalo */}
+                                    {!floristTicketMode && (
+                                      <button
+                                        type="button"
+                                        onClick={async () => {
+                                          const qcText = buildQcApprovalMessageText(ord, {
+                                            atelierName: atelierData.name,
+                                            phone: atelierData.phoneFormatted || atelierData.phone,
+                                            address: atelierData.addressVi
+                                          });
+                                          await copyTextToClipboard(qcText);
+                                          setCopiedQcMsgOrderId(ord.id);
+                                          setTimeout(() => setCopiedQcMsgOrderId(null), 3500);
+                                          const cleanPhone = ord.customerPhone.replace(/\s+/g, '');
+                                          window.open(
+                                            `https://zalo.me/${cleanPhone}`,
+                                            '_blank',
+                                            'noopener,noreferrer'
+                                          );
+                                        }}
+                                        className="admin-keep-dark w-full px-3 py-2 rounded-lg bg-[#0068FF] hover:bg-[#0057d9] text-white font-mono text-[11px] font-bold flex items-center justify-center gap-1.5 shadow transition-all cursor-pointer"
+                                      >
+                                        {copiedQcMsgOrderId === ord.id ? (
+                                          <>
+                                            <Check className="w-3.5 h-3.5 text-white" />
+                                            <span className="text-white">
+                                              Đã Copy Lời Nhắn Duyệt Hoa & Đang Mở Zalo!
+                                            </span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Copy className="w-3.5 h-3.5 text-white" />
+                                            <span className="text-white">
+                                              Copy Tin Nhắn Báo Nghiệm Thu & Mở Zalo Khách
+                                            </span>
+                                          </>
+                                        )}
+                                      </button>
                                     )}
                                   </div>
 
