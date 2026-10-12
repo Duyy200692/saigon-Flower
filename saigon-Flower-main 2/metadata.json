@@ -1,0 +1,7 @@
+{
+  "name": "JU et Saigon — Encyclopædia Botanica Digital",
+  "description": "Haute couture floral atelier & digital botanical encyclopaedia based in Saigon. Flower your heart, Flower your soul.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

@@ -1,0 +1,4390 @@
+import React, { useState, useEffect } from 'react';
+import {
+  X,
+  Plus,
+  Edit2,
+  Trash2,
+  Upload,
+  Image as ImageIcon,
+  Check,
+  AlertCircle,
+  RotateCcw,
+  LogOut,
+  Building,
+  Sparkles,
+  Search,
+  FileCheck,
+  Layers,
+  Sliders,
+  Maximize2,
+  Pin,
+  Instagram,
+  Facebook,
+  Globe,
+  MessageCircle,
+  ExternalLink,
+  Share2,
+  Link2,
+  AtSign,
+  Cloud,
+  RefreshCw,
+  Database,
+  ShieldCheck,
+  Shield,
+  Lock,
+  Key,
+  Eye,
+  EyeOff,
+  Sun,
+  Moon,
+  Crop,
+  Type,
+  ArrowRight,
+  Clock,
+  Camera,
+  CheckSquare,
+  Copy,
+  Download
+} from 'lucide-react';
+import {
+  useAtelier,
+  ORDER_WORKFLOW_STAGES,
+  DEFAULT_WORKFLOW_CHECKLIST,
+  OrderStatus,
+  OrderWorkflowChecklist
+} from '../context/AtelierContext';
+import { FlowerItem, ATELIER_DATA, HeroCoverSlide } from '../data/flowers';
+import { WorkshopItem } from '../data/workshop';
+import {
+  compressAndConvertToWebP,
+  convertUrlToWebP,
+  isFacebookWebpageUrl,
+  isFacebookCdnUrl,
+  formatFileSize,
+  CompressionResult
+} from '../utils/imageOptimizer';
+import {
+  formatDisplayUppercase,
+  formatTitleCase,
+  formatBotanicalLatin,
+  formatProseNFC
+} from '../utils/textFormatter';
+import {
+  getUsdExchangeRate,
+  setUsdExchangeRate,
+  convertVndToUsd,
+  parseVndString,
+  syncLiveUsdExchangeRate
+} from '../utils/currency';
+import {
+  buildOrderSummaryText,
+  buildQcApprovalMessageText,
+  copyTextToClipboard,
+  copyDataUrlImageToClipboard,
+  downloadDataUrlImage,
+  downloadOrderBillPng
+} from '../utils/orderInvoice';
+import { ImageStudioModal, AspectRatioPreset } from './ImageStudioModal';
+import { AtelierInventoryAndTrendsTab } from './AtelierInventoryAndTrendsTab';
+import { StaffManagementPanel } from './StaffManagementPanel';
+
+interface AdminPortalModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  lang: 'vi' | 'en';
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
+}
+
+export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
+  isOpen,
+  onClose,
+  lang,
+  theme = 'light',
+  onToggleTheme
+}) => {
+  const isDark = theme === 'dark';
+  const {
+    flowers,
+    workshops,
+    atelierData,
+    logoUrl,
+    logoWhiteUrl,
+    logout,
+    addFlower,
+    updateFlower,
+    deleteFlower,
+    togglePinFlower,
+    addWorkshop,
+    updateWorkshop,
+    deleteWorkshop,
+    updateAtelierData,
+    updateLogoUrl,
+    updateLogoWhiteUrl,
+    staffRole,
+    can,
+    orders,
+    workshopBookings,
+    supplies,
+    updateOrderStatus,
+    updateOrderWorkflow,
+    deleteOrder,
+    deductOrderSupplies,
+    updateWorkshopBookingStatus,
+    deleteWorkshopBooking,
+    isCloudConnected,
+    isSyncing,
+    syncAllToCloud,
+    resetAllData,
+    exportBackupJson,
+    importBackupJson
+  } = useAtelier();
+
+  const [activeTab, setActiveTab] = useState<'flowers' | 'workshops' | 'orders' | 'inventory_trends' | 'branding' | 'security'>('flowers');
+  // Ẩn các tab không thuộc quyền của vai trò hiện tại (Firestore Rules vẫn là lớp chặn thật sự)
+  const tabHidden = (tab: typeof activeTab): boolean => {
+    if (tab === 'flowers' || tab === 'workshops' || tab === 'branding') return !can('content');
+    if (tab === 'orders') return !can('orders');
+    if (tab === 'inventory_trends') return !can('supplies');
+    if (tab === 'security') return !can('staff');
+    return false;
+  };
+  useEffect(() => {
+    if (staffRole && tabHidden(activeTab)) {
+      setActiveTab('orders');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [staffRole]);
+
+  const [crmSubTab, setCrmSubTab] = useState<'floral_orders' | 'workshop_bookings'>('floral_orders');
+  const [workflowStageFilter, setWorkflowStageFilter] = useState<'all' | OrderStatus>('all');
+  const [floristTicketMode, setFloristTicketMode] = useState<boolean>(false);
+  const [uploadingQcOrderId, setUploadingQcOrderId] = useState<string | null>(null);
+  const [copiedAdminOrderId, setCopiedAdminOrderId] = useState<string | null>(null);
+  const [copiedQcMsgOrderId, setCopiedQcMsgOrderId] = useState<string | null>(null);
+  const [copiedQcImgOrderId, setCopiedQcImgOrderId] = useState<string | null>(null);
+  const [adminNoteDrafts, setAdminNoteDrafts] = useState<Record<string, string>>({});
+  const [floristDrafts, setFloristDrafts] = useState<Record<string, string>>({});
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Security / Password State
+  const [currentPassInput, setCurrentPassInput] = useState('');
+  const [newPassInput, setNewPassInput] = useState('');
+  const [confirmPassInput, setConfirmPassInput] = useState('');
+  const [showPass, setShowPass] = useState(false);
+  const [passChangeMsg, setPassChangeMsg] = useState<{ text: string; isError: boolean } | null>(null);
+  const [isSubmittingPass, setIsSubmittingPass] = useState(false);
+  
+  // Flower Editing State
+  const [editingFlower, setEditingFlower] = useState<FlowerItem | null>(null);
+  const [isAddingFlower, setIsAddingFlower] = useState(false);
+  const [flowerForm, setFlowerForm] = useState<Partial<FlowerItem>>({});
+  
+  // Workshop Editing State
+  const [editingWorkshop, setEditingWorkshop] = useState<WorkshopItem | null>(null);
+  const [isAddingWorkshop, setIsAddingWorkshop] = useState(false);
+  const [workshopForm, setWorkshopForm] = useState<Partial<WorkshopItem>>({});
+  
+  // Branding Form State
+  const [brandingForm, setBrandingForm] = useState(atelierData);
+  const [usdRate, setUsdRate] = useState<number>(() => getUsdExchangeRate());
+
+  useEffect(() => {
+    if (isOpen) {
+      setBrandingForm(atelierData);
+      syncLiveUsdExchangeRate().then((rate) => setUsdRate(rate));
+    }
+  }, [isOpen, atelierData]);
+  
+  // Compression status feedback
+  const [compressing, setCompressing] = useState(false);
+  const [lastCompression, setLastCompression] = useState<CompressionResult | null>(null);
+  const [imageUrlWarning, setImageUrlWarning] = useState<string | null>(null);
+
+  // Interactive Image Framing Studio state
+  const [autoOpenStudioOnUpload, setAutoOpenStudioOnUpload] = useState<boolean>(true);
+  const [studioState, setStudioState] = useState<{
+    isOpen: boolean;
+    imageSource: string | null;
+    title: string;
+    defaultAspectRatio: AspectRatioPreset;
+    onApply: (result: CompressionResult) => void;
+  }>({
+    isOpen: false,
+    imageSource: null,
+    title: '',
+    defaultAspectRatio: '3:4',
+    onApply: () => {}
+  });
+
+  const openImageStudio = (
+    imageSource: string | undefined | null,
+    title: string,
+    onApply: (result: CompressionResult) => void,
+    defaultAspectRatio: AspectRatioPreset = '3:4'
+  ) => {
+    if (!imageSource) return;
+    setStudioState({
+      isOpen: true,
+      imageSource,
+      title,
+      defaultAspectRatio,
+      onApply
+    });
+  };
+
+  if (!isOpen) return null;
+
+  // Helper to apply main flower image and optionally open ImageStudioModal
+  const applyFlowerMainImageResult = (result: CompressionResult, shouldOpenStudio = autoOpenStudioOnUpload) => {
+    setFlowerForm((prev) => ({
+      ...prev,
+      image: result.webpDataUrl,
+      galleryImages: [
+        {
+          url: result.webpDataUrl,
+          captionVi: prev.galleryImages?.[0]?.captionVi || 'Góc nhìn toàn cảnh',
+          captionEn: prev.galleryImages?.[0]?.captionEn || 'Full architectural view'
+        },
+        ...(prev.galleryImages?.slice(1) || [])
+      ]
+    }));
+    setLastCompression(result);
+
+    if (shouldOpenStudio) {
+      openImageStudio(
+        result.webpDataUrl,
+        'Căn Chỉnh Khung Hình: Ảnh Đại Diện Chính',
+        (framedRes) => {
+          setFlowerForm((prev) => ({
+            ...prev,
+            image: framedRes.webpDataUrl,
+            galleryImages: [
+              {
+                url: framedRes.webpDataUrl,
+                captionVi: prev.galleryImages?.[0]?.captionVi || 'Góc nhìn toàn cảnh',
+                captionEn: prev.galleryImages?.[0]?.captionEn || 'Full architectural view'
+              },
+              ...(prev.galleryImages?.slice(1) || [])
+            ]
+          }));
+          setLastCompression(framedRes);
+        },
+        '3:4'
+      );
+    }
+  };
+
+  // Helper to apply flower gallery angle image and optionally open ImageStudioModal
+  const applyFlowerGalleryImageResult = (
+    index: number,
+    result: CompressionResult,
+    shouldOpenStudio = autoOpenStudioOnUpload
+  ) => {
+    const updateAtSlot = (res: CompressionResult) => {
+      setFlowerForm((prev) => {
+        const currentGallery = [...(prev.galleryImages || [])];
+        while (currentGallery.length <= index) {
+          currentGallery.push({
+            url: '',
+            captionVi: `Góc chụp chi tiết 0${currentGallery.length + 1}`,
+            captionEn: `Detailed angle 0${currentGallery.length + 1}`
+          });
+        }
+        currentGallery[index] = {
+          ...currentGallery[index],
+          url: res.webpDataUrl
+        };
+        return {
+          ...prev,
+          ...(index === 0 ? { image: res.webpDataUrl } : {}),
+          galleryImages: currentGallery
+        };
+      });
+      setLastCompression(res);
+    };
+
+    updateAtSlot(result);
+
+    if (shouldOpenStudio) {
+      openImageStudio(
+        result.webpDataUrl,
+        `Căn Chỉnh Khung Hình: Góc Chụp 0${index + 1}`,
+        (framedRes) => updateAtSlot(framedRes),
+        '3:4'
+      );
+    }
+  };
+
+  // Helper to apply main workshop image and optionally open ImageStudioModal
+  const applyWorkshopMainImageResult = (result: CompressionResult, shouldOpenStudio = autoOpenStudioOnUpload) => {
+    const updateMainWs = (res: CompressionResult) => {
+      setWorkshopForm((prev) => ({
+        ...prev,
+        image: res.webpDataUrl,
+        galleryImages: [
+          {
+            url: res.webpDataUrl,
+            captionVi: prev.galleryImages?.[0]?.captionVi || 'Poster chính thức',
+            captionEn: prev.galleryImages?.[0]?.captionEn || 'Official visual'
+          },
+          ...(prev.galleryImages?.slice(1) || [])
+        ]
+      }));
+      setLastCompression(res);
+    };
+
+    updateMainWs(result);
+
+    if (shouldOpenStudio) {
+      openImageStudio(
+        result.webpDataUrl,
+        'Căn Chỉnh Khung Hình: Poster Workshop',
+        (framedRes) => updateMainWs(framedRes),
+        '3:4'
+      );
+    }
+  };
+
+  // Helper to apply workshop gallery angle image and optionally open ImageStudioModal
+  const applyWorkshopGalleryImageResult = (
+    idx: number,
+    result: CompressionResult,
+    shouldOpenStudio = autoOpenStudioOnUpload
+  ) => {
+    const updateWsSlot = (res: CompressionResult) => {
+      setWorkshopForm((prev) => {
+        const currentGallery = [...(prev.galleryImages || [])];
+        while (currentGallery.length <= idx) {
+          currentGallery.push({
+            url: '',
+            captionVi: `Góc ảnh #${currentGallery.length + 1}`,
+            captionEn: `Angle photo #${currentGallery.length + 1}`
+          });
+        }
+        currentGallery[idx] = {
+          ...currentGallery[idx],
+          url: res.webpDataUrl,
+          captionVi: currentGallery[idx]?.captionVi || `Góc ảnh #${idx + 1}`,
+          captionEn: currentGallery[idx]?.captionEn || `Angle photo #${idx + 1}`
+        };
+        return {
+          ...prev,
+          ...(idx === 0 ? { image: res.webpDataUrl } : {}),
+          galleryImages: currentGallery
+        };
+      });
+      setLastCompression(res);
+    };
+
+    updateWsSlot(result);
+
+    if (shouldOpenStudio) {
+      openImageStudio(
+        result.webpDataUrl,
+        `Căn Chỉnh Khung Hình: Góc Ảnh Workshop #${idx + 1}`,
+        (framedRes) => updateWsSlot(framedRes),
+        '3:4'
+      );
+    }
+  };
+
+  // Handle Clipboard Paste (Ctrl+V) for Flower Image
+  const handleFlowerPaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (!file) continue;
+        try {
+          setCompressing(true);
+          setImageUrlWarning(null);
+          const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
+          applyFlowerMainImageResult(result);
+        } catch (err) {
+          console.error(err);
+          setImageUrlWarning('Không thể xử lý ảnh từ bộ nhớ tạm.');
+        } finally {
+          setCompressing(false);
+        }
+        return;
+      }
+    }
+  };
+
+  // Convert Pasted Flower URL to Permanent WebP
+  const handleConvertFlowerUrl = async (urlToConvert?: string) => {
+    const targetUrl = (urlToConvert ?? flowerForm.image ?? '').trim();
+    if (!targetUrl || targetUrl.startsWith('data:image/') || targetUrl.startsWith('/src/')) return;
+
+    try {
+      setCompressing(true);
+      setImageUrlWarning(null);
+      const result = await convertUrlToWebP(targetUrl, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
+      applyFlowerMainImageResult(result);
+    } catch (err: any) {
+      setImageUrlWarning(err?.message || 'Không thể tải ảnh từ đường dẫn này.');
+    } finally {
+      setCompressing(false);
+    }
+  };
+
+  // Handle Clipboard Paste (Ctrl+V) for Workshop Image
+  const handleWorkshopPaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (!file) continue;
+        try {
+          setCompressing(true);
+          setImageUrlWarning(null);
+          const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
+          applyWorkshopMainImageResult(result);
+        } catch (err) {
+          console.error(err);
+          setImageUrlWarning('Không thể xử lý ảnh từ bộ nhớ tạm.');
+        } finally {
+          setCompressing(false);
+        }
+        return;
+      }
+    }
+  };
+
+  // Convert Pasted Workshop URL to Permanent WebP
+  const handleConvertWorkshopUrl = async (urlToConvert?: string) => {
+    const targetUrl = (urlToConvert ?? workshopForm.image ?? '').trim();
+    if (!targetUrl || targetUrl.startsWith('data:image/') || targetUrl.startsWith('/src/')) return;
+
+    try {
+      setCompressing(true);
+      setImageUrlWarning(null);
+      const result = await convertUrlToWebP(targetUrl, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
+      applyWorkshopMainImageResult(result);
+    } catch (err: any) {
+      setImageUrlWarning(err?.message || 'Không thể tải ảnh từ đường dẫn này.');
+    } finally {
+      setCompressing(false);
+    }
+  };
+
+  // Convert Pasted Flower Gallery Angle URL to Permanent WebP
+  const handleConvertGalleryUrl = async (index: number, urlToConvert?: string) => {
+    const targetUrl = (urlToConvert ?? flowerForm.galleryImages?.[index]?.url ?? '').trim();
+    if (!targetUrl || targetUrl.startsWith('data:image/') || targetUrl.startsWith('/src/')) return;
+
+    try {
+      setCompressing(true);
+      setImageUrlWarning(null);
+      const result = await convertUrlToWebP(targetUrl, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
+      applyFlowerGalleryImageResult(index, result);
+    } catch (err: any) {
+      setImageUrlWarning(err?.message || 'Không thể tải ảnh góc chụp từ đường dẫn này.');
+    } finally {
+      setCompressing(false);
+    }
+  };
+
+  // Handle Clipboard Paste (Ctrl+V) for a specific Flower Gallery Angle slot
+  const handleGalleryPaste = async (index: number, e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        e.preventDefault();
+        e.stopPropagation();
+        const file = items[i].getAsFile();
+        if (!file) continue;
+        try {
+          setCompressing(true);
+          setImageUrlWarning(null);
+          const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
+          applyFlowerGalleryImageResult(index, result);
+        } catch (err) {
+          console.error(err);
+          setImageUrlWarning('Không thể xử lý ảnh từ bộ nhớ tạm.');
+        } finally {
+          setCompressing(false);
+        }
+        return;
+      }
+    }
+  };
+
+  // Convert Pasted Workshop Gallery Angle URL to Permanent WebP
+  const handleConvertWorkshopGalleryUrl = async (idx: number, urlToConvert?: string) => {
+    const targetUrl = (urlToConvert ?? workshopForm.galleryImages?.[idx]?.url ?? '').trim();
+    if (!targetUrl || targetUrl.startsWith('data:image/') || targetUrl.startsWith('/src/')) return;
+
+    try {
+      setCompressing(true);
+      setImageUrlWarning(null);
+      const result = await convertUrlToWebP(targetUrl, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
+      applyWorkshopGalleryImageResult(idx, result);
+    } catch (err: any) {
+      setImageUrlWarning(err?.message || 'Không thể tải ảnh góc chụp workshop từ đường dẫn này.');
+    } finally {
+      setCompressing(false);
+    }
+  };
+
+  // Handle Clipboard Paste (Ctrl+V) for a specific Workshop Gallery Angle slot
+  const handleWorkshopGalleryPaste = async (idx: number, e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        e.preventDefault();
+        e.stopPropagation();
+        const file = items[i].getAsFile();
+        if (!file) continue;
+        try {
+          setCompressing(true);
+          setImageUrlWarning(null);
+          const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
+          applyWorkshopGalleryImageResult(idx, result);
+        } catch (err) {
+          console.error(err);
+          setImageUrlWarning('Không thể xử lý ảnh từ bộ nhớ tạm.');
+        } finally {
+          setCompressing(false);
+        }
+        return;
+      }
+    }
+  };
+
+  // Handle Logo Đen (Light Mode) Upload with Auto WebP Conversion
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setCompressing(true);
+      const result = await compressAndConvertToWebP(file, { maxWidth: 600, maxHeight: 600, quality: 0.9 });
+      updateLogoUrl(result.webpDataUrl);
+      setLastCompression(result);
+    } catch (err) {
+      console.error(err);
+      setImageUrlWarning('Không thể nén ảnh Logo Đen. Vui lòng thử lại.');
+    } finally {
+      setCompressing(false);
+    }
+  };
+
+  // Handle Logo Trắng (Dark Mode) Upload with Auto WebP Conversion
+  const handleLogoWhiteUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setCompressing(true);
+      const result = await compressAndConvertToWebP(file, { maxWidth: 600, maxHeight: 600, quality: 0.9 });
+      updateLogoWhiteUrl(result.webpDataUrl);
+      setLastCompression(result);
+    } catch (err) {
+      console.error(err);
+      setImageUrlWarning('Không thể nén ảnh Logo Trắng. Vui lòng thử lại.');
+    } finally {
+      setCompressing(false);
+    }
+  };
+
+  // Handle Clipboard Paste (Ctrl+V) for Logo Đen or Logo Trắng
+  const handleLogoPaste = async (variant: 'dark' | 'white', e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (!file) continue;
+        try {
+          setCompressing(true);
+          const result = await compressAndConvertToWebP(file, { maxWidth: 600, maxHeight: 600, quality: 0.9 });
+          if (variant === 'dark') {
+            updateLogoUrl(result.webpDataUrl);
+          } else {
+            updateLogoWhiteUrl(result.webpDataUrl);
+          }
+          setLastCompression(result);
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setCompressing(false);
+        }
+        return;
+      }
+    }
+  };
+
+  // Convert Pasted Logo URL to Permanent WebP
+  const handleConvertLogoUrl = async (variant: 'dark' | 'white', urlToConvert?: string | null) => {
+    const targetUrl = (urlToConvert ?? '').trim();
+    if (!targetUrl || targetUrl.startsWith('data:image/') || targetUrl.startsWith('/src/')) return;
+
+    try {
+      setCompressing(true);
+      const result = await convertUrlToWebP(targetUrl, { maxWidth: 600, maxHeight: 600, quality: 0.9 });
+      if (variant === 'dark') {
+        updateLogoUrl(result.webpDataUrl);
+      } else {
+        updateLogoWhiteUrl(result.webpDataUrl);
+      }
+      setLastCompression(result);
+    } catch (err: any) {
+      setImageUrlWarning(err?.message || 'Không thể tải logo từ đường dẫn này.');
+    } finally {
+      setCompressing(false);
+    }
+  };
+
+  // Handle Main Flower Image Upload with Auto WebP Conversion
+  const handleFlowerImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setCompressing(true);
+      setImageUrlWarning(null);
+      const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
+      applyFlowerMainImageResult(result);
+    } catch (err) {
+      console.error(err);
+      setImageUrlWarning('Lỗi khi nén ảnh. Vui lòng thử lại.');
+    } finally {
+      setCompressing(false);
+    }
+  };
+
+  // Handle Flower Gallery Image Upload at specific index with Auto WebP Conversion
+  const handleGalleryImageUpload = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setCompressing(true);
+      setImageUrlWarning(null);
+      const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
+      applyFlowerGalleryImageResult(index, result);
+    } catch (err) {
+      console.error(err);
+      setImageUrlWarning('Lỗi khi nén ảnh góc chụp.');
+    } finally {
+      setCompressing(false);
+    }
+  };
+
+  // Handle Workshop Image Upload with Auto WebP Conversion
+  const handleWorkshopImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setCompressing(true);
+      setImageUrlWarning(null);
+      const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
+      applyWorkshopMainImageResult(result);
+    } catch (err) {
+      console.error(err);
+      setImageUrlWarning('Lỗi khi nén ảnh workshop.');
+    } finally {
+      setCompressing(false);
+    }
+  };
+
+  // Handle Workshop Gallery Image Upload (4 Angles)
+  const handleWorkshopGalleryImageUpload = async (idx: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setCompressing(true);
+      setImageUrlWarning(null);
+      const result = await compressAndConvertToWebP(file, { maxWidth: 1100, maxHeight: 1100, quality: 0.82 });
+      applyWorkshopGalleryImageResult(idx, result);
+    } catch (err) {
+      console.error(err);
+      setImageUrlWarning('Lỗi khi nén ảnh góc chụp workshop.');
+    } finally {
+      setCompressing(false);
+    }
+  };
+
+  // Open Flower Editor
+  const startEditFlower = (flower: FlowerItem) => {
+    setEditingFlower(flower);
+    setIsAddingFlower(false);
+    setFlowerForm({
+      ...JSON.parse(JSON.stringify(flower)),
+      pinnedToLanding: flower.pinnedToLanding !== false
+    });
+    setLastCompression(null);
+  };
+
+  const startAddFlower = () => {
+    setIsAddingFlower(true);
+    setEditingFlower(null);
+    setFlowerForm({
+      name: "TÁC PHẨM MỚI",
+      vietnameseName: "Hoa Thiết Kế Mới",
+      latinName: "Botanica nova",
+      category: "bridal",
+      categoryLabelEn: "Bridal Haute Couture",
+      categoryLabelVi: "Hoa Cưới Độc Bản",
+      pinnedToLanding: true,
+      shortDescriptionVi: "Mô tả ngắn gọn về tác phẩm hoa.",
+      shortDescriptionEn: "Bespoke floral creation.",
+      storyVi: "Câu chuyện và cảm hứng sáng tạo của tác phẩm.",
+      storyEn: "Creative narrative and botanical inspiration.",
+      botanicalNotesVi: "Chủng loại hoa nhập khẩu và kỹ nghệ cắm.",
+      botanicalNotesEn: "Curated botanical stems and artisanal technique.",
+      materialsVi: ["Hoa Nhập Khẩu", "Lụa Satin Pháp"],
+      materials: ["Imported Stems", "French Silk"],
+      scent: {
+        top: "Hương hoa cỏ tươi mát",
+        heart: "Hương hoa nở rộ ngọt ngào",
+        base: "Gỗ tuyết tùng trầm ấm",
+        intensity: 3,
+        mood: "Thanh khiết, Sang trọng"
+      },
+      dimensions: "30cm x 45cm",
+      seasonality: "Quanh năm (Year-Round)",
+      priceVnd: 3000000,
+      priceUsd: 120,
+      image: "/src/assets/images/juet_blush_peony_1790840758164.jpg",
+      galleryImages: [
+        { url: "/src/assets/images/juet_blush_peony_1790840758164.jpg", captionVi: "Góc nhìn toàn cảnh", captionEn: "Frontal view" },
+        { url: "/src/assets/images/juet_peony_side_angle_1790844501746.jpg", captionVi: "Góc nghiêng nghệ thuật", captionEn: "Side angle" },
+        { url: "/src/assets/images/juet_bridal_macro_pearls_1790844489242.jpg", captionVi: "Cận cảnh chi tiết cánh hoa", captionEn: "Macro detail" },
+        { url: "/src/assets/images/juet_white_anemone_1790840892002.jpg", captionVi: "Chi tiết hoàn thiện", captionEn: "Finishing detail" }
+      ],
+      anatomy: [],
+      audioFrequency: 528
+    });
+    setLastCompression(null);
+  };
+
+  // Save Flower (Auto-converts expiring Facebook CDN URLs to permanent WebP & awaits Firestore persistence)
+  const handleSaveFlower = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCompressing(true);
+    try {
+      const updatedForm: Partial<FlowerItem> = { ...flowerForm };
+      const rawGallery = Array.isArray(updatedForm.galleryImages) ? [...updatedForm.galleryImages] : [];
+
+      // If main image is empty but gallery[0] has a URL, sync it to main image
+      if ((!updatedForm.image || !updatedForm.image.trim()) && rawGallery[0]?.url?.trim()) {
+        updatedForm.image = rawGallery[0].url.trim();
+      }
+
+      // Auto-convert temporary Facebook CDN URLs (fbcdn.net) to permanent WebP so they never expire
+      if (updatedForm.image && isFacebookCdnUrl(updatedForm.image)) {
+        try {
+          const conv = await convertUrlToWebP(updatedForm.image, { maxWidth: 960, maxHeight: 960, quality: 0.8 });
+          updatedForm.image = conv.webpDataUrl;
+        } catch {
+          // Keep user's pasted URL intact if CORS blocks conversion
+        }
+      }
+
+      for (let i = 0; i < rawGallery.length; i++) {
+        const gUrl = rawGallery[i]?.url?.trim() || '';
+        if (gUrl && isFacebookCdnUrl(gUrl)) {
+          try {
+            const conv = await convertUrlToWebP(gUrl, { maxWidth: 960, maxHeight: 960, quality: 0.8 });
+            rawGallery[i] = { ...rawGallery[i], url: conv.webpDataUrl };
+            if (i === 0) {
+              updatedForm.image = conv.webpDataUrl;
+            }
+          } catch {
+            // Keep user's pasted URL intact
+          }
+        }
+      }
+
+      updatedForm.galleryImages = rawGallery;
+
+      // Ensure USD price is always synced if VND price is set
+      if (updatedForm.priceVnd && (!updatedForm.priceUsd || updatedForm.priceUsd <= 0)) {
+        updatedForm.priceUsd = convertVndToUsd(updatedForm.priceVnd, usdRate);
+      }
+
+      if (isAddingFlower) {
+        await addFlower(updatedForm as Omit<FlowerItem, 'id' | 'indexNumber'>);
+      } else if (editingFlower) {
+        await updateFlower(editingFlower.id, updatedForm);
+      }
+      setEditingFlower(null);
+      setIsAddingFlower(false);
+    } finally {
+      setCompressing(false);
+    }
+  };
+
+  // Open Workshop Editor
+  const startEditWorkshop = (ws: WorkshopItem) => {
+    setEditingWorkshop(ws);
+    setIsAddingWorkshop(false);
+    setWorkshopForm(JSON.parse(JSON.stringify(ws)));
+    setLastCompression(null);
+  };
+
+  const startAddWorkshop = () => {
+    setIsAddingWorkshop(true);
+    setEditingWorkshop(null);
+    setWorkshopForm({
+      name: "BOUQUET SALON",
+      latinMonographName: "Atelier Botanica Nova",
+      titleVi: "WORKSHOP CẮM HOA NGHỆ THUẬT: SẮC MÀU THIÊN NHIÊN",
+      titleEn: "BESPOKE BOTANICAL FLORAL WORKSHOP",
+      subtitleVi: "Trải nghiệm mới mẻ · Gắn kết tự nhiên · Thảnh thơi tuyệt đối",
+      subtitleEn: "A mindful sensory floral journey",
+      editorialQuoteVi: "Một buổi chiều đắm mình cùng hoa lá giúp tái tạo nguồn năng lượng tươi mới sau chuỗi ngày bận rộn.",
+      editorialQuoteEn: "An afternoon immersed in blooming stems restores vitality and cultivates harmony.",
+      descriptionVi: "Trọn gói từ ý tưởng đến thực thi hoa tươi nhập khẩu và dụng cụ chuyên nghiệp.",
+      descriptionEn: "Turnkey setup delivered directly with imported stems.",
+      fullContentVi: [
+        "Một buổi workshop cắm hoa nghệ thuật mang lại trải nghiệm tinh tế, nhẹ nhàng và dễ dàng thực hiện ngay tại văn phòng hoặc không gian chỉ định.",
+        "Mọi khâu từ ý tưởng đến thực thi đều được JU đảm nhận trọn gói, giúp người tham gia hoàn toàn thảnh thơi.",
+        "Khép lại ngày bận rộn bằng những khoảnh khắc thư thả và ngập tràn cảm hứng cùng cỏ hoa."
+      ],
+      fullContentEn: [
+        "An artisanal floral workshop offers an intimate, mindful experience.",
+        "Every single step from materials to facilitation is fully managed by JU et Saigon.",
+        "Conclude your busy week with inspiring, restorative memories."
+      ],
+      highlightsVi: [
+        "Trọn gói từ A-Z (hoa tươi nhập khẩu, kéo đồng, bình gốm, tạp dề linen)",
+        "Tổ chức linh hoạt ngay tại văn phòng công ty hoặc tại Atelier JU et Saigon",
+        "Có giảng viên hướng dẫn chuyên môn và hỗ trợ từng học viên"
+      ],
+      highlightsEn: [
+        "All-inclusive turnkey setup",
+        "Flexible location at your office or JU Atelier"
+      ],
+      duration: "1.5 – 2.0 Giờ",
+      groupSize: "10 – 50+ Pax",
+      locationVi: "Tận nơi tại Văn phòng đối tác hoặc Lầu 1, 31 Nguyễn Trãi, Q.1",
+      locationEn: "On-site at partner office or Atelier 31 Nguyen Trai, D.1",
+      pricePerPaxVnd: 750000,
+      pricePerPaxUsd: 30,
+      zaloCommunityUrl: "https://zalo.me/g/juetsaigon",
+      hotline: "090 936 80 80",
+      image: "/src/assets/images/juet_workshop_hero_1790840742512.jpg",
+      galleryImages: [
+        { url: "/src/assets/images/juet_workshop_hero_1790840742512.jpg", captionVi: "Toàn cảnh workshop", captionEn: "Overview" },
+        { url: "/src/assets/images/juet_workshop_ranunculus_1790840772583.jpg", captionVi: "Học viên trải nghiệm cắm hoa", captionEn: "Hands-on experience" },
+        { url: "/src/assets/images/juet_workshop_peony_1790840786968.jpg", captionVi: "Tác phẩm hoàn thiện", captionEn: "Finished floral piece" },
+        { url: "/src/assets/images/juet_workshop_autumn_1790840801831.jpg", captionVi: "Không gian workshop ấm áp", captionEn: "Warm atelier ambiance" }
+      ]
+    });
+    setLastCompression(null);
+  };
+
+  // Save Workshop (Auto-converts expiring Facebook CDN URLs to permanent WebP & awaits Firestore persistence)
+  const handleSaveWorkshop = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCompressing(true);
+    try {
+      const updatedWs: Partial<WorkshopItem> = { ...workshopForm };
+      const rawGallery = Array.isArray(updatedWs.galleryImages) ? [...updatedWs.galleryImages] : [];
+
+      if ((!updatedWs.image || !updatedWs.image.trim()) && rawGallery[0]?.url?.trim()) {
+        updatedWs.image = rawGallery[0].url.trim();
+      }
+
+      if (updatedWs.image && isFacebookCdnUrl(updatedWs.image)) {
+        try {
+          const conv = await convertUrlToWebP(updatedWs.image, { maxWidth: 960, maxHeight: 960, quality: 0.8 });
+          updatedWs.image = conv.webpDataUrl;
+        } catch {
+          // Keep user's pasted URL intact
+        }
+      }
+
+      for (let i = 0; i < rawGallery.length; i++) {
+        const gUrl = rawGallery[i]?.url?.trim() || '';
+        if (gUrl && isFacebookCdnUrl(gUrl)) {
+          try {
+            const conv = await convertUrlToWebP(gUrl, { maxWidth: 960, maxHeight: 960, quality: 0.8 });
+            rawGallery[i] = { ...rawGallery[i], url: conv.webpDataUrl };
+            if (i === 0) {
+              updatedWs.image = conv.webpDataUrl;
+            }
+          } catch {
+            // Keep user's pasted URL intact
+          }
+        }
+      }
+
+      updatedWs.galleryImages = rawGallery;
+
+      if (isAddingWorkshop) {
+        await addWorkshop(updatedWs as Omit<WorkshopItem, 'id' | 'indexNumber'>);
+      } else if (editingWorkshop) {
+        await updateWorkshop(editingWorkshop.id, updatedWs);
+      }
+      setEditingWorkshop(null);
+      setIsAddingWorkshop(false);
+    } finally {
+      setCompressing(false);
+    }
+  };
+
+  // Save Branding (Auto-converts any temporary Facebook CDN URLs in heroSlides to permanent WebP)
+  const handleSaveBranding = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCompressing(true);
+    try {
+      const currentSlides: HeroCoverSlide[] = Array.isArray(brandingForm.heroSlides)
+        ? [...brandingForm.heroSlides]
+        : [...ATELIER_DATA.heroSlides];
+
+      for (let i = 0; i < currentSlides.length; i++) {
+        const sUrl = currentSlides[i]?.image?.trim() || '';
+        if (sUrl && isFacebookCdnUrl(sUrl)) {
+          try {
+            const conv = await convertUrlToWebP(sUrl, { maxWidth: 960, maxHeight: 960, quality: 0.8 });
+            currentSlides[i] = { ...currentSlides[i], image: conv.webpDataUrl };
+          } catch {
+            // Keep URL intact
+          }
+        }
+      }
+
+      await updateAtelierData({
+        ...brandingForm,
+        heroSlides: currentSlides
+      });
+    } finally {
+      setCompressing(false);
+    }
+  };
+
+  const filteredFlowers = flowers.filter(
+    (f) =>
+      f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      f.vietnameseName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      f.latinName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div
+      className={`fixed inset-0 z-60 backdrop-blur-md flex flex-col justify-between overflow-hidden animate-fadeIn transition-colors duration-300 ${
+        isDark
+          ? 'bg-[#0f100e]/95 text-[#ede9df] admin-theme-dark'
+          : 'bg-[#dcd8cf] text-[#141414] admin-theme-light'
+      }`}
+    >
+      
+      {/* Top Admin Header (Responsive: Shows 4 Navigation Tabs + Light/Dark Toggle on BOTH Mobile & Desktop) */}
+      <header
+        className={`border-b px-3 sm:px-8 py-2.5 sm:py-3 flex flex-col gap-2.5 flex-shrink-0 transition-colors duration-300 ${
+          isDark
+            ? 'bg-[#181917] border-white/15 text-white'
+            : 'bg-[#dcd8cf] border-[#141414]/15 text-[#141414]'
+        }`}
+      >
+        {/* Top Row: Brand Badge + Desktop Tabs + Action Controls */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs font-mono shrink-0 ${
+                isDark
+                  ? 'bg-amber-400/20 text-amber-300'
+                  : 'bg-[#141414] text-amber-300'
+              }`}
+            >
+              AD
+            </div>
+            <div className="min-w-0">
+              <h2
+                className={`text-xs sm:text-sm font-bold font-mono uppercase tracking-wider truncate ${
+                  isDark ? 'text-white' : 'text-[#141414]'
+                }`}
+              >
+                JU ET SAIGON · BẢNG QUẢN TRỊ ADMIN
+              </h2>
+              <p
+                className={`hidden sm:block text-[10px] font-sans truncate ${
+                  isDark ? 'text-white/60' : 'text-[#141414]/65'
+                }`}
+              >
+                Quản lý tác phẩm hoa · Dịch vụ Workshop · Thay đổi logo & thông tin thương hiệu
+              </p>
+            </div>
+          </div>
+
+          {/* Actions (Includes Light/Dark Mode Toggle, Cloud Sync, Backup, Logout, Close) */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Light / Dark Mode Switcher inside Admin */}
+            {onToggleTheme && (
+              <button
+                type="button"
+                onClick={onToggleTheme}
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg border text-xs font-mono font-bold uppercase flex items-center gap-1.5 transition-all shadow-sm ${
+                  isDark
+                    ? 'bg-amber-400/15 text-amber-300 border-amber-400/40 hover:bg-amber-400/25'
+                    : 'bg-white text-[#141414] border-[#141414]/20 hover:bg-[#141414] hover:text-[#f7f5f0]'
+                }`}
+                title={
+                  isDark
+                    ? 'Đang ở nền Tối (Dark Mode) — Bấm để chuyển sang nền Sáng (Light Mode)'
+                    : 'Đang ở nền Sáng (Light Mode) — Bấm để chuyển sang nền Tối (Dark Mode)'
+                }
+              >
+                {isDark ? (
+                  <>
+                    <Sun className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Light</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="w-3.5 h-3.5" />
+                    <span>Dark</span>
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* Cloud Sync Button */}
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await syncAllToCloud();
+                  alert('Đã đồng bộ toàn bộ tác phẩm hoa, workshop & cấu hình lên Firebase Firestore thành công!');
+                } catch (e) {
+                  console.error(e);
+                  alert('Đang gửi dữ liệu lên Firebase Firestore...');
+                }
+              }}
+              disabled={isSyncing}
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg border text-xs font-mono uppercase flex items-center gap-1.5 transition-all shadow-sm ${
+                isCloudConnected
+                  ? isDark
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+                    : 'bg-emerald-600/15 text-emerald-900 border-emerald-600/35 hover:bg-emerald-600/25 font-bold'
+                  : isDark
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+                    : 'bg-amber-500/20 text-amber-900 border-amber-600/35 hover:bg-amber-500/30 font-bold'
+              }`}
+              title="Đồng bộ dữ liệu lên Firebase Firestore"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">
+                {isSyncing ? 'Đang đồng bộ...' : isCloudConnected ? 'Cloud Online' : 'Đồng Bộ Firebase'}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={exportBackupJson}
+              className={`px-2.5 py-1.5 text-xs font-mono rounded-lg border transition-colors flex items-center gap-1.5 ${
+                isDark
+                  ? 'border-white/10 hover:border-amber-400/50 text-white/75 hover:text-amber-300 bg-white/5'
+                  : 'border-[#141414]/15 bg-white/60 hover:bg-white text-[#141414]/80 hover:text-[#141414]'
+              }`}
+              title="Tải file sao lưu dự phòng (.JSON) về máy tính"
+            >
+              <Database className="w-3.5 h-3.5" />
+              <span className="hidden xl:inline">Sao Lưu (.JSON)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                logout();
+                onClose();
+              }}
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg border text-xs font-mono uppercase flex items-center gap-1 transition-all ${
+                isDark
+                  ? 'bg-red-900/40 hover:bg-red-900/80 text-red-200 border-red-500/30'
+                  : 'bg-red-600/10 hover:bg-red-600 text-red-800 hover:text-white border-red-600/25 font-bold'
+              }`}
+              title="Đăng xuất quản trị"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Đăng Xuất</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className={`p-2 rounded-lg transition-colors ${
+                isDark
+                  ? 'bg-white/10 hover:bg-white/20 text-white'
+                  : 'bg-[#141414]/10 hover:bg-[#141414]/20 text-[#141414]'
+              }`}
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Full-Width Responsive 6-Tab Navigation Bar — 100% Visible & Clickable on All Screens (Never Clipped) */}
+        <div
+          className={`w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 p-1.5 rounded-xl border text-xs font-medium relative z-20 ${
+            isDark
+              ? 'bg-black/50 border-white/15'
+              : 'bg-[#dcd8cf] border-[#141414]/15'
+          }`}
+        >
+          <button
+            type="button"
+            style={tabHidden('flowers') ? { display: 'none' } : undefined}
+            onClick={() => {
+              setActiveTab('flowers');
+              setEditingFlower(null);
+              setIsAddingFlower(false);
+            }}
+            className={`px-3 py-2 rounded-lg transition-all text-center cursor-pointer truncate ${
+              activeTab === 'flowers'
+                ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
+                : isDark
+                  ? 'text-white/80 hover:text-white bg-white/5 hover:bg-white/10'
+                  : 'text-[#141414]/85 hover:text-[#141414] bg-white/65 hover:bg-white'
+            }`}
+          >
+            Tác Phẩm Hoa ({flowers.length})
+          </button>
+          <button
+            type="button"
+            style={tabHidden('workshops') ? { display: 'none' } : undefined}
+            onClick={() => {
+              setActiveTab('workshops');
+              setEditingWorkshop(null);
+              setIsAddingWorkshop(false);
+            }}
+            className={`px-3 py-2 rounded-lg transition-all text-center cursor-pointer truncate ${
+              activeTab === 'workshops'
+                ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
+                : isDark
+                  ? 'text-white/80 hover:text-white bg-white/5 hover:bg-white/10'
+                  : 'text-[#141414]/85 hover:text-[#141414] bg-white/65 hover:bg-white'
+            }`}
+          >
+            Workshop ({workshops.length})
+          </button>
+          <button
+            type="button"
+            style={tabHidden('orders') ? { display: 'none' } : undefined}
+            onClick={() => setActiveTab('orders')}
+            className={`px-3 py-2 rounded-lg transition-all text-center cursor-pointer truncate ${
+              activeTab === 'orders'
+                ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
+                : isDark
+                  ? 'text-white/80 hover:text-white bg-white/5 hover:bg-white/10'
+                  : 'text-[#141414]/85 hover:text-[#141414] bg-white/65 hover:bg-white'
+            }`}
+          >
+            Đơn Hàng ({orders.length + workshopBookings.length})
+          </button>
+          <button
+            type="button"
+            style={tabHidden('inventory_trends') ? { display: 'none' } : undefined}
+            onClick={() => setActiveTab('inventory_trends')}
+            className={`px-3 py-2 rounded-lg transition-all text-center cursor-pointer truncate ${
+              activeTab === 'inventory_trends'
+                ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
+                : isDark
+                  ? 'text-white/80 hover:text-white bg-white/5 hover:bg-white/10'
+                  : 'text-[#141414]/85 hover:text-[#141414] bg-white/65 hover:bg-white'
+            }`}
+          >
+            Kho & Dự Báo ({supplies.length})
+          </button>
+          <button
+            type="button"
+            style={tabHidden('branding') ? { display: 'none' } : undefined}
+            onClick={() => setActiveTab('branding')}
+            className={`px-3 py-2 rounded-lg transition-all text-center cursor-pointer truncate ${
+              activeTab === 'branding'
+                ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
+                : isDark
+                  ? 'text-white/80 hover:text-white bg-white/5 hover:bg-white/10'
+                  : 'text-[#141414]/85 hover:text-[#141414] bg-white/65 hover:bg-white'
+            }`}
+          >
+            Logo & Thương Hiệu
+          </button>
+          <button
+            type="button"
+            style={tabHidden('security') ? { display: 'none' } : undefined}
+            onClick={() => setActiveTab('security')}
+            className={`px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer truncate ${
+              activeTab === 'security'
+                ? 'bg-amber-400 text-[#141414] font-bold shadow-sm'
+                : isDark
+                  ? 'text-white/80 hover:text-white bg-white/5 hover:bg-white/10'
+                  : 'text-[#141414]/85 hover:text-[#141414] bg-white/65 hover:bg-white'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Nhân Sự & Bảo Mật</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className={`flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 ${isDark ? 'text-[#ede9df]' : 'text-[#141414]'}`}>
+        <div className="max-w-6xl mx-auto space-y-6">
+          
+          {/* TAB 1: FLOWERS CRUD */}
+          {activeTab === 'flowers' && (
+            <div className="space-y-6">
+              {/* If Flower Editor Form is Active */}
+              {isAddingFlower || editingFlower ? (
+                <div className="bg-[#1e1f1c] rounded-2xl p-6 border border-white/15 space-y-6 animate-fadeIn">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                    <h3 className="text-xl font-bagerich font-bold uppercase text-white">
+                      {isAddingFlower ? 'THÊM TÁC PHẨM HOA MỚI' : `CHỈNH SỬA: ${flowerForm.name}`}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingFlower(null);
+                        setIsAddingFlower(false);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-white/10 text-xs hover:bg-white/20 transition-all font-mono"
+                    >
+                      Quay Lại Danh Sách
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleSaveFlower} className="space-y-6 text-xs font-sans">
+                    
+                    {/* Auto-Compression WebP Alert */}
+                    {lastCompression && (
+                      <div className="p-3 bg-emerald-950/70 border border-emerald-500/40 rounded-xl text-emerald-200 flex items-center gap-3 font-mono">
+                        <FileCheck className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                        <div>
+                          <p className="font-bold">Ảnh đã tự động nén sang định dạng .WebP thành công!</p>
+                          <p className="text-[11px] opacity-80">
+                            Gốc: {formatFileSize(lastCompression.originalSize)} → WebP: {formatFileSize(lastCompression.compressedSize)} (Tiết kiệm {lastCompression.compressionRatio}%) · Tỉ lệ: {lastCompression.aspectRatio} ({lastCompression.width}x{lastCompression.height}px)
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Image Uploader with Auto WebP Conversion */}
+                    <div
+                      onPaste={handleFlowerPaste}
+                      className="p-4 bg-black/40 rounded-xl border border-white/10 space-y-4"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <label className="font-mono uppercase text-[11px] font-bold text-amber-300">
+                          1. ẢNH ĐẠI DIỆN CHÍNH (HỖ TRỢ TẢI FILE, DÁN CTRL+V TỪ FACEBOOK, HOẶC LINK ẢNH)
+                        </label>
+                        <div className="flex items-center gap-3">
+                          <label className="flex items-center gap-1.5 text-[11px] font-mono text-white/80 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={autoOpenStudioOnUpload}
+                              onChange={(e) => setAutoOpenStudioOnUpload(e.target.checked)}
+                              className="accent-amber-400 rounded cursor-pointer"
+                            />
+                            <span>Tự mở khung căn chỉnh tỉ lệ khi tải ảnh</span>
+                          </label>
+                          {compressing && (
+                            <span className="text-amber-400 font-mono text-[11px] animate-pulse">
+                              Đang xử lý & nén sang WebP...
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {imageUrlWarning && (
+                        <div className="p-3 bg-amber-950/80 border border-amber-400/50 rounded-xl text-amber-200 flex items-start gap-2.5 text-xs">
+                          <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                          <div className="space-y-1">
+                            <p className="font-bold text-amber-300">{imageUrlWarning}</p>
+                            <p className="text-[11px] text-white/80">
+                              💡 <strong>Mẹo lấy ảnh từ Facebook không bao giờ lỗi:</strong> Nhấp chuột phải vào ảnh trên Facebook ➔ Chọn <strong>"Sao chép hình ảnh" (Copy image)</strong> ➔ Quay lại khung này và bấm <strong>Ctrl + V</strong>!
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+                        <div className="sm:col-span-4 space-y-2">
+                          <div className="aspect-[3/4] max-w-[160px] rounded-lg overflow-hidden border border-white/20 bg-black relative group">
+                            <img
+                              src={flowerForm.image}
+                              alt="Preview"
+                              referrerPolicy="no-referrer"
+                              onError={() => {
+                                if (flowerForm.image && !flowerForm.image.startsWith('data:')) {
+                                  setImageUrlWarning(
+                                    isFacebookWebpageUrl(flowerForm.image)
+                                      ? 'Bạn đang dán link trang bài viết Facebook (không phải link file ảnh).'
+                                      : 'Link ảnh bị chặn hiển thị hoặc đã hết hạn chữ ký bảo mật.'
+                                  );
+                                }
+                              }}
+                              className="w-full h-full object-cover"
+                            />
+                            {flowerForm.image && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openImageStudio(
+                                    flowerForm.image,
+                                    'Căn Chỉnh Khung Hình: Ảnh Đại Diện Chính',
+                                    (res) => {
+                                      setFlowerForm((prev) => ({
+                                        ...prev,
+                                        image: res.webpDataUrl,
+                                        galleryImages: [
+                                          {
+                                            url: res.webpDataUrl,
+                                            captionVi: prev.galleryImages?.[0]?.captionVi || 'Góc nhìn toàn cảnh',
+                                            captionEn: prev.galleryImages?.[0]?.captionEn || 'Full architectural view'
+                                          },
+                                          ...(prev.galleryImages?.slice(1) || [])
+                                        ]
+                                      }));
+                                      setLastCompression(res);
+                                    },
+                                    '3:4'
+                                  )
+                                }
+                                className="absolute inset-x-1.5 bottom-1.5 py-1.5 px-2 rounded-md bg-amber-400 text-[#141414] font-mono text-[10px] font-bold uppercase flex items-center justify-center gap-1 shadow-lg hover:bg-amber-300 transition-all"
+                              >
+                                <Crop className="w-3 h-3" />
+                                <span>Chỉnh Khung Hình</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="sm:col-span-8 space-y-3">
+                          <label className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-white/20 rounded-xl hover:border-amber-400/60 bg-white/5 cursor-pointer transition-colors text-center">
+                            <Upload className="w-6 h-6 text-amber-300 mb-1.5" />
+                            <span className="font-bold text-white text-xs">
+                              Chọn ảnh từ máy tính HOẶC bấm Ctrl + V để dán ảnh vừa Copy từ Facebook
+                            </span>
+                            <span className="text-[11px] text-white/60 font-mono mt-1">
+                              Tự động nén & chuyển đổi tức thì sang định dạng .WebP lưu vĩnh viễn trên Firebase
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleFlowerImageUpload}
+                              className="hidden"
+                            />
+                          </label>
+
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-mono text-white/60">
+                                HOẶC DÁN ĐỊA CHỈ ẢNH TRỰC TIẾP (COPY IMAGE ADDRESS):
+                              </span>
+                              {flowerForm.image &&
+                                !flowerForm.image.startsWith('data:image/') &&
+                                !flowerForm.image.startsWith('/src/') && (
+                                  <button
+                                    type="button"
+                                    disabled={compressing}
+                                    onClick={() => handleConvertFlowerUrl(flowerForm.image)}
+                                    className="px-2.5 py-1 rounded bg-amber-400/20 hover:bg-amber-400 text-amber-300 hover:text-black border border-amber-400/40 font-mono text-[10px] font-bold transition-all"
+                                  >
+                                    ⚡ Chuyển Link này sang .WebP vĩnh viễn
+                                  </button>
+                                )}
+                            </div>
+                            <input
+                              type="text"
+                              placeholder="Dán link ảnh trực tiếp hoặc nhấn Ctrl+V để dán hình ảnh..."
+                              value={flowerForm.image || ''}
+                              onPaste={handleFlowerPaste}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (isFacebookWebpageUrl(val)) {
+                                  setImageUrlWarning(
+                                    'Đây là link trang bài viết Facebook (facebook.com/photo...), không phải file ảnh trực tiếp.'
+                                  );
+                                } else if (isFacebookCdnUrl(val)) {
+                                  setImageUrlWarning(
+                                    'Link ảnh Facebook (fbcdn.net) sẽ tự hết hạn sau vài ngày. Hãy bấm nút "⚡ Chuyển Link này sang .WebP vĩnh viễn" bên trên để lưu ảnh vĩnh viễn!'
+                                  );
+                                } else {
+                                  setImageUrlWarning(null);
+                                }
+                                setFlowerForm((prev) => ({
+                                  ...prev,
+                                  image: val,
+                                  galleryImages: [
+                                    {
+                                      url: val,
+                                      captionVi: prev.galleryImages?.[0]?.captionVi || 'Góc nhìn toàn cảnh',
+                                      captionEn: prev.galleryImages?.[0]?.captionEn || 'Full architectural view'
+                                    },
+                                    ...(prev.galleryImages?.slice(1) || [])
+                                  ]
+                                }));
+                              }}
+                              className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono text-xs focus:outline-none focus:border-amber-400"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 4 Multi-Image Gallery Uploader */}
+                      <div className="pt-4 border-t border-white/10 space-y-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                          <label className="font-mono uppercase text-[11px] font-bold text-amber-300 block">
+                            2. BỘ SƯU TẬP 4 GÓC CHỤP CHI TIẾT (TẢI FILE MÁY HOẶC DÁN LINK FACEBOOK / CTRL+V CHO TỪNG GÓC)
+                          </label>
+                          <span className="text-[10px] font-mono text-white/50">
+                            Không có ảnh gốc trên máy? Dán link ảnh Facebook hoặc bấm Ctrl+V vào từng ô góc chụp bên dưới
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                          {[0, 1, 2, 3].map((idx) => {
+                            const img = flowerForm.galleryImages?.[idx];
+                            const hasExternalUrl =
+                              img?.url &&
+                              !img.url.startsWith('data:image/') &&
+                              !img.url.startsWith('/src/');
+                            return (
+                              <div
+                                key={idx}
+                                onPaste={(e) => handleGalleryPaste(idx, e)}
+                                className="p-2.5 bg-black/50 rounded-xl border border-white/15 space-y-2"
+                              >
+                                <div className="flex items-center justify-between text-[10px] font-mono text-amber-300/90">
+                                  <span className="font-bold">GÓC CHỤP 0{idx + 1}</span>
+                                  <label className="cursor-pointer px-2 py-0.5 rounded bg-white/10 hover:bg-amber-400 hover:text-black text-white transition-colors">
+                                    + File máy
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={(e) => handleGalleryImageUpload(idx, e)}
+                                      className="hidden"
+                                    />
+                                  </label>
+                                </div>
+
+                                <div className="aspect-[3/4] rounded-lg overflow-hidden bg-black relative group border border-white/10">
+                                  {img?.url ? (
+                                    <img
+                                      src={img.url}
+                                      alt={`Gallery ${idx}`}
+                                      referrerPolicy="no-referrer"
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-white/40 text-xs">
+                                      Góc 0{idx + 1}
+                                    </div>
+                                  )}
+                                  <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-[10px] font-mono text-amber-300 text-center p-2">
+                                    <Upload className="w-4 h-4 mb-1" />
+                                    <span>Chọn file từ máy hoặc bấm Ctrl+V</span>
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={(e) => handleGalleryImageUpload(idx, e)}
+                                      className="hidden"
+                                    />
+                                  </label>
+                                  {img?.url && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openImageStudio(
+                                          img.url,
+                                          `Căn Chỉnh Khung Hình: Góc Chụp 0${idx + 1}`,
+                                          (res) => {
+                                            setFlowerForm((prev) => {
+                                              const current = [...(prev.galleryImages || [])];
+                                              while (current.length <= idx) {
+                                                current.push({
+                                                  url: '',
+                                                  captionVi: `Góc chụp 0${current.length + 1}`,
+                                                  captionEn: `Angle 0${current.length + 1}`
+                                                });
+                                              }
+                                              current[idx] = { ...current[idx], url: res.webpDataUrl };
+                                              return {
+                                                ...prev,
+                                                ...(idx === 0 ? { image: res.webpDataUrl } : {}),
+                                                galleryImages: current
+                                              };
+                                            });
+                                            setLastCompression(res);
+                                          },
+                                          '3:4'
+                                        );
+                                      }}
+                                      className="absolute bottom-1.5 inset-x-1.5 z-10 py-1 px-2 rounded bg-amber-400/95 hover:bg-amber-300 text-[#141414] font-mono text-[9px] font-bold uppercase flex items-center justify-center gap-1 shadow"
+                                    >
+                                      <Crop className="w-2.5 h-2.5" />
+                                      <span>Chỉnh Khung Góc 0{idx + 1}</span>
+                                    </button>
+                                  )}
+                                </div>
+
+                                <div className="space-y-1">
+                                  <label className="text-[9px] font-mono text-amber-300/80 block uppercase">
+                                    🔗 Link ảnh góc 0{idx + 1} (Facebook / Web):
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder={`Dán link ảnh hoặc Ctrl+V góc 0${idx + 1}...`}
+                                    value={img?.url || ''}
+                                    onPaste={(e) => handleGalleryPaste(idx, e)}
+                                    onChange={(e) => {
+                                      const urlVal = e.target.value;
+                                      if (isFacebookWebpageUrl(urlVal)) {
+                                        setImageUrlWarning(
+                                          `Góc 0${idx + 1}: Đây là link bài viết Facebook, không phải link file ảnh trực tiếp.`
+                                        );
+                                      }
+                                      setFlowerForm((prev) => {
+                                        const current = [...(prev.galleryImages || [])];
+                                        while (current.length <= idx) {
+                                          current.push({
+                                            url: '',
+                                            captionVi: `Góc chụp 0${current.length + 1}`,
+                                            captionEn: `Angle 0${current.length + 1}`
+                                          });
+                                        }
+                                        current[idx] = { ...current[idx], url: urlVal };
+                                        return {
+                                          ...prev,
+                                          ...(idx === 0 ? { image: urlVal } : {}),
+                                          galleryImages: current
+                                        };
+                                      });
+                                    }}
+                                    className="w-full px-2 py-1.5 bg-black/70 border border-white/15 rounded text-[10px] text-white font-mono focus:border-amber-400 focus:outline-none"
+                                  />
+                                  {hasExternalUrl && (
+                                    <button
+                                      type="button"
+                                      disabled={compressing}
+                                      onClick={() => handleConvertGalleryUrl(idx, img?.url)}
+                                      className="w-full py-1 rounded bg-amber-400/20 hover:bg-amber-400 text-amber-300 hover:text-black border border-amber-400/40 font-mono text-[10px] font-bold transition-all"
+                                    >
+                                      ⚡ Nạp & Nén Link sang .WebP
+                                    </button>
+                                  )}
+                                </div>
+
+                                <div>
+                                  <label className="text-[9px] font-mono text-white/50 block uppercase mb-0.5">
+                                    Chú thích góc 0{idx + 1}:
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder={`Chú thích góc 0${idx + 1}`}
+                                    value={img?.captionVi || ''}
+                                    onChange={(e) => {
+                                      const text = e.target.value;
+                                      setFlowerForm((prev) => {
+                                        const current = [...(prev.galleryImages || [])];
+                                        if (current[idx]) {
+                                          current[idx] = { ...current[idx], captionVi: text };
+                                        }
+                                        return { ...prev, galleryImages: current };
+                                      });
+                                    }}
+                                    className="w-full px-2 py-1 bg-black/60 border border-white/10 rounded text-[10px] text-white"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Basic Info Fields with Automatic Title Case / Uppercase Synchronization */}
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[11px] font-mono uppercase text-amber-300 font-bold flex items-center gap-1.5">
+                          <Type className="w-3.5 h-3.5" />
+                          <span>Định Danh & Tự Động Chuẩn Hóa Chữ Hoa / Chữ Thường Theo Tiêu Đề</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFlowerForm((prev) => ({
+                              ...prev,
+                              name: formatDisplayUppercase(prev.name),
+                              vietnameseName: formatTitleCase(prev.vietnameseName),
+                              latinName: formatBotanicalLatin(prev.latinName),
+                              storyVi: formatProseNFC(prev.storyVi),
+                              storyEn: formatProseNFC(prev.storyEn)
+                            }))
+                          }
+                          className="px-3 py-1 rounded-lg bg-amber-400/20 hover:bg-amber-400 text-amber-300 hover:text-[#141414] border border-amber-400/40 font-mono text-[10px] font-bold transition-all flex items-center gap-1"
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          <span>✨ Chuẩn Hóa Tự Động Tên & Tiêu Đề</span>
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                          <label className="font-bold text-white block mb-1">
+                            Tên Tác Phẩm (Tự động In Hoa) *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={flowerForm.name || ''}
+                            onChange={(e) => setFlowerForm((prev) => ({ ...prev, name: e.target.value }))}
+                            onBlur={(e) =>
+                              setFlowerForm((prev) => ({ ...prev, name: formatDisplayUppercase(e.target.value) }))
+                            }
+                            className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-bagerich focus:border-amber-400 focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="font-bold text-white block mb-1">
+                            Tên Tiếng Việt (Tự động Hoa Đầu Từ) *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={flowerForm.vietnameseName || ''}
+                            onChange={(e) => setFlowerForm((prev) => ({ ...prev, vietnameseName: e.target.value }))}
+                            onBlur={(e) =>
+                              setFlowerForm((prev) => ({
+                                ...prev,
+                                vietnameseName: formatTitleCase(e.target.value)
+                              }))
+                            }
+                            className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="font-bold text-white block mb-1">
+                            Tên Danh Pháp La Tinh (Chuẩn Thực Vật) *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={flowerForm.latinName || ''}
+                            onChange={(e) => setFlowerForm((prev) => ({ ...prev, latinName: e.target.value }))}
+                            onBlur={(e) =>
+                              setFlowerForm((prev) => ({
+                                ...prev,
+                                latinName: formatBotanicalLatin(e.target.value)
+                              }))
+                            }
+                            className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-editorial-serif italic focus:border-amber-400 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Landing Page Pin Feature Card */}
+                    <div className="p-4 bg-amber-400/10 border border-amber-400/30 rounded-xl flex items-center justify-between">
+                      <div className="space-y-1">
+                        <label className="font-bold text-amber-300 text-sm flex items-center gap-2.5 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={flowerForm.pinnedToLanding !== false}
+                            onChange={(e) => setFlowerForm((prev) => ({ ...prev, pinnedToLanding: e.target.checked }))}
+                            className="w-4 h-4 accent-amber-400 rounded cursor-pointer"
+                          />
+                          <span className="flex items-center gap-1.5 font-mono uppercase tracking-wide">
+                            <Pin className="w-3.5 h-3.5 fill-amber-300" />
+                            Ghim tác phẩm lên Landing Page (Lưới 12 sản phẩm nổi bật)
+                          </span>
+                        </label>
+                        <p className="text-[11px] text-white/70 pl-6">
+                          Khi bật, hệ thống sẽ đưa tác phẩm vào lưới 12 tuyệt tác tiêu biểu tại trang chủ. Toàn bộ các tác phẩm khác vẫn hiển thị đầy đủ trong "Bộ Sưu Tập" theo từng mùa và danh mục.
+                        </p>
+                      </div>
+                      <span className={`px-2.5 py-1 rounded text-xs font-mono font-bold uppercase ${
+                        flowerForm.pinnedToLanding !== false ? 'bg-amber-400 text-black' : 'bg-white/10 text-white/40'
+                      }`}>
+                        {flowerForm.pinnedToLanding !== false ? 'Đang Ghim' : 'Không Ghim'}
+                      </span>
+                    </div>
+
+                    {/* Category & Pricing & Seasonality */}
+                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
+                      <div>
+                        <label className="font-bold text-white block mb-1">Danh Mục Phân Loại</label>
+                        <select
+                          value={flowerForm.category || 'bridal'}
+                          onChange={(e) =>
+                            setFlowerForm((prev) => ({
+                              ...prev,
+                              category: e.target.value as any
+                            }))
+                          }
+                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
+                        >
+                          <option value="lan-ho-diep">Lan Hồ Điệp Hoàng Gia (Orchids)</option>
+                          <option value="hoa-bo">Hoa Bó Thiết Kế (Signature Bouquets)</option>
+                          <option value="chau-hoa">Chậu & Bình Hoa (Luxury Vase & Pot)</option>
+                          <option value="gio-hop-hoa">Giỏ Hoa & Hộp Mica (Baskets & Acrylic Boxes)</option>
+                          <option value="bridal">Hoa Cưới Độc Bản (Bridal Haute Couture)</option>
+                          <option value="sculptural">Điêu Khắc Không Gian (Sculptural)</option>
+                          <option value="rare-stems">Cành Hoa Quý Hiếm (Rare Stems)</option>
+                          <option value="seasonal">Bộ Sưu Tập Mùa (Seasonal)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="font-bold text-white block mb-1">Mùa Trong Năm (Season)</label>
+                        <input
+                          type="text"
+                          placeholder="VD: Quanh năm, Mùa Xuân, Mùa Thu..."
+                          value={flowerForm.seasonality || 'Quanh năm (Year-Round)'}
+                          onChange={(e) => setFlowerForm((prev) => ({ ...prev, seasonality: e.target.value }))}
+                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none text-xs"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="font-bold text-white block mb-1">
+                          Giá Tiền (VND) *
+                        </label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          required
+                          placeholder="VD: 3.500.000"
+                          value={
+                            flowerForm.priceVnd
+                              ? Number(flowerForm.priceVnd).toLocaleString('vi-VN')
+                              : ''
+                          }
+                          onChange={(e) => {
+                            const nextVnd = parseVndString(e.target.value);
+                            const autoUsd = convertVndToUsd(nextVnd, usdRate);
+                            setFlowerForm((prev) => ({
+                              ...prev,
+                              priceVnd: nextVnd,
+                              priceUsd: autoUsd
+                            }));
+                          }}
+                          className="w-full px-3 py-2 bg-black/50 border border-amber-400/40 rounded-lg text-amber-300 font-mono font-bold focus:border-amber-400 focus:outline-none"
+                        />
+                        <span className="text-[10px] font-mono text-white/55 block mt-1">
+                          Gõ số tiền VND → Tự động tính sang USD
+                        </span>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1 gap-1">
+                          <label className="font-bold text-emerald-300 block truncate">
+                            Giá Quy Đổi (USD) ⚡
+                          </label>
+                          <div className="flex items-center gap-1 text-[9px] font-mono text-amber-300/90 shrink-0" title="Tỷ giá quy đổi 1 USD sang VND">
+                            <span>1$=</span>
+                            <input
+                              type="number"
+                              value={usdRate}
+                              onChange={(e) => {
+                                const nextRate = Number(e.target.value) || 25000;
+                                setUsdRate(nextRate);
+                                if (nextRate >= 15000 && nextRate <= 40000) {
+                                  setUsdExchangeRate(nextRate);
+                                  setFlowerForm((prev) => ({
+                                    ...prev,
+                                    priceUsd: convertVndToUsd(prev.priceVnd, nextRate)
+                                  }));
+                                }
+                              }}
+                              className="w-14 px-1 py-0.5 bg-black/60 border border-amber-400/40 rounded text-amber-300 text-center font-mono text-[9px] focus:outline-none"
+                            />
+                            <span>đ</span>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400 font-mono font-bold">
+                            $
+                          </span>
+                          <input
+                            type="number"
+                            value={
+                              flowerForm.priceUsd ??
+                              convertVndToUsd(flowerForm.priceVnd, usdRate)
+                            }
+                            onChange={(e) =>
+                              setFlowerForm((prev) => ({ ...prev, priceUsd: Number(e.target.value) }))
+                            }
+                            className="w-full pl-7 pr-12 py-2 bg-black/50 border border-emerald-400/35 rounded-lg text-emerald-300 font-mono font-bold focus:border-emerald-400 focus:outline-none"
+                          />
+                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-emerald-400/70">
+                            USD
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-mono text-emerald-300/80 block mt-1">
+                          ✓ Tự động đổi từ {(flowerForm.priceVnd || 0).toLocaleString('vi-VN')} ₫
+                        </span>
+                      </div>
+
+                      <div>
+                        <label className="font-bold text-white block mb-1">Kích Thước</label>
+                        <input
+                          type="text"
+                          value={flowerForm.dimensions || '30cm x 45cm'}
+                          onChange={(e) => setFlowerForm((prev) => ({ ...prev, dimensions: e.target.value }))}
+                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="font-bold text-amber-300 block mb-1">
+                          Trạng Thái Vận Hành Nguồn Hoa
+                        </label>
+                        <select
+                          value={flowerForm.availabilityStatus || 'ready_today'}
+                          onChange={(e) =>
+                            setFlowerForm((prev) => ({
+                              ...prev,
+                              availabilityStatus: e.target.value as FlowerItem['availabilityStatus']
+                            }))
+                          }
+                          className="w-full px-3 py-2 bg-black/50 border border-amber-400/30 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
+                        >
+                          <option value="ready_today" className="bg-[#1e1f1c] text-white">
+                            ✓ Sẵn Hoa Trong Ngày (Giao 2h - 4h)
+                          </option>
+                          <option value="preorder_24h" className="bg-[#1e1f1c] text-white">
+                            ⏳ Đặt Trước 24h (Haute Couture / Hoa Nhập)
+                          </option>
+                          <option value="seasonal_out" className="bg-[#1e1f1c] text-white">
+                            ✕ Tạm Hết Mùa (Tư vấn mẫu tương đương)
+                          </option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Narrative Story */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="font-bold text-white block mb-1">Câu Chuyện & Ý Nghĩa (Tiếng Việt)</label>
+                        <textarea
+                          rows={4}
+                          value={flowerForm.storyVi || ''}
+                          onChange={(e) => setFlowerForm((prev) => ({ ...prev, storyVi: e.target.value }))}
+                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white leading-relaxed focus:border-amber-400 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="font-bold text-white block mb-1">Mô Tả Tiếng Anh (English Monograph)</label>
+                        <textarea
+                          rows={4}
+                          value={flowerForm.storyEn || ''}
+                          onChange={(e) => setFlowerForm((prev) => ({ ...prev, storyEn: e.target.value }))}
+                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white leading-relaxed focus:border-amber-400 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="pt-4 border-t border-white/10 flex items-center justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingFlower(null);
+                          setIsAddingFlower(false);
+                        }}
+                        className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-mono text-xs"
+                      >
+                        Hủy Bỏ
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-7 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#141414] font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>Lưu Tác Phẩm</span>
+                      </button>
+                    </div>
+
+                  </form>
+                </div>
+              ) : (
+                /* Flower Catalog List */
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="relative flex-1 max-w-md">
+                      <Search className="w-4 h-4 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder="Tìm kiếm tác phẩm hoa..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 bg-[#1e1f1c] border border-white/15 rounded-xl text-white text-xs focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-400/10 border border-amber-400/20 text-xs font-mono text-amber-300">
+                        <Pin className="w-3.5 h-3.5 fill-amber-300" />
+                        <span>Đang ghim: {flowers.filter(f => f.pinnedToLanding !== false).length} tác phẩm</span>
+                      </div>
+
+                      <button
+                        onClick={startAddFlower}
+                        className="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#141414] font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md whitespace-nowrap"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Thêm Tác Phẩm Mới</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Grid of Flowers */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredFlowers.map((f) => {
+                      const isPinned = f.pinnedToLanding !== false;
+
+                      return (
+                        <div
+                          key={f.id}
+                          className="bg-[#1e1f1c] rounded-xl p-3.5 border border-white/10 flex gap-3 items-center group hover:border-white/30 transition-all relative overflow-hidden"
+                        >
+                          <div className="w-16 h-20 rounded-lg overflow-hidden bg-black flex-shrink-0 relative">
+                            <img src={f.image} alt={f.name} className="w-full h-full object-cover" />
+                            {isPinned && (
+                              <div className="absolute top-1 left-1 bg-amber-400 text-black p-0.5 rounded shadow">
+                                <Pin className="w-2.5 h-2.5 fill-black" />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-mono text-amber-400">#{f.indexNumber}</span>
+                              {isPinned && (
+                                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                                  Ghim Landing
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="font-bagerich font-bold text-sm uppercase text-white truncate">
+                              {f.name}
+                            </h4>
+                            <p className="text-xs text-white/70 truncate">{f.vietnameseName}</p>
+                            <div className="flex items-center justify-between gap-2 mt-1">
+                              <p className="text-xs font-mono font-bold text-white/90">
+                                {f.priceVnd.toLocaleString('vi-VN')} VND
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const nextAvail: FlowerItem['availabilityStatus'] =
+                                    f.availabilityStatus === 'ready_today'
+                                      ? 'preorder_24h'
+                                      : f.availabilityStatus === 'preorder_24h'
+                                        ? 'seasonal_out'
+                                        : 'ready_today';
+                                  updateFlower(f.id, { availabilityStatus: nextAvail });
+                                }}
+                                className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold border transition-all ${
+                                  f.availabilityStatus === 'seasonal_out'
+                                    ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                                    : f.availabilityStatus === 'preorder_24h'
+                                      ? 'bg-amber-400/20 text-amber-300 border-amber-400/40'
+                                      : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                }`}
+                                title="Bấm để chuyển nhanh trạng thái nguồn hoa"
+                              >
+                                {f.availabilityStatus === 'seasonal_out'
+                                  ? 'Hết mùa'
+                                  : f.availabilityStatus === 'preorder_24h'
+                                    ? 'Đặt 24h'
+                                    : 'Sẵn hoa'}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => togglePinFlower(f.id)}
+                              className={`p-2 rounded-lg transition-colors ${
+                                isPinned
+                                  ? 'bg-amber-400 text-[#141414] hover:bg-amber-300 shadow-sm'
+                                  : 'bg-white/5 hover:bg-white/20 text-white/40 hover:text-white'
+                              }`}
+                              title={isPinned ? "Bỏ ghim khỏi Landing Page" : "Ghim lên Landing Page"}
+                            >
+                              <Pin className={`w-3.5 h-3.5 ${isPinned ? 'fill-current' : ''}`} />
+                            </button>
+                            <button
+                              onClick={() => startEditFlower(f)}
+                              className="p-2 rounded-lg bg-white/10 hover:bg-amber-400 hover:text-[#141414] text-white transition-colors"
+                              title="Chỉnh sửa tác phẩm"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`Bạn có chắc muốn xóa tác phẩm "${f.name}"?`)) {
+                                  deleteFlower(f.id);
+                                }
+                              }}
+                              className="p-2 rounded-lg bg-red-950/60 hover:bg-red-800 text-red-300 transition-colors"
+                              title="Xóa tác phẩm"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 2: WORKSHOPS CRUD */}
+          {activeTab === 'workshops' && (
+            <div className="space-y-6">
+              {(editingWorkshop || isAddingWorkshop) ? (
+                <div className="bg-[#1e1f1c] rounded-2xl p-6 border border-white/15 space-y-6 animate-fadeIn">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                    <div>
+                      <span className="text-[10px] font-mono tracking-widest uppercase text-amber-400 block">
+                        {isAddingWorkshop ? 'MODULE WORKSHOP MỚI' : `CHỈNH SỬA WORKSHOP #${workshopForm.indexNumber || '01'}`}
+                      </span>
+                      <h3 className="text-xl font-bagerich font-bold uppercase text-white mt-0.5">
+                        {isAddingWorkshop ? 'THÊM WORKSHOP MỚI VÀO BỘ SƯU TẬP' : `CHỈNH SỬA: ${workshopForm.name}`}
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingWorkshop(null);
+                        setIsAddingWorkshop(false);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-white/10 text-xs hover:bg-white/20 transition-all font-mono text-white"
+                    >
+                      Quay Lại
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleSaveWorkshop} className="space-y-6 text-xs font-sans">
+                    
+                    {/* Auto-Compression WebP Alert */}
+                    {lastCompression && (
+                      <div className="p-3 bg-emerald-950/70 border border-emerald-500/40 rounded-xl text-emerald-200 flex items-center gap-3 font-mono">
+                        <FileCheck className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                        <div>
+                          <p className="font-bold">Ảnh workshop đã tự động nén sang .WebP thành công!</p>
+                          <p className="text-[11px] opacity-80">
+                            Gốc: {formatFileSize(lastCompression.originalSize)} → WebP: {formatFileSize(lastCompression.compressedSize)} (Tiết kiệm {lastCompression.compressionRatio}%)
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Image Uploader for Workshop with Auto WebP */}
+                    <div
+                      onPaste={handleWorkshopPaste}
+                      className="p-4 bg-black/40 rounded-xl border border-white/10 space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <label className="font-mono uppercase text-[11px] font-bold text-amber-300 block">
+                          1. ẢNH POSTER ĐẠI DIỆN WORKSHOP (HỖ TRỢ TẢI FILE, CTRL+V TỪ FACEBOOK, HOẶC LINK ẢNH)
+                        </label>
+                        {compressing && (
+                          <span className="text-amber-400 font-mono text-[11px] animate-pulse">
+                            Đang xử lý & nén ảnh sang WebP...
+                          </span>
+                        )}
+                      </div>
+
+                      {imageUrlWarning && (
+                        <div className="p-3 bg-amber-950/80 border border-amber-400/50 rounded-xl text-amber-200 flex items-start gap-2.5 text-xs">
+                          <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                          <div className="space-y-1">
+                            <p className="font-bold text-amber-300">{imageUrlWarning}</p>
+                            <p className="text-[11px] text-white/80">
+                              💡 <strong>Mẹo lấy ảnh từ Facebook:</strong> Nhấp chuột phải vào ảnh trên Facebook ➔ Chọn <strong>"Sao chép hình ảnh" (Copy image)</strong> ➔ Quay lại khung này và bấm <strong>Ctrl + V</strong>!
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+                        <div className="sm:col-span-4 aspect-[3/4] max-w-[160px] rounded-lg overflow-hidden border border-white/20 bg-black relative group">
+                          <img
+                            src={workshopForm.image}
+                            alt="Workshop Poster"
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover"
+                          />
+                          {workshopForm.image && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openImageStudio(
+                                  workshopForm.image,
+                                  'Căn Chỉnh Khung Hình: Poster Workshop',
+                                  (res) => {
+                                    setWorkshopForm((prev) => ({
+                                      ...prev,
+                                      image: res.webpDataUrl,
+                                      galleryImages: [
+                                        {
+                                          url: res.webpDataUrl,
+                                          captionVi: prev.galleryImages?.[0]?.captionVi || 'Poster chính thức',
+                                          captionEn: prev.galleryImages?.[0]?.captionEn || 'Official visual'
+                                        },
+                                        ...(prev.galleryImages?.slice(1) || [])
+                                      ]
+                                    }));
+                                    setLastCompression(res);
+                                  },
+                                  '3:4'
+                                )
+                              }
+                              className="absolute inset-x-1.5 bottom-1.5 py-1.5 px-2 rounded-md bg-amber-400 text-[#141414] font-mono text-[10px] font-bold uppercase flex items-center justify-center gap-1 shadow-lg hover:bg-amber-300 transition-all"
+                            >
+                              <Crop className="w-3 h-3" />
+                              <span>Chỉnh Khung Hình</span>
+                            </button>
+                          )}
+                        </div>
+                        <div className="sm:col-span-8 space-y-3">
+                          <label className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-white/20 rounded-xl hover:border-amber-400/60 bg-white/5 cursor-pointer transition-colors text-center">
+                            <Upload className="w-6 h-6 text-amber-300 mb-1.5" />
+                            <span className="font-bold text-white text-xs">
+                              Chọn ảnh từ thiết bị HOẶC bấm Ctrl + V để dán ảnh vừa Copy từ Facebook
+                            </span>
+                            <span className="text-[11px] text-white/60 font-mono mt-1">
+                              Tự động nén sang .WebP lưu vĩnh viễn trên Firebase
+                            </span>
+                            <input type="file" accept="image/*" onChange={handleWorkshopImageUpload} className="hidden" />
+                          </label>
+
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-mono text-white/60 block">
+                                HOẶC DÁN ĐỊA CHỈ ẢNH TRỰC TIẾP:
+                              </span>
+                              {workshopForm.image &&
+                                !workshopForm.image.startsWith('data:image/') &&
+                                !workshopForm.image.startsWith('/src/') && (
+                                  <button
+                                    type="button"
+                                    disabled={compressing}
+                                    onClick={() => handleConvertWorkshopUrl(workshopForm.image)}
+                                    className="px-2.5 py-1 rounded bg-amber-400/20 hover:bg-amber-400 text-amber-300 hover:text-black border border-amber-400/40 font-mono text-[10px] font-bold transition-all"
+                                  >
+                                    ⚡ Chuyển Link này sang .WebP vĩnh viễn
+                                  </button>
+                                )}
+                            </div>
+                            <input
+                              type="text"
+                              value={workshopForm.image || ''}
+                              onPaste={handleWorkshopPaste}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (isFacebookWebpageUrl(val)) {
+                                  setImageUrlWarning(
+                                    'Đây là link trang bài viết Facebook, không phải link file ảnh trực tiếp.'
+                                  );
+                                } else if (isFacebookCdnUrl(val)) {
+                                  setImageUrlWarning(
+                                    'Link ảnh Facebook (fbcdn.net) sẽ tự hết hạn sau vài ngày. Hãy bấm nút "⚡ Chuyển Link này sang .WebP vĩnh viễn" để lưu vĩnh viễn!'
+                                  );
+                                } else {
+                                  setImageUrlWarning(null);
+                                }
+                                setWorkshopForm((prev) => ({
+                                  ...prev,
+                                  image: val,
+                                  galleryImages: [
+                                    {
+                                      url: val,
+                                      captionVi: prev.galleryImages?.[0]?.captionVi || 'Poster chính thức',
+                                      captionEn: prev.galleryImages?.[0]?.captionEn || 'Official visual'
+                                    },
+                                    ...(prev.galleryImages?.slice(1) || [])
+                                  ]
+                                }));
+                              }}
+                              className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono text-xs focus:outline-none focus:border-amber-400"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 4 Multi-Image Gallery for Horizontal Slider */}
+                      <div className="pt-4 border-t border-white/10 space-y-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                          <label className="font-mono uppercase text-[11px] font-bold text-amber-300 block">
+                            2. BỘ 4 ẢNH GÓC CHỤP WORKSHOP (TẢI FILE MÁY HOẶC DÁN LINK FACEBOOK / CTRL+V CHO TỪNG GÓC)
+                          </label>
+                          <span className="text-[10px] font-mono text-white/50">
+                            Hỗ trợ dán link trực tiếp từ Facebook hoặc bấm Ctrl+V cho từng góc chụp
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                          {[0, 1, 2, 3].map((idx) => {
+                            const img = workshopForm.galleryImages?.[idx];
+                            const hasExternalUrl =
+                              img?.url &&
+                              !img.url.startsWith('data:image/') &&
+                              !img.url.startsWith('/src/');
+                            return (
+                              <div
+                                key={idx}
+                                onPaste={(e) => handleWorkshopGalleryPaste(idx, e)}
+                                className="p-2.5 bg-black/50 rounded-xl border border-white/15 space-y-2"
+                              >
+                                <div className="flex items-center justify-between text-[10px] font-mono text-amber-300/90">
+                                  <span className="font-bold">GÓC ẢNH #{idx + 1}</span>
+                                  <label className="cursor-pointer px-2 py-0.5 rounded bg-white/10 hover:bg-amber-400 hover:text-black text-white transition-colors">
+                                    + File máy
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={(e) => handleWorkshopGalleryImageUpload(idx, e)}
+                                      className="hidden"
+                                    />
+                                  </label>
+                                </div>
+
+                                <div className="aspect-[3/4] rounded-lg overflow-hidden bg-black relative group border border-white/10">
+                                  {img?.url ? (
+                                    <img
+                                      src={img.url}
+                                      alt={`Gallery ${idx}`}
+                                      referrerPolicy="no-referrer"
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-white/30 text-xs font-mono">
+                                      Trống
+                                    </div>
+                                  )}
+                                  <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[10px] font-mono text-center p-2">
+                                    <Upload className="w-4 h-4 mb-1 text-amber-300" />
+                                    <span>Chọn file máy hoặc Ctrl+V</span>
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={(e) => handleWorkshopGalleryImageUpload(idx, e)}
+                                      className="hidden"
+                                    />
+                                  </label>
+                                  {img?.url && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openImageStudio(
+                                          img.url,
+                                          `Căn Chỉnh Khung Hình: Góc Ảnh Workshop #${idx + 1}`,
+                                          (res) => {
+                                            setWorkshopForm((prev) => {
+                                              const current = [...(prev.galleryImages || [])];
+                                              while (current.length <= idx) {
+                                                current.push({ url: '', captionVi: '', captionEn: '' });
+                                              }
+                                              current[idx] = { ...current[idx], url: res.webpDataUrl };
+                                              return {
+                                                ...prev,
+                                                ...(idx === 0 ? { image: res.webpDataUrl } : {}),
+                                                galleryImages: current
+                                              };
+                                            });
+                                            setLastCompression(res);
+                                          },
+                                          '3:4'
+                                        );
+                                      }}
+                                      className="absolute bottom-1.5 inset-x-1.5 z-10 py-1 px-2 rounded bg-amber-400/95 hover:bg-amber-300 text-[#141414] font-mono text-[9px] font-bold uppercase flex items-center justify-center gap-1 shadow"
+                                    >
+                                      <Crop className="w-2.5 h-2.5" />
+                                      <span>Chỉnh Khung #{idx + 1}</span>
+                                    </button>
+                                  )}
+                                </div>
+
+                                <div className="space-y-1">
+                                  <label className="text-[9px] font-mono text-amber-300/80 block uppercase">
+                                    🔗 Link ảnh góc #{idx + 1} (Facebook / Web):
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder={`Dán link ảnh góc #${idx + 1}...`}
+                                    value={img?.url || ''}
+                                    onPaste={(e) => handleWorkshopGalleryPaste(idx, e)}
+                                    onChange={(e) => {
+                                      const urlVal = e.target.value;
+                                      setWorkshopForm((prev) => {
+                                        const current = [...(prev.galleryImages || [])];
+                                        while (current.length <= idx) {
+                                          current.push({ url: '', captionVi: '', captionEn: '' });
+                                        }
+                                        current[idx] = { ...current[idx], url: urlVal };
+                                        return {
+                                          ...prev,
+                                          ...(idx === 0 ? { image: urlVal } : {}),
+                                          galleryImages: current
+                                        };
+                                      });
+                                    }}
+                                    className="w-full px-2 py-1.5 bg-black/70 border border-white/15 rounded text-[10px] text-white font-mono focus:border-amber-400 focus:outline-none"
+                                  />
+                                  {hasExternalUrl && (
+                                    <button
+                                      type="button"
+                                      disabled={compressing}
+                                      onClick={() => handleConvertWorkshopGalleryUrl(idx, img?.url)}
+                                      className="w-full py-1 rounded bg-amber-400/20 hover:bg-amber-400 text-amber-300 hover:text-black border border-amber-400/40 font-mono text-[10px] font-bold transition-all"
+                                    >
+                                      ⚡ Nạp & Nén Link sang .WebP
+                                    </button>
+                                  )}
+                                </div>
+
+                                <input
+                                  type="text"
+                                  placeholder={`Chú thích góc #${idx + 1}`}
+                                  value={img?.captionVi || ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setWorkshopForm((prev) => {
+                                      const current = [...(prev.galleryImages || [])];
+                                      while (current.length <= idx) {
+                                        current.push({ url: '', captionVi: '', captionEn: '' });
+                                      }
+                                      current[idx] = { ...current[idx], captionVi: val };
+                                      return { ...prev, galleryImages: current };
+                                    });
+                                  }}
+                                  className="w-full px-2 py-1 bg-black/70 border border-white/10 rounded text-[11px] text-white font-mono"
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[11px] font-mono uppercase text-amber-300 font-bold flex items-center gap-1.5">
+                          <Type className="w-3.5 h-3.5" />
+                          <span>Tiêu Đề Workshop & Tự Động Chuẩn Hóa Chữ Hoa / Chữ Thường</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setWorkshopForm((prev) => ({
+                              ...prev,
+                              name: formatDisplayUppercase(prev.name),
+                              latinMonographName: formatTitleCase(prev.latinMonographName),
+                              titleVi: formatTitleCase(prev.titleVi),
+                              subtitleVi: formatProseNFC(prev.subtitleVi),
+                              editorialQuoteVi: formatProseNFC(prev.editorialQuoteVi)
+                            }))
+                          }
+                          className="px-3 py-1 rounded-lg bg-amber-400/20 hover:bg-amber-400 text-amber-300 hover:text-[#141414] border border-amber-400/40 font-mono text-[10px] font-bold transition-all flex items-center gap-1"
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          <span>✨ Chuẩn Hóa Tự Động Tên & Tiêu Đề</span>
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                          <label className="font-bold text-white block mb-1">
+                            Tên Tiêu Đề Chính (Tự động In Hoa) *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={workshopForm.name || ''}
+                            onChange={(e) => setWorkshopForm((prev) => ({ ...prev, name: e.target.value }))}
+                            onBlur={(e) =>
+                              setWorkshopForm((prev) => ({ ...prev, name: formatDisplayUppercase(e.target.value) }))
+                            }
+                            className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-bagerich text-sm focus:border-amber-400 focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="font-bold text-white block mb-1">
+                            Tên Phụ Monograph (Tự động Hoa Đầu Từ) *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={workshopForm.latinMonographName || ''}
+                            onChange={(e) =>
+                              setWorkshopForm((prev) => ({ ...prev, latinMonographName: e.target.value }))
+                            }
+                            onBlur={(e) =>
+                              setWorkshopForm((prev) => ({
+                                ...prev,
+                                latinMonographName: formatTitleCase(e.target.value)
+                              }))
+                            }
+                            className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="font-bold text-white block mb-1">
+                            Tiêu Đề Đầy Đủ Tiếng Việt (Hoa Đầu Từ) *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={workshopForm.titleVi || ''}
+                            onChange={(e) => setWorkshopForm((prev) => ({ ...prev, titleVi: e.target.value }))}
+                            onBlur={(e) =>
+                              setWorkshopForm((prev) => ({ ...prev, titleVi: formatTitleCase(e.target.value) }))
+                            }
+                            className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-white block mb-1">Dòng Trích Dẫn / Thông Điệp Ngắn (Subtitle)</label>
+                      <input
+                        type="text"
+                        value={workshopForm.subtitleVi || ''}
+                        onChange={(e) => setWorkshopForm((prev) => ({ ...prev, subtitleVi: e.target.value }))}
+                        className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-white block mb-1">Đoạn Văn Triết Lý Giới Thiệu (Hiển thị ngoài trang triển lãm) *</label>
+                      <textarea
+                        rows={3}
+                        required
+                        value={workshopForm.editorialQuoteVi || ''}
+                        onChange={(e) => setWorkshopForm((prev) => ({ ...prev, editorialQuoteVi: e.target.value }))}
+                        className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white leading-relaxed focus:border-amber-400 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                      <div>
+                        <label className="font-bold text-white block mb-1">Thời Lượng</label>
+                        <input
+                          type="text"
+                          value={workshopForm.duration || '1.5 – 2.0 Giờ'}
+                          onChange={(e) => setWorkshopForm((prev) => ({ ...prev, duration: e.target.value }))}
+                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="font-bold text-white block mb-1">Quy Mô Nhóm</label>
+                        <input
+                          type="text"
+                          value={workshopForm.groupSize || '10 – 50+ Pax'}
+                          onChange={(e) => setWorkshopForm((prev) => ({ ...prev, groupSize: e.target.value }))}
+                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="font-bold text-white block mb-1">Chi Phí Dự Kiến / Pax (VND)</label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={
+                            workshopForm.pricePerPaxVnd
+                              ? Number(workshopForm.pricePerPaxVnd).toLocaleString('vi-VN')
+                              : ''
+                          }
+                          onChange={(e) =>
+                            setWorkshopForm((prev) => ({
+                              ...prev,
+                              pricePerPaxVnd: parseVndString(e.target.value)
+                            }))
+                          }
+                          className="w-full px-3 py-2 bg-black/50 border border-amber-400/40 rounded-lg text-amber-300 font-mono font-bold focus:border-amber-400 focus:outline-none"
+                        />
+                        <span className="text-[10px] font-mono text-emerald-300/85 block mt-1">
+                          ⚡ Quy đổi tự động: ~${convertVndToUsd(workshopForm.pricePerPaxVnd || 750000, usdRate)} USD / pax
+                        </span>
+                      </div>
+
+                      <div>
+                        <label className="font-bold text-white block mb-1">Địa Điểm Tổ Chức</label>
+                        <input
+                          type="text"
+                          value={workshopForm.locationVi || 'Tận nơi tại Văn phòng đối tác hoặc Atelier JU'}
+                          onChange={(e) => setWorkshopForm((prev) => ({ ...prev, locationVi: e.target.value }))}
+                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="font-bold text-white block mb-1">Link Tham Gia Nhóm Zalo</label>
+                        <input
+                          type="url"
+                          value={workshopForm.zaloCommunityUrl || 'https://zalo.me/g/juetsaigon'}
+                          onChange={(e) => setWorkshopForm((prev) => ({ ...prev, zaloCommunityUrl: e.target.value }))}
+                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono text-xs focus:border-amber-400 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="font-bold text-white block mb-1">Hotline Tư Vấn Workshop</label>
+                        <input
+                          type="text"
+                          value={workshopForm.hotline || '090 936 80 80'}
+                          onChange={(e) => setWorkshopForm((prev) => ({ ...prev, hotline: e.target.value }))}
+                          className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono text-xs focus:border-amber-400 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-white/10 flex items-center justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingWorkshop(null);
+                          setIsAddingWorkshop(false);
+                        }}
+                        className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-mono text-xs"
+                      >
+                        Hủy Bỏ
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-7 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#141414] font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>{isAddingWorkshop ? 'Tạo Workshop Mới' : 'Lưu Thay Đổi Workshop'}</span>
+                      </button>
+                    </div>
+
+                  </form>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Workshop Management Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-[#1e1f1c] rounded-2xl border border-white/10">
+                    <div>
+                      <span className="text-[10px] font-mono tracking-widest uppercase text-amber-400 block">
+                        JU ET SAIGON · WORKSHOP BOTANICA
+                      </span>
+                      <h3 className="text-lg font-bagerich font-bold uppercase text-white mt-0.5">
+                        DANH SÁCH WORKSHOP ĐANG HOẠT ĐỘNG ({workshops.length} MODULES)
+                      </h3>
+                      <p className="text-xs text-white/60">
+                        Thêm mới hoặc chỉnh sửa các chương trình workshop cắm hoa dành cho doanh nghiệp
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={startAddWorkshop}
+                      className="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#141414] font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md whitespace-nowrap"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Thêm Workshop Mới</span>
+                    </button>
+                  </div>
+
+                  {/* Workshop Cards Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {workshops.map((ws) => (
+                      <div
+                        key={ws.id}
+                        className="bg-[#1e1f1c] rounded-2xl p-5 border border-white/10 space-y-4 flex flex-col justify-between group hover:border-amber-400/40 transition-all shadow-lg"
+                      >
+                        <div className="space-y-3">
+                          <div className="aspect-[3/4] rounded-xl overflow-hidden bg-black relative">
+                            <img src={ws.image} alt={ws.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/70 backdrop-blur-sm rounded text-[10px] font-mono text-amber-300 font-bold">
+                              #{ws.indexNumber}
+                            </div>
+                            {ws.galleryImages && ws.galleryImages.length > 0 && (
+                              <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-black/70 backdrop-blur-sm rounded text-[10px] font-mono text-white/90">
+                                {ws.galleryImages.length} Góc Ảnh
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div>
+                            <span className="text-[10px] font-mono text-amber-400 uppercase tracking-widest block truncate">
+                              {ws.latinMonographName}
+                            </span>
+                            <h4 className="font-bagerich font-bold text-xl uppercase text-white leading-tight mt-0.5 truncate">
+                              {ws.name}
+                            </h4>
+                          </div>
+
+                          <p className="text-xs text-white/80 line-clamp-2 leading-relaxed">
+                            {ws.titleVi}
+                          </p>
+
+                          <div className="pt-2 border-t border-white/10 grid grid-cols-2 gap-2 text-[11px] font-mono text-white/60">
+                            <div>
+                              <span className="text-white/40 block text-[9px]">THỜI LƯỢNG</span>
+                              <span className="text-white font-medium">{ws.duration}</span>
+                            </div>
+                            <div>
+                              <span className="text-white/40 block text-[9px]">QUY MÔ</span>
+                              <span className="text-white font-medium">{ws.groupSize}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+                          <button
+                            onClick={() => startEditWorkshop(ws)}
+                            className="flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-amber-400 hover:text-[#141414] text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            <span>Chỉnh Sửa</span>
+                          </button>
+                          
+                          <button
+                            onClick={() => {
+                              if (workshops.length <= 1) {
+                                alert('Hệ thống cần tối thiểu 1 workshop trong danh mục!');
+                                return;
+                              }
+                              if (window.confirm(`Bạn có chắc muốn xóa workshop "${ws.name}"?`)) {
+                                deleteWorkshop(ws.id);
+                              }
+                            }}
+                            className="p-2.5 rounded-xl bg-red-950/60 hover:bg-red-800 text-red-300 transition-colors"
+                            title="Xóa workshop này"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: BRANDING & SOCIAL CHANNELS */}
+          {activeTab === 'branding' && (
+            <div className="bg-[#1e1f1c] rounded-2xl p-6 border border-white/15 space-y-8">
+              <div className="border-b border-white/10 pb-4">
+                <h3 className="text-xl font-bagerich font-bold uppercase text-white">
+                  CẤU HÌNH LOGO, THÔNG TIN & SOCIAL CHANNELS
+                </h3>
+                <p className="text-xs text-white/60 font-sans mt-0.5">
+                  Quản lý nhận diện thương hiệu, thông tin liên hệ và toàn bộ hệ thống kênh mạng xã hội & truyền thông của JU et Saigon
+                </p>
+              </div>
+
+              {/* 1. Dual Logo Management Section (Logo Đen cho Light Mode & Logo Trắng cho Dark Mode) */}
+              <div className="p-5 bg-black/40 rounded-xl border border-white/10 space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+                  <div>
+                    <label className="font-mono uppercase text-[11px] font-bold text-amber-300 block">
+                      1. HỆ THỐNG 2 LOGO THƯƠNG HIỆU TỰ ĐỘNG THEO CHẾ ĐỘ (LOGO ĐEN & LOGO TRẮNG)
+                    </label>
+                    <p className="text-[11px] text-white/60 mt-0.5">
+                      Hệ thống tự động nhận diện chế độ giao diện để hiển thị <strong>Logo Đen</strong> khi ở nền Sáng (Light Mode) và <strong>Logo Trắng</strong> khi ở nền Tối (Dark Mode).
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-mono text-amber-300 bg-amber-400/10 px-2.5 py-1 rounded-full border border-amber-400/20 shrink-0 self-start sm:self-auto">
+                    TỰ ĐỘNG NHẬN DIỆN LIGHT / DARK MODE
+                  </span>
+                </div>
+
+                {lastCompression && (
+                  <div className="p-3 bg-emerald-950/70 border border-emerald-500/40 rounded-xl text-emerald-200 flex items-center gap-3 font-mono text-xs">
+                    <FileCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                    <span>
+                      Đã tự động nén Logo sang .WebP ({formatFileSize(lastCompression.originalSize)} → {formatFileSize(lastCompression.compressedSize)}, tiết kiệm {lastCompression.compressionRatio}%)
+                    </span>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  
+                  {/* SLOT 1: LOGO ĐEN (LIGHT MODE) */}
+                  <div
+                    onPaste={(e) => handleLogoPaste('dark', e)}
+                    className="p-4 rounded-xl bg-white/5 border border-white/15 space-y-4 flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold text-amber-300 uppercase">
+                          ☀️ PHẦN 1: LOGO ĐEN (CHẾ ĐỘ LIGHT MODE)
+                        </span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#dcd8cf] text-[#141414] font-bold">
+                          Nền Sáng
+                        </span>
+                      </div>
+
+                      {/* Preview on Light Mode Background */}
+                      <div className="w-full h-24 rounded-xl border border-[#141414]/20 bg-[#dcd8cf] flex items-center justify-center p-3 text-center overflow-hidden relative shadow-inner">
+                        {logoUrl ? (
+                          <img
+                            src={logoUrl}
+                            alt="Logo Đen (Light Mode)"
+                            referrerPolicy="no-referrer"
+                            className="max-h-full max-w-full object-contain"
+                          />
+                        ) : (
+                          <span className="font-fleur-title font-bold text-lg text-[#141414] uppercase tracking-wider">
+                            {brandingForm.name || 'JU ET SAIGON'}
+                          </span>
+                        )}
+                        <span className="absolute bottom-1 right-2 text-[9px] font-mono text-[#141414]/50">
+                          Xem trước trên nền Light Mode
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label className="flex-1 min-w-[160px] inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#141414] font-bold text-xs uppercase tracking-wider cursor-pointer shadow-md transition-colors text-center">
+                          <Upload className="w-3.5 h-3.5 shrink-0" />
+                          <span>Tải Ảnh Logo Đen (.WebP)</span>
+                          <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                        </label>
+
+                        {logoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => updateLogoUrl(null)}
+                            className="px-3 py-2 rounded-xl bg-red-950/60 hover:bg-red-800 text-red-200 border border-red-500/30 text-xs font-mono transition-colors"
+                          >
+                            Xóa Logo Đen
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Direct Link / Ctrl+V Input for Logo Đen */}
+                    <div className="space-y-1.5 pt-2 border-t border-white/10">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-mono text-white/60 uppercase">
+                          Hoặc dán Link ảnh / bấm Ctrl+V:
+                        </label>
+                        {logoUrl && !logoUrl.startsWith('data:image/') && !logoUrl.startsWith('/src/') && (
+                          <button
+                            type="button"
+                            disabled={compressing}
+                            onClick={() => handleConvertLogoUrl('dark', logoUrl)}
+                            className="px-2 py-0.5 rounded bg-amber-400/20 hover:bg-amber-400 text-amber-300 hover:text-black border border-amber-400/40 font-mono text-[9px] font-bold transition-all"
+                          >
+                            ⚡ Chuyển sang .WebP
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Dán link Logo Đen hoặc nhấn Ctrl+V..."
+                        value={logoUrl || ''}
+                        onPaste={(e) => handleLogoPaste('dark', e)}
+                        onChange={(e) => updateLogoUrl(e.target.value || null)}
+                        className="w-full px-3 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white font-mono text-[11px] focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                  </div>
+
+                  {/* SLOT 2: LOGO TRẮNG (DARK MODE) */}
+                  <div
+                    onPaste={(e) => handleLogoPaste('white', e)}
+                    className="p-4 rounded-xl bg-white/5 border border-white/15 space-y-4 flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold text-amber-300 uppercase">
+                          🌙 PHẦN 2: LOGO TRẮNG (CHẾ ĐỘ DARK MODE)
+                        </span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#0f100e] text-[#ede9df] border border-white/20 font-bold">
+                          Nền Tối
+                        </span>
+                      </div>
+
+                      {/* Preview on Dark Mode Background (Always stays dark so White Logo is visible) */}
+                      <div className="admin-keep-dark w-full h-24 rounded-xl border border-white/20 bg-[#0f100e] flex items-center justify-center p-3 text-center overflow-hidden relative shadow-inner">
+                        {logoWhiteUrl ? (
+                          <img
+                            src={logoWhiteUrl}
+                            alt="Logo Trắng (Dark Mode)"
+                            referrerPolicy="no-referrer"
+                            className="max-h-full max-w-full object-contain"
+                          />
+                        ) : logoUrl ? (
+                          <img
+                            src={logoUrl}
+                            alt="Logo Tự Động Đảo Trắng"
+                            referrerPolicy="no-referrer"
+                            className="max-h-full max-w-full object-contain brightness-0 invert opacity-90"
+                          />
+                        ) : (
+                          <span className="font-fleur-title font-bold text-lg text-[#ede9df] uppercase tracking-wider">
+                            {brandingForm.name || 'JU ET SAIGON'}
+                          </span>
+                        )}
+                        <span className="absolute bottom-1 right-2 text-[9px] font-mono text-white/40">
+                          {logoWhiteUrl
+                            ? 'Đang dùng Logo Trắng riêng'
+                            : logoUrl
+                              ? 'Tự động chuyển trắng từ Logo Đen'
+                              : 'Xem trước trên nền Dark Mode'}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label className="flex-1 min-w-[160px] inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-[#ede9df] text-[#141414] font-bold text-xs uppercase tracking-wider cursor-pointer shadow-md transition-colors text-center">
+                          <Upload className="w-3.5 h-3.5 shrink-0" />
+                          <span>Tải Ảnh Logo Trắng (.WebP)</span>
+                          <input type="file" accept="image/*" onChange={handleLogoWhiteUpload} className="hidden" />
+                        </label>
+
+                        {logoWhiteUrl && (
+                          <button
+                            type="button"
+                            onClick={() => updateLogoWhiteUrl(null)}
+                            className="px-3 py-2 rounded-xl bg-red-950/60 hover:bg-red-800 text-red-200 border border-red-500/30 text-xs font-mono transition-colors"
+                          >
+                            Xóa Logo Trắng
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Direct Link / Ctrl+V Input for Logo Trắng */}
+                    <div className="space-y-1.5 pt-2 border-t border-white/10">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-mono text-white/60 uppercase">
+                          Hoặc dán Link ảnh / bấm Ctrl+V:
+                        </label>
+                        {logoWhiteUrl && !logoWhiteUrl.startsWith('data:image/') && !logoWhiteUrl.startsWith('/src/') && (
+                          <button
+                            type="button"
+                            disabled={compressing}
+                            onClick={() => handleConvertLogoUrl('white', logoWhiteUrl)}
+                            className="px-2 py-0.5 rounded bg-amber-400/20 hover:bg-amber-400 text-amber-300 hover:text-black border border-amber-400/40 font-mono text-[9px] font-bold transition-all"
+                          >
+                            ⚡ Chuyển sang .WebP
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Dán link Logo Trắng hoặc nhấn Ctrl+V..."
+                        value={logoWhiteUrl || ''}
+                        onPaste={(e) => handleLogoPaste('white', e)}
+                        onChange={(e) => updateLogoWhiteUrl(e.target.value || null)}
+                        className="w-full px-3 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white font-mono text-[11px] focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                  </div>
+
+                </div>
+
+                <p className="text-[11px] text-white/50 font-mono">
+                  💡 Khuyến nghị sử dụng file PNG hoặc WebP nền trong suốt (kích thước khoảng 400x120px). Khi chuyển đổi qua lại giữa <strong>Sáng (Light)</strong> và <strong>Tối (Dark)</strong>, hệ thống sẽ tự động thay đổi giữa 2 bản Logo này.
+                </p>
+              </div>
+
+              {/* Form Body */}
+              <form onSubmit={handleSaveBranding} className="space-y-8 text-xs font-sans">
+
+                {/* 1B. HERO COVER SHOWCASE — KHUNG HÌNH POSTER COVER THUẦN TÚY (KHÔNG CHỮ ĐÈ) */}
+                <div className="p-5 bg-gradient-to-br from-[#23211d] to-[#171815] rounded-xl border border-amber-400/35 shadow-lg space-y-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
+                    <div>
+                      <label className="font-mono uppercase text-[12px] font-bold text-amber-300 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-amber-300" />
+                        <span>QUẢN LÝ HÌNH POSTER COVER ĐẦU TRANG — KHUNG NGANG CỐ ĐỊNH 16:9 CHUẨN ĐA NỀN TẢNG</span>
+                      </label>
+                      <p className="text-[11px] text-white/65 mt-0.5">
+                        Khung Cover cố định tỉ lệ <strong>Ngang 16:9 (Chuẩn 1920×1080px / 1600×900px)</strong> đồng nhất trên mọi thiết bị Điện thoại, Tablet và Máy tính.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentSlides = Array.isArray(brandingForm.heroSlides)
+                          ? [...brandingForm.heroSlides]
+                          : [...ATELIER_DATA.heroSlides];
+                        const firstFlower = flowers[0];
+                        currentSlides.push({
+                          id: `cover-${Date.now()}`,
+                          badgeVi: '',
+                          badgeEn: '',
+                          titleVi: `Poster #${currentSlides.length + 1}`,
+                          titleEn: `Poster #${currentSlides.length + 1}`,
+                          subtitleVi: '',
+                          subtitleEn: '',
+                          image: firstFlower ? firstFlower.image : '/src/assets/images/juet_bridal_vows_1.jpg',
+                          linkedFlowerId: ''
+                        });
+                        setBrandingForm((prev) => ({ ...prev, heroSlides: currentSlides }));
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-[#141414] font-mono text-[11px] font-bold uppercase flex items-center gap-1.5 shadow"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Thêm Hình Poster Cover (16:9)</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(Array.isArray(brandingForm.heroSlides) && brandingForm.heroSlides.length > 0
+                      ? brandingForm.heroSlides
+                      : ATELIER_DATA.heroSlides
+                    ).map((slide, sIdx, allSlides) => {
+                      const updateSlideField = (updates: Partial<HeroCoverSlide>) => {
+                        const nextSlides = [...allSlides];
+                        nextSlides[sIdx] = { ...nextSlides[sIdx], ...updates };
+                        setBrandingForm((prev) => ({ ...prev, heroSlides: nextSlides }));
+                      };
+
+                      return (
+                        <div
+                          key={slide.id || sIdx}
+                          className="p-4 rounded-xl bg-black/45 border border-white/15 space-y-3 flex flex-col justify-between"
+                        >
+                          <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-xs font-bold text-amber-300 uppercase">
+                                POSTER COVER #0{sIdx + 1}
+                              </span>
+                              <span className="px-2 py-0.5 rounded bg-white/10 text-white/75 font-mono text-[10px]">
+                                Khung 16:9 Cố Định
+                              </span>
+                            </div>
+                            {allSlides.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const filtered = allSlides.filter((_, i) => i !== sIdx);
+                                  setBrandingForm((prev) => ({ ...prev, heroSlides: filtered }));
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-red-950/60 hover:bg-red-800 text-red-200 border border-red-500/30 font-mono text-[10px]"
+                              >
+                                Xóa Poster
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Pure Poster Image Preview — Strictly Fixed 16:9 Horizontal Ratio */}
+                          <div className="w-full aspect-[16/9] rounded-xl overflow-hidden bg-black border border-white/15 relative group">
+                            <img
+                              src={slide.image}
+                              alt={`Poster Cover #${sIdx + 1}`}
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full object-cover object-center block"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openImageStudio(
+                                  slide.image,
+                                  `Căn Chỉnh Khung Ngang 16:9: Poster Cover #0${sIdx + 1}`,
+                                  (res) => updateSlideField({ image: res.webpDataUrl }),
+                                  '16:9'
+                                )
+                              }
+                              className="absolute bottom-2 right-2 px-2.5 py-1 rounded-md bg-amber-400 hover:bg-amber-300 text-[#141414] font-mono text-[10px] font-bold uppercase flex items-center gap-1 shadow"
+                            >
+                              <Crop className="w-3 h-3" />
+                              <span>Căn Khung 16:9</span>
+                            </button>
+                          </div>
+
+                          {/* Upload File or Paste URL */}
+                          <div className="space-y-2">
+                            <label className="block w-full py-2 px-3 rounded-lg bg-amber-400 hover:bg-amber-300 text-[#141414] font-mono text-[11px] font-bold uppercase text-center cursor-pointer transition-colors shadow">
+                              + Tải Hình Poster Từ Máy Tính (Tự căn 16:9)
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  setCompressing(true);
+                                  try {
+                                    const res = await compressAndConvertToWebP(file, {
+                                      maxWidth: 1200,
+                                      maxHeight: 900,
+                                      quality: 0.8
+                                    });
+                                    updateSlideField({ image: res.webpDataUrl });
+                                    if (autoOpenStudioOnUpload) {
+                                      openImageStudio(
+                                        res.webpDataUrl,
+                                        `Căn Chỉnh Khung Ngang 16:9: Poster Cover #0${sIdx + 1}`,
+                                        (cropped) => updateSlideField({ image: cropped.webpDataUrl }),
+                                        '16:9'
+                                      );
+                                    }
+                                  } finally {
+                                    setCompressing(false);
+                                  }
+                                }}
+                              />
+                            </label>
+
+                            <input
+                              type="text"
+                              value={slide.image || ''}
+                              onChange={(e) => updateSlideField({ image: e.target.value })}
+                              placeholder="Hoặc dán đường dẫn ảnh Poster (URL)..."
+                              className="w-full px-2.5 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white font-mono text-[10px] focus:border-amber-400 focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. General Brand & Atelier Info */}
+                <div className="p-5 bg-black/40 rounded-xl border border-white/10 space-y-4">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                    <label className="font-mono uppercase text-[11px] font-bold text-amber-300 block">
+                      2. THÔNG TIN THƯƠNG HIỆU & ATELIER
+                    </label>
+                    <span className="text-[10px] font-mono text-white/40">LIÊN HỆ & ĐỊA ĐIỂM</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="font-bold text-white block mb-1">Tên Thương Hiệu (Brand Wordmark) *</label>
+                      <input
+                        type="text"
+                        required
+                        value={brandingForm.name || ''}
+                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, name: e.target.value }))}
+                        className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
+                        placeholder="JU et Saigon"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-white block mb-1">Slogan Tiếng Anh (Tagline)</label>
+                      <input
+                        type="text"
+                        value={brandingForm.tagline || ''}
+                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, tagline: e.target.value }))}
+                        className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
+                        placeholder="Flower your heart, Flower your soul"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-white block mb-1">Hotline Gọi Trực Tiếp (Dùng cho tel: link) *</label>
+                      <input
+                        type="text"
+                        required
+                        value={brandingForm.phone || ''}
+                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, phone: e.target.value }))}
+                        className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
+                        placeholder="090 936 80 80"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-white block mb-1">Hotline Định Dạng Hiển Thị (Phone Formatted) *</label>
+                      <input
+                        type="text"
+                        required
+                        value={brandingForm.phoneFormatted || ''}
+                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, phoneFormatted: e.target.value }))}
+                        className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
+                        placeholder="0909 368 080"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-white block mb-1">Email Liên Hệ Chính Thức *</label>
+                      <input
+                        type="email"
+                        required
+                        value={brandingForm.email || ''}
+                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, email: e.target.value }))}
+                        className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none"
+                        placeholder="juetsaigon@gmail.com"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-white block mb-1">Thời Gian Hoạt Động (Tiếng Việt)</label>
+                      <input
+                        type="text"
+                        value={brandingForm.hoursVi || ''}
+                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, hoursVi: e.target.value }))}
+                        className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
+                        placeholder="Thứ Hai – Chủ Nhật: 08:30 – 20:30"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="font-bold text-white block mb-1">Địa Chỉ Atelier (Tiếng Việt) *</label>
+                      <input
+                        type="text"
+                        required
+                        value={brandingForm.addressVi || ''}
+                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, addressVi: e.target.value }))}
+                        className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
+                        placeholder="Lầu 1 - 31 Nguyễn Trãi, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="font-bold text-white block mb-1">Giới Thiệu Ngắn (Sub-tagline Tiếng Việt)</label>
+                      <textarea
+                        rows={2}
+                        value={brandingForm.subTaglineVi || ''}
+                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, subTaglineVi: e.target.value }))}
+                        className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none resize-none"
+                        placeholder="Góc hoa nhỏ mang sứ mệnh trao gởi yêu thương..."
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="font-bold text-white block mb-1">Lưu Ý Đặt Lịch Tư Vấn (Tiếng Việt)</label>
+                      <input
+                        type="text"
+                        value={brandingForm.consultationNoticeVi || ''}
+                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, consultationNoticeVi: e.target.value }))}
+                        className="w-full px-3 py-2 bg-black/50 border border-white/15 rounded-lg text-white focus:border-amber-400 focus:outline-none"
+                        placeholder="Vui lòng đặt lịch hẹn trước 24h đối với hoa cưới Haute Couture..."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Dedicated SOCIAL & CHANNELS Section */}
+                <div className="p-5 bg-gradient-to-br from-[#23211d] to-[#1a1b18] rounded-xl border border-amber-400/30 shadow-lg space-y-6">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Share2 className="w-4 h-4 text-amber-300" />
+                      <label className="font-mono uppercase text-[12px] font-bold text-amber-300 block">
+                        3. MỤC CHỈNH SỬA SOCIAL & CHANNELS (MẠNG XÃ HỘI & KÊNH KẾT NỐI)
+                      </label>
+                    </div>
+                    <span className="text-[10px] font-mono text-amber-300/80 bg-amber-400/10 px-2.5 py-0.5 rounded-full border border-amber-400/20">
+                      TỰ ĐỘNG ĐỒNG BỘ FOOTER & ATELIER
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-white/60">
+                    Cập nhật đường dẫn các kênh mạng xã hội, hotline Zalo, TikTok và website chính thức. Các đường dẫn này sẽ hiển thị trực tiếp ở phần <strong>SOCIAL & CHANNELS</strong> cuối chân trang và các nút liên hệ.
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    
+                    {/* Instagram */}
+                    <div className="p-4 bg-black/40 rounded-xl border border-pink-500/20 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 font-bold text-pink-400">
+                          <Instagram className="w-4 h-4" />
+                          <span>INSTAGRAM ATELIER</span>
+                        </div>
+                        {brandingForm.instagramUrl && (
+                          <a
+                            href={brandingForm.instagramUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] font-mono text-pink-300 hover:underline flex items-center gap-1"
+                          >
+                            <span>Thử link</span>
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-[11px] text-white/70 block mb-0.5">Tên tài khoản (Handle)</label>
+                          <div className="relative">
+                            <span className="absolute left-2.5 top-2 text-white/40 font-mono text-xs">@</span>
+                            <input
+                              type="text"
+                              value={brandingForm.instagram || ''}
+                              onChange={(e) => setBrandingForm((prev) => ({ ...prev, instagram: e.target.value.replace(/^@/, '') }))}
+                              className="w-full pl-7 pr-3 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white font-mono focus:border-pink-400 focus:outline-none text-xs"
+                              placeholder="juetsaigon"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] text-white/70 block mb-0.5">Đường dẫn đầy đủ (URL)</label>
+                          <input
+                            type="url"
+                            value={brandingForm.instagramUrl || ''}
+                            onChange={(e) => setBrandingForm((prev) => ({ ...prev, instagramUrl: e.target.value }))}
+                            className="w-full px-3 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white font-mono focus:border-pink-400 focus:outline-none text-xs"
+                            placeholder="https://instagram.com/juetsaigon"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Facebook */}
+                    <div className="p-4 bg-black/40 rounded-xl border border-blue-500/20 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 font-bold text-blue-400">
+                          <Facebook className="w-4 h-4" />
+                          <span>FACEBOOK FANPAGE</span>
+                        </div>
+                        {brandingForm.facebookUrl && (
+                          <a
+                            href={brandingForm.facebookUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] font-mono text-blue-300 hover:underline flex items-center gap-1"
+                          >
+                            <span>Thử link</span>
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-[11px] text-white/70 block mb-0.5">Tên hiển thị Fanpage</label>
+                          <input
+                            type="text"
+                            value={brandingForm.facebookName || ''}
+                            onChange={(e) => setBrandingForm((prev) => ({ ...prev, facebookName: e.target.value }))}
+                            className="w-full px-3 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white focus:border-blue-400 focus:outline-none text-xs"
+                            placeholder="JU et Saigon"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] text-white/70 block mb-0.5">Đường dẫn Fanpage (URL)</label>
+                          <input
+                            type="url"
+                            value={brandingForm.facebookUrl || ''}
+                            onChange={(e) => setBrandingForm((prev) => ({ ...prev, facebookUrl: e.target.value }))}
+                            className="w-full px-3 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white font-mono focus:border-blue-400 focus:outline-none text-xs"
+                            placeholder="https://www.facebook.com/juetsaigon/"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Zalo */}
+                    <div className="p-4 bg-black/40 rounded-xl border border-cyan-500/20 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 font-bold text-cyan-400">
+                          <MessageCircle className="w-4 h-4" />
+                          <span>ZALO CSKH & BLOOM DAILY</span>
+                        </div>
+                        {brandingForm.zaloUrl && (
+                          <a
+                            href={brandingForm.zaloUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] font-mono text-cyan-300 hover:underline flex items-center gap-1"
+                          >
+                            <span>Thử link</span>
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] text-white/70 block mb-0.5">Đường dẫn Nhóm Zalo hoặc Zalo Chat (URL)</label>
+                        <input
+                          type="url"
+                          value={brandingForm.zaloUrl || ''}
+                          onChange={(e) => setBrandingForm((prev) => ({ ...prev, zaloUrl: e.target.value }))}
+                          className="w-full px-3 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white font-mono focus:border-cyan-400 focus:outline-none text-xs"
+                          placeholder="https://zalo.me/g/lbzvqb973"
+                        />
+                        <p className="text-[10px] text-white/40 mt-1 font-mono">
+                          Hỗ trợ link nhóm Zalo (zalo.me/g/...) hoặc link số điện thoại (zalo.me/0909368080)
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* TikTok */}
+                    <div className="p-4 bg-black/40 rounded-xl border border-purple-500/20 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 font-bold text-purple-400">
+                          <span className="font-mono font-bold text-sm">♪</span>
+                          <span>TIKTOK ATELIER</span>
+                        </div>
+                        {brandingForm.tiktokUrl && (
+                          <a
+                            href={brandingForm.tiktokUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] font-mono text-purple-300 hover:underline flex items-center gap-1"
+                          >
+                            <span>Thử link</span>
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] text-white/70 block mb-0.5">Đường dẫn kênh TikTok (URL)</label>
+                        <input
+                          type="url"
+                          value={brandingForm.tiktokUrl || ''}
+                          onChange={(e) => setBrandingForm((prev) => ({ ...prev, tiktokUrl: e.target.value }))}
+                          className="w-full px-3 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white font-mono focus:border-purple-400 focus:outline-none text-xs"
+                          placeholder="https://www.tiktok.com/@juetsaigon"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Website */}
+                    <div className="p-4 bg-black/40 rounded-xl border border-amber-500/20 space-y-3 sm:col-span-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 font-bold text-amber-300">
+                          <Globe className="w-4 h-4" />
+                          <span>WEBSITE & HỆ THỐNG TRỰC TUYẾN</span>
+                        </div>
+                        {(brandingForm.websiteUrl || brandingForm.website) && (
+                          <a
+                            href={brandingForm.websiteUrl || `https://${brandingForm.website}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] font-mono text-amber-300 hover:underline flex items-center gap-1"
+                          >
+                            <span>Thử link</span>
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[11px] text-white/70 block mb-0.5">Tên miền hiển thị (Domain text)</label>
+                          <input
+                            type="text"
+                            value={brandingForm.website || ''}
+                            onChange={(e) => setBrandingForm((prev) => ({ ...prev, website: e.target.value }))}
+                            className="w-full px-3 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none text-xs"
+                            placeholder="juinternational.com"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] text-white/70 block mb-0.5">Đường dẫn Website đầy đủ (URL)</label>
+                          <input
+                            type="url"
+                            value={brandingForm.websiteUrl || ''}
+                            onChange={(e) => setBrandingForm((prev) => ({ ...prev, websiteUrl: e.target.value }))}
+                            className="w-full px-3 py-1.5 bg-black/60 border border-white/15 rounded-lg text-white font-mono focus:border-amber-400 focus:outline-none text-xs"
+                            placeholder="https://juinternational.com"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Live Preview Strip */}
+                  <div className="pt-3 border-t border-white/10">
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-white/50 block mb-2">
+                      XEM TRƯỚC HIỂN THỊ CHÂN TRANG (FOOTER PREVIEW):
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {brandingForm.instagramUrl && (
+                        <span className="px-2.5 py-1 bg-white/10 rounded-md text-[11px] font-mono flex items-center gap-1 text-pink-300 border border-pink-400/20">
+                          <Instagram className="w-3 h-3" />
+                          <span>@{brandingForm.instagram || 'juetsaigon'}</span>
+                        </span>
+                      )}
+                      {brandingForm.facebookUrl && (
+                        <span className="px-2.5 py-1 bg-white/10 rounded-md text-[11px] font-mono flex items-center gap-1 text-blue-300 border border-blue-400/20">
+                          <Facebook className="w-3 h-3" />
+                          <span>{brandingForm.facebookName || 'Facebook Fanpage'}</span>
+                        </span>
+                      )}
+                      {brandingForm.zaloUrl && (
+                        <span className="px-2.5 py-1 bg-white/10 rounded-md text-[11px] font-mono flex items-center gap-1 text-cyan-300 border border-cyan-400/20">
+                          <MessageCircle className="w-3 h-3" />
+                          <span>Zalo CSKH</span>
+                        </span>
+                      )}
+                      {brandingForm.tiktokUrl && (
+                        <span className="px-2.5 py-1 bg-white/10 rounded-md text-[11px] font-mono flex items-center gap-1 text-purple-300 border border-purple-400/20">
+                          <span>♪</span>
+                          <span>TikTok</span>
+                        </span>
+                      )}
+                      {brandingForm.website && (
+                        <span className="px-2.5 py-1 bg-white/10 rounded-md text-[11px] font-mono flex items-center gap-1 text-amber-300 border border-amber-400/20">
+                          <Globe className="w-3 h-3" />
+                          <span>{brandingForm.website}</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Submit Action */}
+                <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+                  <span className="text-[11px] text-white/50 font-mono">
+                    * Mọi thay đổi sẽ được lưu vào cơ sở dữ liệu và đồng bộ tức thời trên toàn trang.
+                  </span>
+                  <button
+                    type="submit"
+                    className="px-7 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#141414] font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg transition-all transform hover:scale-102"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>Lưu Cấu Hình Thương Hiệu & Social Channels</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* TAB 3: ATELIER CRM — BESPOKE ORDERS & WORKSHOP BOOKINGS */}
+          {activeTab === 'orders' && (
+            <div className="bg-[#1e1f1c] rounded-2xl p-4 sm:p-6 border border-white/15 space-y-6 animate-fadeIn">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+                <div>
+                  <h3 className="text-lg sm:text-xl font-bagerich font-bold uppercase text-white">
+                    TRUNG TÂM QUẢN TRỊ ĐƠN HÀNG & LỊCH HẸN (ATELIER CRM)
+                  </h3>
+                  <p className="text-xs text-white/60 font-sans mt-0.5">
+                    Đồng bộ thời gian thực từ Firebase Firestore · Quản lý đơn đặt hoa, thiệp đóng dấu sáp và lịch đăng ký Workshop
+                  </p>
+                </div>
+
+                {/* Sub-tab switcher */}
+                <div className="flex items-center gap-1.5 p-1 rounded-xl bg-black/40 border border-white/15 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => setCrmSubTab('floral_orders')}
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-mono transition-all ${
+                      crmSubTab === 'floral_orders'
+                        ? 'bg-amber-400 text-[#141414] font-bold'
+                        : 'text-white/70 hover:text-white'
+                    }`}
+                  >
+                    Đơn Đặt Hoa ({orders.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCrmSubTab('workshop_bookings')}
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-mono transition-all ${
+                      crmSubTab === 'workshop_bookings'
+                        ? 'bg-amber-400 text-[#141414] font-bold'
+                        : 'text-white/70 hover:text-white'
+                    }`}
+                  >
+                    Đăng Ký Workshop ({workshopBookings.length})
+                  </button>
+                </div>
+              </div>
+
+              {crmSubTab === 'floral_orders' ? (
+                <div className="space-y-5">
+                  {/* 6-STAGE SEQUENTIAL WORKFLOW PIPELINE OVERVIEW & FILTER BAR */}
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/15 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono font-bold uppercase text-amber-300">
+                          QUY TRÌNH 6 BƯỚC TRÌNH TỰ VẬN HÀNH HOA (SEQUENTIAL ATELIER WORKFLOW)
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setFloristTicketMode((prev) => !prev)}
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-mono font-bold border flex items-center gap-1.5 transition-all ${
+                          floristTicketMode
+                            ? 'bg-amber-400 text-[#141414] border-amber-300 shadow'
+                            : 'bg-white/5 text-white/80 border-white/15 hover:bg-white/15'
+                        }`}
+                      >
+                        <CheckSquare className="w-3.5 h-3.5" />
+                        <span>
+                          {floristTicketMode
+                            ? 'Đang bật: Chế Độ Phiếu Thợ Hoa (Florist Ticket)'
+                            : 'Chuyển sang Phiếu Chế Tác Cho Thợ Hoa'}
+                        </span>
+                      </button>
+                    </div>
+
+                    {/* Stage Filter Pills with Live Counts */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setWorkflowStageFilter('all')}
+                        className={`p-2 rounded-lg border text-left font-mono transition-all ${
+                          workflowStageFilter === 'all'
+                            ? 'bg-amber-400 text-[#141414] border-amber-400 font-bold'
+                            : 'bg-white/5 text-white/75 border-white/10 hover:bg-white/10'
+                        }`}
+                      >
+                        <span className="text-[10px] uppercase block opacity-75">Tất cả đơn</span>
+                        <span className="text-sm font-bold">{orders.length}</span>
+                      </button>
+
+                      {ORDER_WORKFLOW_STAGES.map((st) => {
+                        const count = orders.filter((o) => o.status === st.id).length;
+                        const isSelected = workflowStageFilter === st.id;
+                        return (
+                          <button
+                            key={st.id}
+                            type="button"
+                            onClick={() => setWorkflowStageFilter(st.id)}
+                            className={`p-2 rounded-lg border text-left font-mono transition-all ${
+                              isSelected
+                                ? 'bg-amber-400 text-[#141414] border-amber-400 font-bold'
+                                : 'bg-white/5 text-white/75 border-white/10 hover:bg-white/10'
+                            }`}
+                          >
+                            <span className="text-[10px] truncate block opacity-80">
+                              {st.stepNum}. {st.shortVi}
+                            </span>
+                            <span className="text-sm font-bold">{count}</span>
+                          </button>
+                        );
+                      })}
+
+                      <button
+                        type="button"
+                        onClick={() => setWorkflowStageFilter('cancelled')}
+                        className={`p-2 rounded-lg border text-left font-mono transition-all ${
+                          workflowStageFilter === 'cancelled'
+                            ? 'bg-red-500 text-white border-red-400 font-bold'
+                            : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/10'
+                        }`}
+                      >
+                        <span className="text-[10px] uppercase block opacity-75">Đã hủy</span>
+                        <span className="text-sm font-bold">
+                          {orders.filter((o) => o.status === 'cancelled').length}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {orders.length === 0 ? (
+                    <div className="py-16 text-center space-y-2 text-white/60">
+                      <p className="text-sm font-mono uppercase">
+                        Chưa có đơn đặt hoa nào trên hệ thống
+                      </p>
+                      <p className="text-xs">
+                        Khi khách hàng gửi yêu cầu tư vấn hoặc thiết kế thiệp đóng dấu sáp, đơn hàng sẽ tự động xuất hiện tại đây theo quy trình 6 bước.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {orders
+                        .filter((o) =>
+                          workflowStageFilter === 'all' ? true : o.status === workflowStageFilter
+                        )
+                        .map((ord) => {
+                          const noteDraft =
+                            adminNoteDrafts[ord.id] !== undefined
+                              ? adminNoteDrafts[ord.id]
+                              : ord.adminNote || '';
+                          const floristDraft =
+                            floristDrafts[ord.id] !== undefined
+                              ? floristDrafts[ord.id]
+                              : ord.assignedFlorist || '';
+
+                          const stageIndex = ORDER_WORKFLOW_STAGES.findIndex(
+                            (s) => s.id === ord.status
+                          );
+                          const nextStage =
+                            stageIndex >= 0 && stageIndex < ORDER_WORKFLOW_STAGES.length - 1
+                              ? ORDER_WORKFLOW_STAGES[stageIndex + 1]
+                              : null;
+
+                          const checklist: OrderWorkflowChecklist = {
+                            ...DEFAULT_WORKFLOW_CHECKLIST,
+                            ...(ord.workflowChecklist || {})
+                          };
+
+                          const checklistItems: Array<{
+                            key: keyof OrderWorkflowChecklist;
+                            label: string;
+                          }> = [
+                            {
+                              key: 'stemsConditioned',
+                              label: '1. Đã tuyển chọn & dưỡng hoa cấp nước'
+                            },
+                            {
+                              key: 'vesselPrepared',
+                              label: '2. Đã chuẩn bị cốt cắm / bình & phụ kiện'
+                            },
+                            {
+                              key: 'arrangementCrafted',
+                              label: '3. Đã cắm hoa hoàn thiện đúng form & tông màu'
+                            },
+                            {
+                              key: 'waxSealCardAttached',
+                              label: ord.giftCard?.enabled
+                                ? '4. Đã viết thiệp tay & đóng dấu sáp (Có thiệp)'
+                                : '4. Kiểm tra phụ kiện thiệp / tag thương hiệu'
+                            },
+                            {
+                              key: 'qcPhotoUploaded',
+                              label: '5. Đã chụp & tải ảnh nghiệm thu thành phẩm'
+                            },
+                            {
+                              key: 'hydrationWrapped',
+                              label: '6. Đã bọc giữ ẩm gốc hoa & đính kèm Care Tag'
+                            }
+                          ];
+
+                          const completedChecklistCount = checklistItems.filter(
+                            (it) => checklist[it.key]
+                          ).length;
+
+                          return (
+                            <div
+                              key={ord.id}
+                              className="p-4 sm:p-5 rounded-xl bg-black/40 border border-white/15 space-y-4"
+                            >
+                              {/* Top Header Row */}
+                              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 pb-3">
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-[#141414] font-mono text-xs font-bold">
+                                      {ord.orderCode}
+                                    </span>
+                                    <span className="px-2.5 py-0.5 rounded-full bg-white/10 text-amber-200 font-mono text-[11px] flex items-center gap-1 border border-amber-400/30">
+                                      <Clock className="w-3 h-3" />
+                                      <span>
+                                        {ord.deliveryDate} ·{' '}
+                                        {ord.deliveryTimeSlot || '08:30 – 11:30 (Sáng)'}
+                                      </span>
+                                    </span>
+                                    <span className="text-xs font-mono text-white/50">
+                                      Tạo lúc: {new Date(ord.createdAt).toLocaleString('vi-VN')}
+                                    </span>
+                                  </div>
+
+                                  {!floristTicketMode ? (
+                                    <h4 className="text-base font-bold text-white">
+                                      {ord.customerName} —{' '}
+                                      <a
+                                        href={`tel:${ord.customerPhone.replace(/\s+/g, '')}`}
+                                        className="text-amber-300 underline"
+                                      >
+                                        {ord.customerPhone}
+                                      </a>
+                                    </h4>
+                                  ) : (
+                                    <h4 className="text-base font-bold text-amber-300 font-mono uppercase">
+                                      PHIẾU CHẾ TÁC: {ord.flowerName}
+                                    </h4>
+                                  )}
+
+                                  <p className="text-xs text-white/85">
+                                    <strong>Tác phẩm:</strong> {ord.flowerName} ·{' '}
+                                    {!floristTicketMode && (
+                                      <>
+                                        <strong>Ngân sách:</strong>{' '}
+                                        {ord.budgetVnd.toLocaleString('vi-VN')} VND ·{' '}
+                                      </>
+                                    )}
+                                    <strong>Khu vực giao:</strong> {ord.district} ·{' '}
+                                    <strong>Dịp:</strong> {ord.occasion}
+                                  </p>
+                                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                                    <span className="px-2.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] font-mono text-white/75">
+                                      Chính sách thay hoa phụ:{' '}
+                                      <strong className="text-amber-300">
+                                        {ord.substitutionPolicy === 'strict_confirm'
+                                          ? 'Gọi xác nhận trước mọi thay đổi'
+                                          : ord.substitutionPolicy === 'designer_choice'
+                                            ? 'Trao toàn quyền sáng tạo cho Nghệ nhân'
+                                            : 'Cho phép thay hoa phụ tương đương theo mùa'}
+                                      </strong>
+                                    </span>
+
+                                    {ord.suppliesDeducted ? (
+                                      <span className="px-2.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/35 text-[10px] font-mono text-emerald-300 font-bold">
+                                        ✓ Đã xuất vật tư kho (Bình/Hộp, Giấy gói, Túi ẩm)
+                                      </span>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => deductOrderSupplies(ord.id)}
+                                        className="px-2.5 py-0.5 rounded bg-amber-400/20 hover:bg-amber-400 hover:text-black border border-amber-400/40 text-[10px] font-mono text-amber-300 font-bold transition-all"
+                                      >
+                                        + Xuất Vật Tư Kho Cho Đơn Này
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* 1-Click Sequential Advance Button, Bill Export & Delete */}
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      const txt = buildOrderSummaryText(ord, {
+                                        atelierName: atelierData.name,
+                                        phone: atelierData.phoneFormatted || atelierData.phone,
+                                        address: atelierData.addressVi
+                                      });
+                                      await copyTextToClipboard(txt);
+                                      setCopiedAdminOrderId(ord.id);
+                                      setTimeout(() => setCopiedAdminOrderId(null), 2500);
+                                    }}
+                                    className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/15 font-mono text-xs flex items-center gap-1.5 transition-colors"
+                                    title="Sao chép văn bản đơn hàng"
+                                  >
+                                    {copiedAdminOrderId === ord.id ? (
+                                      <>
+                                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                        <span className="text-emerald-300 font-bold">Đã Copy!</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Copy className="w-3.5 h-3.5" />
+                                        <span>Copy Đơn</span>
+                                      </>
+                                    )}
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      downloadOrderBillPng(ord, {
+                                        atelierName: atelierData.name,
+                                        phone: atelierData.phoneFormatted || atelierData.phone,
+                                        address: atelierData.addressVi,
+                                        email: atelierData.email,
+                                        website: atelierData.website
+                                      })
+                                    }
+                                    className="px-3 py-2 rounded-xl bg-amber-400/20 hover:bg-amber-400 text-amber-300 hover:text-[#141414] border border-amber-400/40 font-mono text-xs font-bold flex items-center gap-1.5 transition-all"
+                                    title="Tải ảnh Phiếu Bill (.PNG)"
+                                  >
+                                    <Download className="w-3.5 h-3.5" />
+                                    <span>Xuất Bill (.PNG)</span>
+                                  </button>
+
+                                  {nextStage && ord.status !== 'cancelled' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => updateOrderStatus(ord.id, nextStage.id)}
+                                      className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-[#141414] font-mono text-xs font-bold flex items-center gap-1.5 shadow-lg transition-all"
+                                    >
+                                      <span>Chuyển sang: {nextStage.labelVi}</span>
+                                      <ArrowRight className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (window.confirm(`Xóa đơn hàng ${ord.orderCode}?`)) {
+                                        deleteOrder(ord.id);
+                                      }
+                                    }}
+                                    className="p-2 rounded-lg bg-red-950/50 text-red-300 border border-red-500/30 hover:bg-red-900"
+                                    title="Xóa đơn hàng"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* 6-Stage Sequential Stepper Controls */}
+                              <div className="grid grid-cols-2 sm:grid-cols-7 gap-1.5">
+                                {ORDER_WORKFLOW_STAGES.map((st, idx) => {
+                                  const isCurrent = ord.status === st.id;
+                                  const isPassed = stageIndex > idx;
+                                  return (
+                                    <button
+                                      key={st.id}
+                                      type="button"
+                                      onClick={() => updateOrderStatus(ord.id, st.id)}
+                                      className={`px-2.5 py-2 rounded-lg text-[11px] font-mono transition-all border text-left ${
+                                        isCurrent
+                                          ? 'bg-amber-400 text-[#141414] border-amber-300 font-bold shadow'
+                                          : isPassed
+                                            ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30'
+                                            : 'bg-white/5 text-white/65 border-white/10 hover:bg-white/15'
+                                      }`}
+                                    >
+                                      <span className="block truncate">{st.labelVi}</span>
+                                    </button>
+                                  );
+                                })}
+
+                                <button
+                                  type="button"
+                                  onClick={() => updateOrderStatus(ord.id, 'cancelled')}
+                                  className={`px-2.5 py-2 rounded-lg text-[11px] font-mono transition-all border text-center ${
+                                    ord.status === 'cancelled'
+                                      ? 'bg-red-600 text-white border-red-400 font-bold'
+                                      : 'bg-white/5 text-white/60 border-white/10 hover:bg-red-950/50 hover:text-red-300'
+                                  }`}
+                                >
+                                  Hủy Đơn
+                                </button>
+                              </div>
+
+                              {/* Interactive 6-Point Florist Checklist & Pre-Delivery QC Photo */}
+                              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 p-3.5 rounded-xl bg-white/5 border border-white/10">
+                                {/* Left 7 cols: Sequential Checklist */}
+                                <div className="lg:col-span-7 space-y-2.5">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-mono text-[11px] font-bold uppercase text-amber-300">
+                                      CHECKLIST CÔNG ĐOẠN CHẾ TÁC ({completedChecklistCount}/6 HOÀN TẤT)
+                                    </span>
+                                    <span className="text-[10px] font-mono text-white/50">
+                                      Tích kiểm tra từng khâu trước khi giao
+                                    </span>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {checklistItems.map((item) => {
+                                      const isChecked = Boolean(checklist[item.key]);
+                                      return (
+                                        <label
+                                          key={item.key}
+                                          className={`p-2 rounded-lg border text-xs flex items-center gap-2 cursor-pointer transition-all ${
+                                            isChecked
+                                              ? 'bg-emerald-500/15 border-emerald-400/40 text-emerald-200 font-medium'
+                                              : 'bg-black/40 border-white/10 text-white/70 hover:border-white/25'
+                                          }`}
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={isChecked}
+                                            onChange={(e) =>
+                                              updateOrderWorkflow(ord.id, {
+                                                workflowChecklist: {
+                                                  ...checklist,
+                                                  [item.key]: e.target.checked
+                                                }
+                                              })
+                                            }
+                                            className="w-3.5 h-3.5 accent-emerald-400 rounded cursor-pointer"
+                                          />
+                                          <span className="leading-snug">{item.label}</span>
+                                        </label>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                {/* Right 5 cols: Pre-Delivery QC Photo & Florist Assignment */}
+                                <div className="lg:col-span-5 space-y-2.5 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-white/10 pt-3 lg:pt-0 lg:pl-4">
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-mono text-[11px] font-bold uppercase text-amber-300 flex items-center gap-1">
+                                        <Camera className="w-3.5 h-3.5" />
+                                        <span>ẢNH NGHIỆM THU THÀNH PHẨM</span>
+                                      </span>
+                                      <label className="cursor-pointer px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-[#141414] font-mono text-[10px] font-bold transition-colors">
+                                        {uploadingQcOrderId === ord.id
+                                          ? 'Đang nén WebP...'
+                                          : '+ Tải Ảnh Nghiệm Thu'}
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          className="hidden"
+                                          onChange={async (e) => {
+                                            const file = e.target.files?.[0];
+                                            if (!file) return;
+                                            try {
+                                              setUploadingQcOrderId(ord.id);
+                                              const compressed = await compressAndConvertToWebP(
+                                                file,
+                                                { maxWidth: 1000, maxHeight: 1000, quality: 0.82 }
+                                              );
+                                              await updateOrderWorkflow(ord.id, {
+                                                finishedPhotoUrl: compressed.webpDataUrl,
+                                                workflowChecklist: {
+                                                  ...checklist,
+                                                  qcPhotoUploaded: true
+                                                },
+                                                status:
+                                                  ord.status === 'pending' ||
+                                                  ord.status === 'conditioning' ||
+                                                  ord.status === 'crafting'
+                                                    ? 'quality_check'
+                                                    : ord.status
+                                              });
+                                            } finally {
+                                              setUploadingQcOrderId(null);
+                                            }
+                                          }}
+                                        />
+                                      </label>
+                                    </div>
+
+                                    {ord.finishedPhotoUrl ? (
+                                      <div className="space-y-1.5">
+                                        <div className="relative h-28 rounded-lg overflow-hidden bg-black border border-emerald-400/40 flex items-center justify-center">
+                                          <img
+                                            src={ord.finishedPhotoUrl}
+                                            alt="QC Finished Piece"
+                                            className="max-h-full max-w-full object-contain"
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              updateOrderWorkflow(ord.id, { finishedPhotoUrl: '' })
+                                            }
+                                            className="absolute top-1.5 right-1.5 px-2 py-0.5 rounded bg-black/80 text-red-300 text-[10px] font-mono hover:bg-red-900"
+                                          >
+                                            Xóa ảnh
+                                          </button>
+                                        </div>
+
+                                        {/* Quick Copy / Download QC Photo for Zalo */}
+                                        <div className="grid grid-cols-2 gap-1.5">
+                                          <button
+                                            type="button"
+                                            onClick={async () => {
+                                              const ok = await copyDataUrlImageToClipboard(
+                                                ord.finishedPhotoUrl!
+                                              );
+                                              if (!ok) {
+                                                downloadDataUrlImage(
+                                                  ord.finishedPhotoUrl!,
+                                                  `Anh-Nghiem-Thu-${ord.orderCode}.webp`
+                                                );
+                                              }
+                                              setCopiedQcImgOrderId(ord.id);
+                                              setTimeout(() => setCopiedQcImgOrderId(null), 2500);
+                                            }}
+                                            className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-[11px] font-mono font-bold text-white flex items-center justify-center gap-1.5 transition-colors"
+                                            title="Sao chép ảnh nghiệm thu vào bộ nhớ tạm để dán (Ctrl+V) vào Zalo"
+                                          >
+                                            {copiedQcImgOrderId === ord.id ? (
+                                              <>
+                                                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                                <span className="text-emerald-300">Đã Copy Ảnh!</span>
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Copy className="w-3.5 h-3.5" />
+                                                <span>Copy Ảnh QC</span>
+                                              </>
+                                            )}
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              downloadDataUrlImage(
+                                                ord.finishedPhotoUrl!,
+                                                `Anh-Nghiem-Thu-${ord.orderCode}.webp`
+                                              )
+                                            }
+                                            className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-[11px] font-mono font-bold text-white flex items-center justify-center gap-1.5 transition-colors"
+                                            title="Tải ảnh nghiệm thu về máy để gửi qua Zalo"
+                                          >
+                                            <Download className="w-3.5 h-3.5" />
+                                            <span>Tải Ảnh QC</span>
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="h-20 rounded-lg border border-dashed border-white/15 bg-black/30 flex items-center justify-center text-[11px] text-white/45 font-mono text-center px-3">
+                                        Chưa có ảnh nghiệm thu. Tải ảnh hoa hoàn thiện để lưu hồ sơ & gửi khách duyệt.
+                                      </div>
+                                    )}
+
+                                    {/* 1-Click Copy QC Approval Message & Open Customer Zalo */}
+                                    {!floristTicketMode && (
+                                      <button
+                                        type="button"
+                                        onClick={async () => {
+                                          const qcText = buildQcApprovalMessageText(ord, {
+                                            atelierName: atelierData.name,
+                                            phone: atelierData.phoneFormatted || atelierData.phone,
+                                            address: atelierData.addressVi
+                                          });
+                                          await copyTextToClipboard(qcText);
+                                          setCopiedQcMsgOrderId(ord.id);
+                                          setTimeout(() => setCopiedQcMsgOrderId(null), 3500);
+                                          const cleanPhone = ord.customerPhone.replace(/\s+/g, '');
+                                          window.open(
+                                            `https://zalo.me/${cleanPhone}`,
+                                            '_blank',
+                                            'noopener,noreferrer'
+                                          );
+                                        }}
+                                        className="admin-keep-dark w-full px-3 py-2 rounded-lg bg-[#0068FF] hover:bg-[#0057d9] text-white font-mono text-[11px] font-bold flex items-center justify-center gap-1.5 shadow transition-all cursor-pointer"
+                                      >
+                                        {copiedQcMsgOrderId === ord.id ? (
+                                          <>
+                                            <Check className="w-3.5 h-3.5 text-white" />
+                                            <span className="text-white">
+                                              Đã Copy Lời Nhắn Duyệt Hoa & Đang Mở Zalo!
+                                            </span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Copy className="w-3.5 h-3.5 text-white" />
+                                            <span className="text-white">
+                                              Copy Tin Nhắn Báo Nghiệm Thu & Mở Zalo Khách
+                                            </span>
+                                          </>
+                                        )}
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {/* Assigned Florist Input */}
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="text"
+                                      placeholder="Nghệ nhân phụ trách (VD: Florist Minh Anh)..."
+                                      value={floristDraft}
+                                      onChange={(e) =>
+                                        setFloristDrafts((prev) => ({
+                                          ...prev,
+                                          [ord.id]: e.target.value
+                                        }))
+                                      }
+                                      className="flex-1 px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/15 text-xs text-white font-mono focus:outline-none focus:border-amber-400"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        updateOrderWorkflow(ord.id, {
+                                          assignedFlorist: floristDraft.trim()
+                                        })
+                                      }
+                                      className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-amber-400 hover:text-black text-white text-[11px] font-mono font-bold transition-colors shrink-0"
+                                    >
+                                      Gán Thợ
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Moodboard items if included */}
+                              {ord.moodboardItems && ord.moodboardItems.length > 0 && (
+                                <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-400/25 text-xs text-rose-200">
+                                  <span className="font-mono font-bold uppercase text-[10px] block mb-1">
+                                    Danh sách Moodboard khách đã chọn ({ord.moodboardItems.length}{' '}
+                                    mẫu):
+                                  </span>
+                                  <p>{ord.moodboardItems.join(' · ')}</p>
+                                </div>
+                              )}
+
+                              {/* Customer Notes */}
+                              {ord.notes && (
+                                <div className="text-xs text-white/85 bg-white/5 p-3 rounded-lg border border-white/10">
+                                  <span className="font-mono text-[10px] uppercase text-white/50 block mb-0.5">
+                                    Ghi chú thiết kế & yêu cầu của khách:
+                                  </span>
+                                  <p>{ord.notes}</p>
+                                </div>
+                              )}
+
+                              {/* Bespoke Wax-Seal Greeting Card Details */}
+                              {ord.giftCard?.enabled && (
+                                <div className="p-3.5 rounded-xl bg-amber-400/10 border border-amber-400/30 text-xs space-y-1.5">
+                                  <div className="flex items-center justify-between font-mono text-[10px] uppercase text-amber-300 font-bold">
+                                    <span>✉ THIỆP ĐÓNG DẤU SÁP ĐI KÈM HOA</span>
+                                    <span>
+                                      Giấy: {ord.giftCard.paperStyle.toUpperCase()} · Sáp:{' '}
+                                      {ord.giftCard.waxColor.toUpperCase()}
+                                    </span>
+                                  </div>
+                                  <p className="text-white">
+                                    <strong>Người nhận:</strong> {ord.giftCard.recipient || '—'} ·{' '}
+                                    <strong>Người gửi:</strong>{' '}
+                                    {ord.giftCard.sender || ord.customerName}
+                                  </p>
+                                  <p className="italic text-amber-100 bg-black/30 p-2.5 rounded-lg border border-white/10">
+                                    "{ord.giftCard.message}"
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Admin Note & Zalo Quick Action */}
+                              {!floristTicketMode && (
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+                                  <input
+                                    type="text"
+                                    placeholder="Ghi chú tiến độ cho khách xem khi tra cứu đơn (VD: Đã tuyển chọn mẫu đơn Hà Lan, giao lúc 14h)..."
+                                    value={noteDraft}
+                                    onChange={(e) =>
+                                      setAdminNoteDrafts((prev) => ({
+                                        ...prev,
+                                        [ord.id]: e.target.value
+                                      }))
+                                    }
+                                    className="flex-1 px-3 py-2 rounded-lg bg-black/60 border border-white/15 text-xs text-white font-sans focus:outline-none focus:border-amber-400"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => updateOrderStatus(ord.id, ord.status, noteDraft)}
+                                    className="px-4 py-2 rounded-lg bg-white/15 hover:bg-amber-400 hover:text-black text-white text-xs font-mono font-bold transition-colors shrink-0"
+                                  >
+                                    Lưu Ghi Chú
+                                  </button>
+                                  <a
+                                    href={`https://zalo.me/${ord.customerPhone.replace(/\s+/g, '')}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-4 py-2 rounded-lg bg-[#0068FF] text-white text-xs font-mono font-bold text-center shrink-0"
+                                  >
+                                    Chat Zalo Khách
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
+                </div>
+              ) : workshopBookings.length === 0 ? (
+                <div className="py-16 text-center space-y-2 text-white/60">
+                  <p className="text-sm font-mono uppercase">Chưa có đăng ký Workshop nào</p>
+                  <p className="text-xs">
+                    Khi khách hàng hoặc doanh nghiệp đăng ký lịch Workshop, thông tin sẽ hiển thị tại đây.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {workshopBookings.map((bk) => (
+                    <div
+                      key={bk.id}
+                      className="p-4 sm:p-5 rounded-xl bg-black/40 border border-white/15 space-y-3"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-[#141414] font-mono text-xs font-bold">
+                              {bk.bookingCode}
+                            </span>
+                            <span className="text-xs font-mono text-white/50">
+                              {new Date(bk.createdAt).toLocaleString('vi-VN')}
+                            </span>
+                          </div>
+                          <h4 className="text-base font-bold text-white">
+                            {bk.customerName}{' '}
+                            {bk.companyName ? `(${bk.companyName})` : ''} —{' '}
+                            <a
+                              href={`tel:${bk.customerPhone.replace(/\s+/g, '')}`}
+                              className="text-amber-300 underline"
+                            >
+                              {bk.customerPhone}
+                            </a>
+                          </h4>
+                          <p className="text-xs text-white/85">
+                            <strong>Chủ đề:</strong> {bk.workshopName} ·{' '}
+                            <strong>Số lượng:</strong> {bk.participantsCount} Pax
+                          </p>
+                          <p className="text-xs text-white/70">
+                            <strong>Ngày dự kiến:</strong> {bk.preferredDate} ·{' '}
+                            <strong>Địa điểm:</strong> {bk.locationType}
+                          </p>
+                          {bk.notes && (
+                            <p className="text-xs text-amber-200/90 pt-1">
+                              <strong>Ghi chú:</strong> {bk.notes}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {(
+                            [
+                              { id: 'pending', label: 'Chờ Xác Nhận' },
+                              { id: 'confirmed', label: 'Đã Xác Nhận Lịch' },
+                              { id: 'completed', label: 'Hoàn Tất' },
+                              { id: 'cancelled', label: 'Hủy' }
+                            ] as const
+                          ).map((st) => (
+                            <button
+                              key={st.id}
+                              type="button"
+                              onClick={() => updateWorkshopBookingStatus(bk.id, st.id)}
+                              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-mono transition-all border ${
+                                bk.status === st.id
+                                  ? 'bg-amber-400 text-[#141414] border-amber-400 font-bold'
+                                  : 'bg-white/5 text-white/70 border-white/15 hover:bg-white/15'
+                              }`}
+                            >
+                              {st.label}
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(`Xóa đăng ký ${bk.bookingCode}?`)) {
+                                deleteWorkshopBooking(bk.id);
+                              }
+                            }}
+                            className="p-1.5 rounded-lg bg-red-950/50 text-red-300 border border-red-500/30 hover:bg-red-900"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3.5: INVENTORY & MARKET TRENDS INTELLIGENCE */}
+          {activeTab === 'inventory_trends' && <AtelierInventoryAndTrendsTab />}
+
+          {/* TAB 4: STAFF & SECURITY */}
+          {activeTab === 'security' && (
+            <div className="bg-[#1e1f1c] rounded-2xl p-6 border border-white/15 space-y-6 animate-fadeIn">
+              <StaffManagementPanel />
+
+              {/* Data Backup & Recovery Vault */}
+              <div className="bg-[#1e1f1c] rounded-2xl p-6 border border-emerald-500/30 space-y-5">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-300">
+                      <Database className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold uppercase font-mono text-emerald-300">
+                        KÉT SẮT SAO LƯU & KHÔI PHỤC DỮ LIỆU AN TOÀN (BACKUP VAULT)
+                      </h4>
+                      <p className="text-xs text-white/60">
+                        Bảo vệ 100% tác phẩm hoa tự thêm, hình ảnh, đơn hàng và cấu hình thương hiệu của bạn
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-mono">
+                    Đang lưu trữ: {flowers.length} Tác phẩm hoa · {workshops.length} Workshop · {supplies.length} Vật tư
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                  {/* 1. Export JSON Backup */}
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/10 flex flex-col justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="font-mono font-bold uppercase text-amber-300 flex items-center gap-1.5">
+                        <Database className="w-3.5 h-3.5" />
+                        <span>1. Tải Bản Sao Lưu (.JSON)</span>
+                      </div>
+                      <p className="text-white/65 leading-relaxed">
+                        Tải toàn bộ dữ liệu hiện tại (Tác phẩm hoa, ảnh, Workshop, Đơn hàng, Kho vật tư, Logo) về máy tính làm bản dự phòng vĩnh viễn.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={exportBackupJson}
+                      className="w-full py-2.5 px-3 rounded-lg bg-amber-400 hover:bg-amber-300 text-[#141414] font-mono font-bold uppercase text-[11px] transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Database className="w-3.5 h-3.5" />
+                      <span>Tải File Backup Ngay</span>
+                    </button>
+                  </div>
+
+                  {/* 2. Import JSON Backup */}
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/10 flex flex-col justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="font-mono font-bold uppercase text-emerald-300 flex items-center gap-1.5">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>2. Khôi Phục Từ File (.JSON)</span>
+                      </div>
+                      <p className="text-white/65 leading-relaxed">
+                        Chọn file <code className="text-emerald-300">.json</code> đã sao lưu trước đó để khôi phục toàn bộ dữ liệu và đồng bộ thẳng lên Firebase.
+                      </p>
+                    </div>
+                    <label className="w-full py-2.5 px-3 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-200 font-mono font-bold uppercase text-[11px] transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Chọn File JSON Khôi Phục</span>
+                      <input
+                        type="file"
+                        accept=".json,application/json"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const text = await file.text();
+                          const res = await importBackupJson(text);
+                          setPassChangeMsg({ text: res.message, isError: !res.success });
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  {/* 3. Safe Supplement Default Specimens */}
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/10 flex flex-col justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="font-mono font-bold uppercase text-white/80 flex items-center gap-1.5">
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>3. Bổ Sung Mẫu Mặc Định</span>
+                      </div>
+                      <p className="text-white/65 leading-relaxed">
+                        Khôi phục lại các mẫu hoa/workshop mặc định nếu lỡ xóa nhầm (vẫn giữ nguyên 100% các tác phẩm bạn tự tạo thêm).
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await resetAllData();
+                        setPassChangeMsg({
+                          text: 'Đã khôi phục đầy đủ danh mục hoa & giữ nguyên các tác phẩm riêng của bạn!',
+                          isError: false
+                        });
+                      }}
+                      className="w-full py-2.5 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white font-mono font-bold uppercase text-[11px] transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Khôi Phục An Toàn</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </main>
+
+      {/* Interactive Image Framing & WebP Studio Modal */}
+      <ImageStudioModal
+        isOpen={studioState.isOpen}
+        imageSource={studioState.imageSource}
+        title={studioState.title}
+        defaultAspectRatio={studioState.defaultAspectRatio}
+        theme={theme}
+        onClose={() => setStudioState((prev) => ({ ...prev, isOpen: false }))}
+        onApply={studioState.onApply}
+      />
+
+    </div>
+  );
+};
