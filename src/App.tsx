@@ -214,6 +214,7 @@ function AtelierApp() {
       {/* Footer with Admin Portal trigger */}
       <Footer
         lang={lang}
+        theme={theme}
         onOpenOrder={handleOpenGeneralOrder}
         onOpenAtelier={() => setIsAtelierOpen(true)}
         onOpenCredits={() => setIsCreditsOpen(true)}
