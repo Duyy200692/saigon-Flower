@@ -1,56 +1,87 @@
 rules_version = '2';
+
+// BẢN NHÁP — viết theo giả định về cấu trúc dữ liệu (chưa đọc được file gốc).
+// Cần đối chiếu tên collection/field với code trong src/ trước khi deploy.
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Global default-deny safety net
-    match /{document=**} {
-      allow read, write: if false;
+    // ---------- Hàm dùng chung ----------
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // Helper functions
-    function isValidId(id) {
-      return id is string && id.size() > 0 && id.size() <= 128;
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
     }
 
-    // Botanical Flowers Collection - Public read, write permitted
+    // Admin = email đã xác minh nằm trong danh sách này.
+    // THAY bằng email của bạn.
+    function isAdmin() {
+      return isSignedIn()
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in ['nhatduy.halo@gmail.com'];
+    }
+
+    function isString(v, min, max) {
+      return v is string && v.size() >= min && v.size() <= max;
+    }
+
+    // ---------- Danh mục hoa / bách khoa thực vật (công khai) ----------
+    // Ai cũng xem được, chỉ admin được thêm/sửa/xóa.
     match /flowers/{flowerId} {
       allow read: if true;
-      allow create, update, delete: if isValidId(flowerId);
+      allow write: if isAdmin();
     }
 
-    // Workshops Collection - Public read, write permitted
-    match /workshops/{workshopId} {
+    match /articles/{articleId} {
       allow read: if true;
-      allow create, update, delete: if isValidId(workshopId);
+      allow write: if isAdmin();
     }
 
-    // Atelier Global Brand & Social Settings Document - Public read, write permitted
-    match /settings/{docId} {
-      allow read: if true;
-      allow create, update, delete: if isValidId(docId);
+    // ---------- Hồ sơ người dùng ----------
+    // Mỗi người chỉ đọc/ghi hồ sơ của chính mình, không tự cấp quyền admin.
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId)
+        && !('role' in request.resource.data)
+        && !('isAdmin' in request.resource.data);
+      allow update: if (isOwner(userId)
+        && !request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny(['role', 'isAdmin']))
+        || isAdmin();
+      allow delete: if isAdmin();
     }
 
-    // Bespoke Floral Orders & Consultations Collection
+    // ---------- Đơn đặt hoa ----------
+    // Khách chưa đăng nhập vẫn được gửi đơn (chỉ tạo, không đọc lại được).
+    // Admin xem và cập nhật trạng thái mọi đơn.
+    // Người đã đăng nhập xem được đơn do chính mình tạo (nếu đơn có userId).
     match /orders/{orderId} {
-      allow read: if true;
-      allow create, update, delete: if isValidId(orderId);
+      allow read: if isAdmin()
+        || (isSignedIn() && resource.data.get('userId', '') == request.auth.uid);
+
+      allow create: if isString(request.resource.data.name, 1, 100)
+        && isString(request.resource.data.phone, 6, 20)
+        && request.resource.data.keys().size() <= 15
+        && request.resource.data.get('status', 'pending') == 'pending'
+        && (!('userId' in request.resource.data)
+            || (isSignedIn() && request.resource.data.userId == request.auth.uid));
+
+      allow update, delete: if isAdmin();
     }
 
-    // Workshop Bookings & Corporate Registrations Collection
-    match /workshop_bookings/{bookingId} {
-      allow read: if true;
-      allow create, update, delete: if isValidId(bookingId);
+    // ---------- Liên hệ / form gửi tin nhắn (nếu có) ----------
+    // Ai cũng gửi được (có giới hạn độ dài), chỉ admin đọc.
+    match /messages/{messageId} {
+      allow create: if isString(request.resource.data.name, 1, 100)
+        && isString(request.resource.data.message, 1, 2000);
+      allow read, update, delete: if isAdmin();
     }
 
-    // Atelier Floral Supplies & Tools Inventory Collection
-    match /supplies/{supplyId} {
-      allow read: if true;
-      allow create, update, delete: if isValidId(supplyId);
-    }
-
-    // Test connection document
-    match /test/{testId} {
-      allow read, write: if true;
+    // ---------- Mặc định: chặn mọi thứ còn lại ----------
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
