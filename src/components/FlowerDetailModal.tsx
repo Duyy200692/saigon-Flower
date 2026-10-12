@@ -30,7 +30,6 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
 }) => {
   const { flowers, toggleWishlist, isInWishlist } = useAtelier();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [selectedAnatomy, setSelectedAnatomy] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'story' | 'scent' | 'materials'>('story');
   const [isCopied, setIsCopied] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -94,7 +93,6 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
   // Reset selected image when flower changes
   useEffect(() => {
     setSelectedImageIndex(0);
-    setSelectedAnatomy(null);
     setImageFitMode('cover');
     setLightboxZoom(1);
     setLightboxPan({ x: 0, y: 0 });
@@ -436,50 +434,6 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                   </button>
                 </div>
 
-                {/* Anatomy Hotspots (shown on primary image) */}
-                {safeImageIndex === 0 && (flower.anatomy || []).map((pin) => (
-                  <button
-                    key={pin.id}
-                    onClick={() => setSelectedAnatomy(selectedAnatomy === pin.id ? null : pin.id)}
-                    style={{ top: `${pin.y}%`, left: `${pin.x}%` }}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 group z-10"
-                    aria-label={pin.titleEn}
-                  >
-                    <span className="relative flex h-6 w-6">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-6 w-6 bg-black/90 border-2 border-white text-[11px] font-bold text-white items-center justify-center shadow-lg hover:scale-110 transition-transform">
-                        +
-                      </span>
-                    </span>
-                  </button>
-                ))}
-
-                {/* Hotspot details overlay */}
-                {selectedAnatomy && (
-                  <div className="absolute bottom-12 inset-x-4 p-3.5 bg-black/90 text-white text-xs rounded-xl backdrop-blur-md shadow-2xl border border-white/20 animate-fadeIn z-20">
-                    {(() => {
-                      const pin = (flower.anatomy || []).find((p) => p.id === selectedAnatomy);
-                      if (!pin) return null;
-                      return (
-                        <div>
-                          <div className="flex items-center justify-between font-bold text-sm text-amber-200">
-                            <span>{lang === 'vi' ? pin.titleVi : pin.titleEn}</span>
-                            <button
-                              onClick={() => setSelectedAnatomy(null)}
-                              className="text-white/60 hover:text-white"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                          <p className="mt-1 text-white/90 text-xs font-sans leading-relaxed">
-                            {lang === 'vi' ? pin.descriptionVi : pin.descriptionEn}
-                          </p>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
-
                 {/* Bottom Gallery Image Caption & Clean Counter */}
                 <div className="absolute bottom-0 inset-x-0 p-2.5 sm:p-3 bg-gradient-to-t from-black/85 via-black/40 to-transparent text-white flex items-center justify-between text-[11px] font-sans">
                   <span className="truncate pr-2 text-white/90 font-medium">
@@ -502,7 +456,6 @@ export const FlowerDetailModal: React.FC<FlowerDetailModalProps> = ({
                     key={idx}
                     onClick={() => {
                       setSelectedImageIndex(idx);
-                      setSelectedAnatomy(null);
                     }}
                     className={`relative rounded-lg overflow-hidden border-2 transition-all ${
                       isDark ? 'bg-[#141414]' : 'bg-[#dcd8cf]'
