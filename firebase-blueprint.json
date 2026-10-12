@@ -5,209 +5,688 @@
       "description": "Botanical floral arrangement specimen created by JU et Saigon atelier",
       "type": "object",
       "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the flower specimen" },
-        "indexNumber": { "type": "string", "description": "Display order index e.g. 01, 02" },
-        "name": { "type": "string", "description": "Botanical arrangement title" },
-        "vietnameseName": { "type": "string", "description": "Vietnamese title" },
-        "latinName": { "type": "string", "description": "Latin monograph name" },
-        "subtitle": { "type": "string", "description": "Short poetic subtitle" },
-        "poeticConceptVi": { "type": "string", "description": "Poetic concept in Vietnamese" },
-        "poeticConceptEn": { "type": "string", "description": "Poetic concept in English" },
-        "descriptionVi": { "type": "string", "description": "Detailed description in Vietnamese" },
-        "descriptionEn": { "type": "string", "description": "Detailed description in English" },
-        "palette": { "type": "array", "description": "Color palette names" },
-        "paletteColorCodes": { "type": "array", "description": "Hex color codes" },
-        "botanicalNotesVi": { "type": "string", "description": "Botanical ingredients notes in Vietnamese" },
-        "botanicalNotesEn": { "type": "string", "description": "Botanical ingredients notes in English" },
-        "fragranceVi": { "type": "string", "description": "Fragrance notes in Vietnamese" },
-        "fragranceEn": { "type": "string", "description": "Fragrance notes in English" },
-        "image": { "type": "string", "description": "Primary artwork image URL or WebP data URL" },
-        "galleryImages": { "type": "array", "description": "Additional photographic view angles" },
-        "audioFrequency": { "type": "number", "description": "Solfeggio or botanical chime resonance frequency" },
-        "highlight": { "type": "boolean", "description": "Whether this piece is marked as highlight" },
-        "pinnedToLanding": { "type": "boolean", "description": "Whether this piece is pinned on the 3-column landing matrix" },
-        "availabilityStatus": { "type": "string", "enum": ["ready_today", "preorder_24h", "seasonal_out"], "description": "Operational availability status of the floral specimen" },
-        "prepLeadTimeHours": { "type": "number", "description": "Standard preparation and stem conditioning lead time in hours" },
-        "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp of last modification" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the flower specimen"
+        },
+        "indexNumber": {
+          "type": "string",
+          "description": "Display order index e.g. 01, 02"
+        },
+        "name": {
+          "type": "string",
+          "description": "Botanical arrangement title"
+        },
+        "vietnameseName": {
+          "type": "string",
+          "description": "Vietnamese title"
+        },
+        "latinName": {
+          "type": "string",
+          "description": "Latin monograph name"
+        },
+        "subtitle": {
+          "type": "string",
+          "description": "Short poetic subtitle"
+        },
+        "poeticConceptVi": {
+          "type": "string",
+          "description": "Poetic concept in Vietnamese"
+        },
+        "poeticConceptEn": {
+          "type": "string",
+          "description": "Poetic concept in English"
+        },
+        "descriptionVi": {
+          "type": "string",
+          "description": "Detailed description in Vietnamese"
+        },
+        "descriptionEn": {
+          "type": "string",
+          "description": "Detailed description in English"
+        },
+        "palette": {
+          "type": "array",
+          "description": "Color palette names"
+        },
+        "paletteColorCodes": {
+          "type": "array",
+          "description": "Hex color codes"
+        },
+        "botanicalNotesVi": {
+          "type": "string",
+          "description": "Botanical ingredients notes in Vietnamese"
+        },
+        "botanicalNotesEn": {
+          "type": "string",
+          "description": "Botanical ingredients notes in English"
+        },
+        "fragranceVi": {
+          "type": "string",
+          "description": "Fragrance notes in Vietnamese"
+        },
+        "fragranceEn": {
+          "type": "string",
+          "description": "Fragrance notes in English"
+        },
+        "image": {
+          "type": "string",
+          "description": "Primary artwork image URL or WebP data URL"
+        },
+        "galleryImages": {
+          "type": "array",
+          "description": "Additional photographic view angles"
+        },
+        "audioFrequency": {
+          "type": "number",
+          "description": "Solfeggio or botanical chime resonance frequency"
+        },
+        "highlight": {
+          "type": "boolean",
+          "description": "Whether this piece is marked as highlight"
+        },
+        "pinnedToLanding": {
+          "type": "boolean",
+          "description": "Whether this piece is pinned on the 3-column landing matrix"
+        },
+        "availabilityStatus": {
+          "type": "string",
+          "enum": [
+            "ready_today",
+            "preorder_24h",
+            "seasonal_out"
+          ],
+          "description": "Operational availability status of the floral specimen"
+        },
+        "prepLeadTimeHours": {
+          "type": "number",
+          "description": "Standard preparation and stem conditioning lead time in hours"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of last modification"
+        }
       },
-      "required": ["id", "name", "vietnameseName", "image"]
+      "required": [
+        "id",
+        "name",
+        "vietnameseName",
+        "image"
+      ]
     },
     "Workshop": {
       "title": "Workshop",
       "description": "Curated botanical workshop program for clients and corporate partners",
       "type": "object",
       "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the workshop" },
-        "indexNumber": { "type": "string", "description": "Display order index e.g. 01, 02" },
-        "name": { "type": "string", "description": "Program title in display typeface" },
-        "latinMonographName": { "type": "string", "description": "Latin monograph classification" },
-        "titleVi": { "type": "string", "description": "Main title in Vietnamese" },
-        "titleEn": { "type": "string", "description": "Main title in English" },
-        "subtitleVi": { "type": "string", "description": "Subtitle in Vietnamese" },
-        "subtitleEn": { "type": "string", "description": "Subtitle in English" },
-        "editorialQuoteVi": { "type": "string", "description": "Editorial quote in Vietnamese" },
-        "editorialQuoteEn": { "type": "string", "description": "Editorial quote in English" },
-        "descriptionVi": { "type": "string", "description": "Description in Vietnamese" },
-        "descriptionEn": { "type": "string", "description": "Description in English" },
-        "fullContentVi": { "type": "array", "description": "Full paragraph contents in Vietnamese" },
-        "fullContentEn": { "type": "array", "description": "Full paragraph contents in English" },
-        "highlightsVi": { "type": "array", "description": "Feature highlights in Vietnamese" },
-        "highlightsEn": { "type": "array", "description": "Feature highlights in English" },
-        "image": { "type": "string", "description": "Cover hero image" },
-        "gallery": { "type": "array", "description": "Gallery photographs" },
-        "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp of last modification" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the workshop"
+        },
+        "indexNumber": {
+          "type": "string",
+          "description": "Display order index e.g. 01, 02"
+        },
+        "name": {
+          "type": "string",
+          "description": "Program title in display typeface"
+        },
+        "latinMonographName": {
+          "type": "string",
+          "description": "Latin monograph classification"
+        },
+        "titleVi": {
+          "type": "string",
+          "description": "Main title in Vietnamese"
+        },
+        "titleEn": {
+          "type": "string",
+          "description": "Main title in English"
+        },
+        "subtitleVi": {
+          "type": "string",
+          "description": "Subtitle in Vietnamese"
+        },
+        "subtitleEn": {
+          "type": "string",
+          "description": "Subtitle in English"
+        },
+        "editorialQuoteVi": {
+          "type": "string",
+          "description": "Editorial quote in Vietnamese"
+        },
+        "editorialQuoteEn": {
+          "type": "string",
+          "description": "Editorial quote in English"
+        },
+        "descriptionVi": {
+          "type": "string",
+          "description": "Description in Vietnamese"
+        },
+        "descriptionEn": {
+          "type": "string",
+          "description": "Description in English"
+        },
+        "fullContentVi": {
+          "type": "array",
+          "description": "Full paragraph contents in Vietnamese"
+        },
+        "fullContentEn": {
+          "type": "array",
+          "description": "Full paragraph contents in English"
+        },
+        "highlightsVi": {
+          "type": "array",
+          "description": "Feature highlights in Vietnamese"
+        },
+        "highlightsEn": {
+          "type": "array",
+          "description": "Feature highlights in English"
+        },
+        "image": {
+          "type": "string",
+          "description": "Cover hero image"
+        },
+        "gallery": {
+          "type": "array",
+          "description": "Gallery photographs"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of last modification"
+        }
       },
-      "required": ["id", "name", "titleVi", "image"]
+      "required": [
+        "id",
+        "name",
+        "titleVi",
+        "image"
+      ]
     },
     "AtelierSettings": {
       "title": "AtelierSettings",
       "description": "Global atelier identity, contact numbers, social channels, and brand logo",
       "type": "object",
       "properties": {
-        "name": { "type": "string", "description": "Brand Wordmark name" },
-        "tagline": { "type": "string", "description": "Brand slogan tagline" },
-        "subTaglineVi": { "type": "string", "description": "Sub tagline in Vietnamese" },
-        "subTaglineEn": { "type": "string", "description": "Sub tagline in English" },
-        "addressVi": { "type": "string", "description": "Studio address in Vietnamese" },
-        "addressEn": { "type": "string", "description": "Studio address in English" },
-        "phone": { "type": "string", "description": "Hotline telephone link" },
-        "phoneFormatted": { "type": "string", "description": "Formatted display phone number" },
-        "email": { "type": "string", "description": "Official contact email" },
-        "instagram": { "type": "string", "description": "Instagram handle" },
-        "instagramUrl": { "type": "string", "description": "Instagram URL" },
-        "facebookName": { "type": "string", "description": "Facebook fanpage name" },
-        "facebookUrl": { "type": "string", "description": "Facebook fanpage URL" },
-        "zaloUrl": { "type": "string", "description": "Zalo group or contact URL" },
-        "tiktokUrl": { "type": "string", "description": "TikTok channel URL" },
-        "website": { "type": "string", "description": "Official domain name" },
-        "websiteUrl": { "type": "string", "description": "Official website URL" },
-        "hoursVi": { "type": "string", "description": "Operating hours in Vietnamese" },
-        "hoursEn": { "type": "string", "description": "Operating hours in English" },
-        "consultationNoticeVi": { "type": "string", "description": "Consultation booking notice in Vietnamese" },
-        "consultationNoticeEn": { "type": "string", "description": "Consultation booking notice in English" },
-        "logoUrl": { "type": "string", "description": "Custom dark/black brand logo URL or WebP data URL for Light Mode" },
-        "logoWhiteUrl": { "type": "string", "description": "Custom white/light brand logo URL or WebP data URL for Dark Mode" },
-        "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp of last modification" }
+        "name": {
+          "type": "string",
+          "description": "Brand Wordmark name"
+        },
+        "tagline": {
+          "type": "string",
+          "description": "Brand slogan tagline"
+        },
+        "subTaglineVi": {
+          "type": "string",
+          "description": "Sub tagline in Vietnamese"
+        },
+        "subTaglineEn": {
+          "type": "string",
+          "description": "Sub tagline in English"
+        },
+        "addressVi": {
+          "type": "string",
+          "description": "Studio address in Vietnamese"
+        },
+        "addressEn": {
+          "type": "string",
+          "description": "Studio address in English"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Hotline telephone link"
+        },
+        "phoneFormatted": {
+          "type": "string",
+          "description": "Formatted display phone number"
+        },
+        "email": {
+          "type": "string",
+          "description": "Official contact email"
+        },
+        "instagram": {
+          "type": "string",
+          "description": "Instagram handle"
+        },
+        "instagramUrl": {
+          "type": "string",
+          "description": "Instagram URL"
+        },
+        "facebookName": {
+          "type": "string",
+          "description": "Facebook fanpage name"
+        },
+        "facebookUrl": {
+          "type": "string",
+          "description": "Facebook fanpage URL"
+        },
+        "zaloUrl": {
+          "type": "string",
+          "description": "Zalo group or contact URL"
+        },
+        "tiktokUrl": {
+          "type": "string",
+          "description": "TikTok channel URL"
+        },
+        "website": {
+          "type": "string",
+          "description": "Official domain name"
+        },
+        "websiteUrl": {
+          "type": "string",
+          "description": "Official website URL"
+        },
+        "hoursVi": {
+          "type": "string",
+          "description": "Operating hours in Vietnamese"
+        },
+        "hoursEn": {
+          "type": "string",
+          "description": "Operating hours in English"
+        },
+        "consultationNoticeVi": {
+          "type": "string",
+          "description": "Consultation booking notice in Vietnamese"
+        },
+        "consultationNoticeEn": {
+          "type": "string",
+          "description": "Consultation booking notice in English"
+        },
+        "logoUrl": {
+          "type": "string",
+          "description": "Custom dark/black brand logo URL or WebP data URL for Light Mode"
+        },
+        "logoWhiteUrl": {
+          "type": "string",
+          "description": "Custom white/light brand logo URL or WebP data URL for Dark Mode"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of last modification"
+        }
       },
-      "required": ["name", "phone", "addressVi"]
-    },
-    "SecuritySettings": {
-      "title": "SecuritySettings",
-      "description": "Admin access security credentials and authentication configurations",
-      "type": "object",
-      "properties": {
-        "adminPassword": { "type": "string", "description": "Administrative password for managing the atelier" },
-        "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp when password was last changed" },
-        "updatedBy": { "type": "string", "description": "Actor who made the modification" }
-      },
-      "required": ["adminPassword"]
+      "required": [
+        "name",
+        "phone",
+        "addressVi"
+      ]
     },
     "BespokeOrder": {
       "title": "BespokeOrder",
       "description": "Customer bespoke floral consultation or specimen order with optional digital wax-seal card",
       "type": "object",
       "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the order" },
-        "orderCode": { "type": "string", "description": "Human-readable order tracking code e.g. JU-2610-842" },
-        "customerName": { "type": "string", "description": "Customer full name" },
-        "customerPhone": { "type": "string", "description": "Customer phone/Zalo number" },
-        "customerEmail": { "type": "string", "description": "Customer email address" },
-        "flowerId": { "type": "string", "description": "Selected primary flower specimen ID if applicable" },
-        "flowerName": { "type": "string", "description": "Selected primary flower specimen name" },
-        "flowerImage": { "type": "string", "description": "Selected primary flower specimen image" },
-        "moodboardItems": { "type": "array", "description": "List of curated moodboard flower names included in the consultation" },
-        "occasion": { "type": "string", "description": "Occasion type e.g. bridal, anniversary, corporate" },
-        "deliveryDate": { "type": "string", "description": "Preferred delivery or consultation date" },
-        "deliveryTimeSlot": { "type": "string", "description": "Preferred delivery time window slot" },
-        "district": { "type": "string", "description": "Delivery district in Ho Chi Minh City" },
-        "budgetVnd": { "type": "number", "description": "Estimated budget in VND" },
-        "notes": { "type": "string", "description": "Customer bespoke concept notes" },
-        "giftCard": { "type": "object", "description": "Bespoke digital wax-seal greeting card configuration" },
-        "status": { "type": "string", "enum": ["pending", "conditioning", "crafting", "quality_check", "delivering", "completed", "cancelled"], "description": "Current 6-stage sequential fulfillment status" },
-        "assignedFlorist": { "type": "string", "description": "Assigned master florist or artisan" },
-        "finishedPhotoUrl": { "type": "string", "description": "Pre-delivery quality check photo of the finished floral piece" },
-        "workflowChecklist": { "type": "object", "description": "Sequential operational checklist for florists" },
-        "workflowHistory": { "type": "array", "description": "Timestamped log of sequential stage transitions" },
-        "substitutionPolicy": { "type": "string", "enum": ["allow_equivalent", "strict_confirm", "designer_choice"], "description": "Customer preference for seasonal stem substitution" },
-        "suppliesDeducted": { "type": "boolean", "description": "Whether hard goods & conditioning supplies have been deducted for this order" },
-        "adminNote": { "type": "string", "description": "Internal atelier concierge note" },
-        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
-        "updatedAt": { "type": "string", "format": "date-time", "description": "Last status update timestamp" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the order"
+        },
+        "orderCode": {
+          "type": "string",
+          "description": "Human-readable order tracking code e.g. JU-2610-842"
+        },
+        "customerName": {
+          "type": "string",
+          "description": "Customer full name"
+        },
+        "customerPhone": {
+          "type": "string",
+          "description": "Customer phone/Zalo number"
+        },
+        "customerEmail": {
+          "type": "string",
+          "description": "Customer email address"
+        },
+        "flowerId": {
+          "type": "string",
+          "description": "Selected primary flower specimen ID if applicable"
+        },
+        "flowerName": {
+          "type": "string",
+          "description": "Selected primary flower specimen name"
+        },
+        "flowerImage": {
+          "type": "string",
+          "description": "Selected primary flower specimen image"
+        },
+        "moodboardItems": {
+          "type": "array",
+          "description": "List of curated moodboard flower names included in the consultation"
+        },
+        "occasion": {
+          "type": "string",
+          "description": "Occasion type e.g. bridal, anniversary, corporate"
+        },
+        "deliveryDate": {
+          "type": "string",
+          "description": "Preferred delivery or consultation date"
+        },
+        "deliveryTimeSlot": {
+          "type": "string",
+          "description": "Preferred delivery time window slot"
+        },
+        "district": {
+          "type": "string",
+          "description": "Delivery district in Ho Chi Minh City"
+        },
+        "budgetVnd": {
+          "type": "number",
+          "description": "Estimated budget in VND"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Customer bespoke concept notes"
+        },
+        "giftCard": {
+          "type": "object",
+          "description": "Bespoke digital wax-seal greeting card configuration"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "conditioning",
+            "crafting",
+            "quality_check",
+            "delivering",
+            "completed",
+            "cancelled"
+          ],
+          "description": "Current 6-stage sequential fulfillment status"
+        },
+        "assignedFlorist": {
+          "type": "string",
+          "description": "Assigned master florist or artisan"
+        },
+        "finishedPhotoUrl": {
+          "type": "string",
+          "description": "Pre-delivery quality check photo of the finished floral piece"
+        },
+        "workflowChecklist": {
+          "type": "object",
+          "description": "Sequential operational checklist for florists"
+        },
+        "workflowHistory": {
+          "type": "array",
+          "description": "Timestamped log of sequential stage transitions"
+        },
+        "substitutionPolicy": {
+          "type": "string",
+          "enum": [
+            "allow_equivalent",
+            "strict_confirm",
+            "designer_choice"
+          ],
+          "description": "Customer preference for seasonal stem substitution"
+        },
+        "suppliesDeducted": {
+          "type": "boolean",
+          "description": "Whether hard goods & conditioning supplies have been deducted for this order"
+        },
+        "adminNote": {
+          "type": "string",
+          "description": "Internal atelier concierge note"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last status update timestamp"
+        }
       },
-      "required": ["id", "orderCode", "customerName", "customerPhone", "status", "createdAt"]
+      "required": [
+        "id",
+        "orderCode",
+        "customerName",
+        "customerPhone",
+        "status",
+        "createdAt"
+      ]
     },
     "SupplyItem": {
       "title": "SupplyItem",
       "description": "Atelier floral supply, vessel, packaging, wax seal, or conditioning material",
       "type": "object",
       "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the supply item" },
-        "sku": { "type": "string", "description": "Stock keeping unit code e.g. VES-01" },
-        "nameVi": { "type": "string", "description": "Supply item name in Vietnamese" },
-        "nameEn": { "type": "string", "description": "Supply item name in English" },
-        "category": { "type": "string", "enum": ["vessels", "packaging", "conditioning", "stems"], "description": "Supply group category" },
-        "unit": { "type": "string", "description": "Measurement unit e.g. Chiếc, Hộp, Cuộn" },
-        "currentStock": { "type": "number", "description": "Current quantity in stock" },
-        "minThreshold": { "type": "number", "description": "Minimum safe threshold during normal months" },
-        "unitCostVnd": { "type": "number", "description": "Estimated unit cost in VND" },
-        "peakBoostFactor": { "type": "number", "description": "Demand multiplier during peak floral months" },
-        "supplierNote": { "type": "string", "description": "Supplier or storage instruction note" },
-        "updatedAt": { "type": "string", "format": "date-time", "description": "Last updated timestamp" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the supply item"
+        },
+        "sku": {
+          "type": "string",
+          "description": "Stock keeping unit code e.g. VES-01"
+        },
+        "nameVi": {
+          "type": "string",
+          "description": "Supply item name in Vietnamese"
+        },
+        "nameEn": {
+          "type": "string",
+          "description": "Supply item name in English"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "vessels",
+            "packaging",
+            "conditioning",
+            "stems"
+          ],
+          "description": "Supply group category"
+        },
+        "unit": {
+          "type": "string",
+          "description": "Measurement unit e.g. Chiếc, Hộp, Cuộn"
+        },
+        "currentStock": {
+          "type": "number",
+          "description": "Current quantity in stock"
+        },
+        "minThreshold": {
+          "type": "number",
+          "description": "Minimum safe threshold during normal months"
+        },
+        "unitCostVnd": {
+          "type": "number",
+          "description": "Estimated unit cost in VND"
+        },
+        "peakBoostFactor": {
+          "type": "number",
+          "description": "Demand multiplier during peak floral months"
+        },
+        "supplierNote": {
+          "type": "string",
+          "description": "Supplier or storage instruction note"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last updated timestamp"
+        }
       },
-      "required": ["id", "sku", "nameVi", "category", "currentStock", "minThreshold"]
+      "required": [
+        "id",
+        "sku",
+        "nameVi",
+        "category",
+        "currentStock",
+        "minThreshold"
+      ]
     },
     "WorkshopBooking": {
       "title": "WorkshopBooking",
       "description": "Client or corporate registration for a botanical floral workshop",
       "type": "object",
       "properties": {
-        "id": { "type": "string", "description": "Unique booking identifier" },
-        "bookingCode": { "type": "string", "description": "Human-readable booking code e.g. WS-2610-519" },
-        "workshopId": { "type": "string", "description": "Selected workshop ID" },
-        "workshopName": { "type": "string", "description": "Selected workshop title" },
-        "customerName": { "type": "string", "description": "Registrant or corporate contact name" },
-        "customerPhone": { "type": "string", "description": "Registrant phone/Zalo number" },
-        "customerEmail": { "type": "string", "description": "Registrant email" },
-        "companyName": { "type": "string", "description": "Company or group name if corporate" },
-        "participantsCount": { "type": "number", "description": "Number of participants (pax)" },
-        "preferredDate": { "type": "string", "description": "Preferred workshop date" },
-        "locationType": { "type": "string", "description": "At JU Atelier or On-site at client venue" },
-        "notes": { "type": "string", "description": "Special requests or theme notes" },
-        "status": { "type": "string", "enum": ["pending", "confirmed", "completed", "cancelled"], "description": "Booking confirmation status" },
-        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
-        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp" }
+        "id": {
+          "type": "string",
+          "description": "Unique booking identifier"
+        },
+        "bookingCode": {
+          "type": "string",
+          "description": "Human-readable booking code e.g. WS-2610-519"
+        },
+        "workshopId": {
+          "type": "string",
+          "description": "Selected workshop ID"
+        },
+        "workshopName": {
+          "type": "string",
+          "description": "Selected workshop title"
+        },
+        "customerName": {
+          "type": "string",
+          "description": "Registrant or corporate contact name"
+        },
+        "customerPhone": {
+          "type": "string",
+          "description": "Registrant phone/Zalo number"
+        },
+        "customerEmail": {
+          "type": "string",
+          "description": "Registrant email"
+        },
+        "companyName": {
+          "type": "string",
+          "description": "Company or group name if corporate"
+        },
+        "participantsCount": {
+          "type": "number",
+          "description": "Number of participants (pax)"
+        },
+        "preferredDate": {
+          "type": "string",
+          "description": "Preferred workshop date"
+        },
+        "locationType": {
+          "type": "string",
+          "description": "At JU Atelier or On-site at client venue"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Special requests or theme notes"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "confirmed",
+            "completed",
+            "cancelled"
+          ],
+          "description": "Booking confirmation status"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp"
+        }
       },
-      "required": ["id", "bookingCode", "workshopName", "customerName", "customerPhone", "status", "createdAt"]
+      "required": [
+        "id",
+        "bookingCode",
+        "workshopName",
+        "customerName",
+        "customerPhone",
+        "status",
+        "createdAt"
+      ]
+    },
+    "Staff": {
+      "title": "Staff",
+      "description": "Authorized staff member. Document ID is the lowercase Google email. The owner email is fixed in firestore.rules and needs no document.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "Lowercase Google account email (same as document ID)"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "manager",
+            "sales",
+            "florist"
+          ],
+          "description": "Staff role"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional display name"
+        },
+        "active": {
+          "type": "boolean",
+          "description": "False suspends access without deleting the record"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "email",
+        "role",
+        "active"
+      ]
     }
   },
   "firestore": {
     "/flowers/{flowerId}": {
-      "schema": { "$ref": "#/entities/Flower" },
+      "schema": {
+        "$ref": "#/entities/Flower"
+      },
       "description": "Collection storing all botanical flower arrangement specimens"
     },
     "/workshops/{workshopId}": {
-      "schema": { "$ref": "#/entities/Workshop" },
+      "schema": {
+        "$ref": "#/entities/Workshop"
+      },
       "description": "Collection storing all botanical workshop programs"
     },
     "/settings/atelier": {
-      "schema": { "$ref": "#/entities/AtelierSettings" },
+      "schema": {
+        "$ref": "#/entities/AtelierSettings"
+      },
       "description": "Singleton document storing atelier brand configuration, social links, and logo"
     },
-    "/settings/security": {
-      "schema": { "$ref": "#/entities/SecuritySettings" },
-      "description": "Singleton document storing admin password and security credentials"
-    },
     "/orders/{orderId}": {
-      "schema": { "$ref": "#/entities/BespokeOrder" },
+      "schema": {
+        "$ref": "#/entities/BespokeOrder"
+      },
       "description": "Collection storing customer bespoke floral orders, consultations, and wax-seal cards"
     },
     "/workshop_bookings/{bookingId}": {
-      "schema": { "$ref": "#/entities/WorkshopBooking" },
+      "schema": {
+        "$ref": "#/entities/WorkshopBooking"
+      },
       "description": "Collection storing workshop registrations and corporate booking inquiries"
     },
     "/supplies/{supplyId}": {
-      "schema": { "$ref": "#/entities/SupplyItem" },
+      "schema": {
+        "$ref": "#/entities/SupplyItem"
+      },
       "description": "Collection storing atelier floral supplies, vessels, packaging, and conditioning tools"
+    },
+    "/staff/{email}": {
+      "schema": {
+        "$ref": "#/entities/Staff"
+      },
+      "description": "Staff roles and access. Only the owner can write."
     }
   }
 }

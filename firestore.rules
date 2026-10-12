@@ -1,82 +1,144 @@
 rules_version = '2';
 
-// BẢN NHÁP — viết theo giả định về cấu trúc dữ liệu (chưa đọc được file gốc).
-// Cần đối chiếu tên collection/field với code trong src/ trước khi deploy.
+// Phân quyền theo vai trò:
+//   owner   : chủ hệ thống (email cố định bên dưới) - toàn quyền, quản lý nhân sự
+//   manager : quản lý nội dung, vật tư, đơn hàng, workshop
+//   sales   : bán hàng - xem và xử lý đơn, đăng ký workshop
+//   florist : thợ hoa - cập nhật tiến độ đơn, dùng vật tư
+// Nhân sự được khai báo trong collection /staff/{email} với field role.
+// Chỉ owner mới thêm/sửa/xóa được tài liệu trong /staff.
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ---------- Hàm dùng chung ----------
-    function isSignedIn() {
-      return request.auth != null;
+    // ---------- Danh tính & vai trò ----------
+    function verified() {
+      return request.auth != null && request.auth.token.email_verified == true;
     }
 
-    function isOwner(uid) {
-      return isSignedIn() && request.auth.uid == uid;
+    // Chủ hệ thống: ghi cứng trong rules, không ai có thể tự nâng quyền thành owner.
+    function isOwner() {
+      return verified() && request.auth.token.email == 'nhatduy.halo@gmail.com';
     }
 
-    // Admin = email đã xác minh nằm trong danh sách này.
-    // THAY bằng email của bạn.
-    function isAdmin() {
-      return isSignedIn()
-        && request.auth.token.email_verified == true
-        && request.auth.token.email in ['nhatduy.halo@gmail.com'];
+    function staffDoc() {
+      return get(/databases/$(database)/documents/staff/$(request.auth.token.email));
     }
 
-    function isString(v, min, max) {
-      return v is string && v.size() >= min && v.size() <= max;
+    function isStaff() {
+      return verified()
+        && exists(/databases/$(database)/documents/staff/$(request.auth.token.email))
+        && staffDoc().data.get('active', true) == true;
     }
 
-    // ---------- Danh mục hoa / bách khoa thực vật (công khai) ----------
-    // Ai cũng xem được, chỉ admin được thêm/sửa/xóa.
-    match /flowers/{flowerId} {
+    function hasRole(roles) {
+      return isOwner() || (isStaff() && staffDoc().data.role in roles);
+    }
+
+    // ---------- Kiểm tra dữ liệu ----------
+    function str(d, k, min, max) {
+      return (k in d) && d[k] is string && d[k].size() >= min && d[k].size() <= max;
+    }
+
+    function optStr(d, k, max) {
+      return !(k in d) || (d[k] is string && d[k].size() <= max);
+    }
+
+    // ---------- Nhân sự ----------
+    // Nhân sự đọc được hồ sơ của chính mình (để app biết vai trò). Chỉ owner ghi.
+    match /staff/{email} {
+      allow read: if isOwner()
+        || (verified() && request.auth.token.email == email);
+      allow write: if isOwner();
+    }
+
+    // ---------- Nội dung công khai ----------
+    match /flowers/{id} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if hasRole(['manager']);
     }
 
-    match /articles/{articleId} {
+    match /workshops/{id} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if hasRole(['manager']);
     }
 
-    // ---------- Hồ sơ người dùng ----------
-    // Mỗi người chỉ đọc/ghi hồ sơ của chính mình, không tự cấp quyền admin.
-    match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId)
-        && !('role' in request.resource.data)
-        && !('isAdmin' in request.resource.data);
-      allow update: if (isOwner(userId)
-        && !request.resource.data.diff(resource.data).affectedKeys()
-              .hasAny(['role', 'isAdmin']))
-        || isAdmin();
-      allow delete: if isAdmin();
+    match /settings/atelier {
+      allow read: if true;
+      allow write: if hasRole(['manager']);
+    }
+
+    // Không dùng mật khẩu lưu trong Firestore nữa.
+    match /settings/security {
+      allow read, write: if false;
+    }
+
+    // ---------- Kho vật tư ----------
+    match /supplies/{id} {
+      allow read: if hasRole(['manager', 'sales', 'florist']);
+      allow write: if hasRole(['manager', 'florist']);
     }
 
     // ---------- Đơn đặt hoa ----------
-    // Khách chưa đăng nhập vẫn được gửi đơn (chỉ tạo, không đọc lại được).
-    // Admin xem và cập nhật trạng thái mọi đơn.
-    // Người đã đăng nhập xem được đơn do chính mình tạo (nếu đơn có userId).
-    match /orders/{orderId} {
-      allow read: if isAdmin()
-        || (isSignedIn() && resource.data.get('userId', '') == request.auth.uid);
+    match /orders/{id} {
+      allow read: if hasRole(['manager', 'sales', 'florist']);
 
-      allow create: if isString(request.resource.data.name, 1, 100)
-        && isString(request.resource.data.phone, 6, 20)
-        && request.resource.data.keys().size() <= 15
-        && request.resource.data.get('status', 'pending') == 'pending'
-        && (!('userId' in request.resource.data)
-            || (isSignedIn() && request.resource.data.userId == request.auth.uid));
+      // Khách (kể cả chưa đăng nhập) được gửi đơn nhưng không đọc lại được.
+      allow create: if request.resource.data.keys().hasOnly([
+            'id', 'orderCode', 'customerName', 'customerPhone', 'customerEmail',
+            'flowerId', 'flowerName', 'flowerImage', 'moodboardItems', 'occasion',
+            'deliveryDate', 'deliveryTimeSlot', 'district', 'budgetVnd', 'notes',
+            'giftCard', 'status', 'assignedFlorist', 'finishedPhotoUrl',
+            'workflowChecklist', 'workflowHistory', 'substitutionPolicy',
+            'suppliesDeducted', 'adminNote', 'createdAt', 'updatedAt'
+          ])
+        && str(request.resource.data, 'customerName', 1, 100)
+        && str(request.resource.data, 'customerPhone', 6, 20)
+        && request.resource.data.status == 'pending'
+        && optStr(request.resource.data, 'customerEmail', 200)
+        && optStr(request.resource.data, 'notes', 3000)
+        && optStr(request.resource.data, 'district', 100)
+        && optStr(request.resource.data, 'occasion', 100)
+        && (!('budgetVnd' in request.resource.data)
+            || (request.resource.data.budgetVnd is number
+                && request.resource.data.budgetVnd >= 0
+                && request.resource.data.budgetVnd <= 1000000000));
 
-      allow update, delete: if isAdmin();
+      // Manager và sales sửa đầy đủ; thợ hoa chỉ sửa các field tiến độ sản xuất.
+      allow update: if hasRole(['manager', 'sales'])
+        || (hasRole(['florist'])
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                 'status', 'workflowChecklist', 'workflowHistory', 'assignedFlorist',
+                 'finishedPhotoUrl', 'suppliesDeducted', 'adminNote', 'updatedAt'
+               ]));
+
+      // Chỉ owner được xóa đơn.
+      allow delete: if isOwner();
     }
 
-    // ---------- Liên hệ / form gửi tin nhắn (nếu có) ----------
-    // Ai cũng gửi được (có giới hạn độ dài), chỉ admin đọc.
-    match /messages/{messageId} {
-      allow create: if isString(request.resource.data.name, 1, 100)
-        && isString(request.resource.data.message, 1, 2000);
-      allow read, update, delete: if isAdmin();
+    // ---------- Đăng ký workshop ----------
+    match /workshop_bookings/{id} {
+      allow read: if hasRole(['manager', 'sales']);
+
+      allow create: if request.resource.data.keys().hasOnly([
+            'id', 'bookingCode', 'workshopId', 'workshopName', 'customerName',
+            'customerPhone', 'customerEmail', 'companyName', 'participantsCount',
+            'preferredDate', 'locationType', 'notes', 'status',
+            'createdAt', 'updatedAt'
+          ])
+        && str(request.resource.data, 'customerName', 1, 100)
+        && str(request.resource.data, 'customerPhone', 6, 20)
+        && request.resource.data.status == 'pending'
+        && optStr(request.resource.data, 'customerEmail', 200)
+        && optStr(request.resource.data, 'companyName', 200)
+        && optStr(request.resource.data, 'notes', 3000)
+        && (!('participantsCount' in request.resource.data)
+            || (request.resource.data.participantsCount is number
+                && request.resource.data.participantsCount >= 1
+                && request.resource.data.participantsCount <= 500));
+
+      allow update: if hasRole(['manager', 'sales']);
+      allow delete: if isOwner();
     }
 
     // ---------- Mặc định: chặn mọi thứ còn lại ----------
